@@ -1,0 +1,16 @@
+{
+  "name": "copyboard",
+  "version": "0.2.0",
+  "description": "as a page to copy text to other desktops",
+  "main": "server.coffee",
+  "scripts": {
+    "test": "coffee server.coffee"
+  },
+  "repository": "",
+  "author": "jiyinyiyong",
+  "license": "MIT",
+  "dependencies": {
+    "socket.io": "latest",
+    "mongodb": "1.0.x"
+  }
+}

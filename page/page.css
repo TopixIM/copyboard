@@ -1,0 +1,96 @@
+* {
+  box-sizing: border-box;
+  font-family: "Monaco", 'wenquanyi micro hei mono', "moonospace";
+  -webkit-transition-duration: 0.1s;
+}
+::-webkit-scrollbar {
+  width: 4px;
+  height: 4px;
+}
+::-webkit-scrollbar-track {
+  width: 4px;
+  background: #fee7e7;
+}
+::-webkit-scrollbar-thumb {
+  background: #e6b3b3;
+  border-radius: 2px;
+}
+body {
+  margin: 0px;
+  padding: 0px;
+  font-family: "Monaco", 'wenquanyi micro hei mono', monospace;
+  background: #e6e6e6;
+}
+#box {
+  width: 800px;
+  margin: 0px auto;
+  padding: 40px 0px 40px 0px;
+}
+button {
+  border: none;
+  cursor: pointer;
+}
+.unit {
+  padding: 10px;
+}
+.text {
+  width: 700px;
+  min-height: 60px;
+  border: none;
+  outline: none;
+  display: inline-block;
+  box-shadow: 0px 0px 10px #ccc;
+  padding: 7px;
+  font-size: 14px;
+  overflow: auto;
+  margin-right: 10px;
+  background: #fff;
+}
+.text a {
+  color: #00f;
+  text-decoration: none;
+}
+textarea {
+  height: 300px;
+  resize: none;
+}
+.link {
+  vertical-align: top;
+  margin: 5px;
+  display: inline-block;
+  text-decoration: none;
+  background: #fff;
+  padding: 4px 8px;
+  box-shadow: 0px 0px 4px #808080;
+}
+.link:hover {
+  box-shadow: 1px 0px 8px #808080;
+}
+#more {
+  width: 400px;
+  height: 40px;
+  margin: 0px auto;
+  padding: 10px;
+  text-align: center;
+  cursor: pointer;
+}
+#more:hover {
+  background: #fff;
+}
+#writer {
+  box-shadow: 0px 0px 6px #ccc;
+  width: 900px;
+  height: 100%;
+  margin: 0px auto;
+}
+#writer textarea {
+  border: none;
+  outline: none;
+  width: 100%;
+  height: 100%;
+  background: rgba(0,0,0,0);
+  padding: 10px 10px 600px 10px;
+  font-size: 16px;
+  letter-spacing: 0px;
+  line-height: 24px;
+}

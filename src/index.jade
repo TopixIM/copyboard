@@ -1,0 +1,16 @@
+
+html
+  head
+    title copyboard
+    link(rel='stylesheet',href='page.css')
+    meta(chatset='utf-8')
+    //- script(src='http://192.168.1.19:7777/doodle.js')
+    script(src='../components/jquery/jquery.js')
+    script(src='../components/socket.io-client/dist/socket.io.js')
+    script(src='handle.js')
+  body
+    #box
+      .unit
+        textarea.text#text
+        button.link#send send
+    #more More?
