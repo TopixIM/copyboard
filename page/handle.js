@@ -4,7 +4,7 @@ var escape, hostname, unit;
 hostname = location.origin;
 
 escape = function(text) {
-  return text.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>').replace(/\s/g, '&nbsp;').replace(/(http(s)?:\/\/[\d\w\/\.\%\&\?\=\-\#\:\+]+)/g, '<a href="$1">$1</a>');
+  return text.replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/\n/g, '<br>').replace(/\s/g, '&nbsp;').replace(/(http(s)?:\/\/[\d\w\/\.\%\&\?\=\-\#\:\+]+)/g, '<a href="$1" target="_blank">$1</a>');
 };
 
 unit = function(data) {

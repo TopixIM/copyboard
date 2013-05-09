@@ -7,7 +7,7 @@ escape = (text) ->
     .replace(/>/g, '&gt;')
     .replace(/\n/g, '<br>')
     .replace(/\s/g, '&nbsp;')
-    .replace(/(http(s)?:\/\/[\d\w\/\.\%\&\?\=\-\#\:\+]+)/g, '<a href="$1">$1</a>')
+    .replace(/(http(s)?:\/\/[\d\w\/\.\%\&\?\=\-\#\:\+]+)/g, '<a href="$1" target="_blank">$1</a>')
 
 unit = (data) ->
   """
