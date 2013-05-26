@@ -9,7 +9,7 @@ make = (str) -> str.split " "
 d = __dirname
 
 queue = [
-  "jade -O #{d}/page/ -wP #{d}/src/index.jade"
+  "jade -o #{d}/ -wP #{d}/src/index.jade"
   "stylus -o #{d}/page/ -w #{d}/src/"
   "coffee -o #{d}/page -wb #{d}/src/"
   "doodle #{d}/page/ #{d}/server.coffee"

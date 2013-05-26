@@ -8,6 +8,7 @@ make = -> new Date().getTime().toString()
 url = 'mongodb://copyboard:copyboard@localhost:27017/copyboard'
 mongodb = require 'mongodb'
 mongodb.connect url, (err, db) ->
+  if err? then throw err
   db.collection 'base', (err, base) ->
 
     io.sockets.on 'connection', (s) ->
@@ -24,7 +25,7 @@ mongodb.connect url, (err, db) ->
         criteria = mark: data.mark
         update = data
         options = upsert: yes
-        base.update criteria,  update, options
+        base.update criteria,  update, options, ->
 
       s.on 'more', (mark) ->
         query = mark: {$lt: mark}
