@@ -2,7 +2,22 @@
   "name": "copyboard",
   "version": "0.1.0",
   "dependencies": {
-    "jquery": "*",
-    "socket.io-client": "*"
-  }
+    "vue": "~0.10.3"
+  },
+  "homepage": "https://github.com/jiyinyiyong/copyboard",
+  "authors": [
+    "jiyinyiyong <jiyinyiyong@gmail.com>"
+  ],
+  "description": "copyboard",
+  "keywords": [
+    "copy"
+  ],
+  "license": "MIT",
+  "ignore": [
+    "**/.*",
+    "node_modules",
+    "bower_components",
+    "test",
+    "tests"
+  ]
 }

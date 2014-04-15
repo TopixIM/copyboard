@@ -12,5 +12,9 @@
   "dependencies": {
     "socket.io": "latest",
     "mongodb": "1.0.x"
+  },
+  "devDependencies": {
+    "cirru-html": "~0.1.7",
+    "devtools-reloader-station": "0.0.4"
   }
 }
