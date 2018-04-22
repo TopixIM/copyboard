@@ -1,24 +1,42 @@
 
-Copyboard: realtime copyboard
+Cumulo Worflow
 ------
 
-Making it easy to share text content among computers.
+> Personal project template for creating realtime apps. Accomplished with [recollect](https://github.com/Cumulo/recollect) and [calcit-workrlow](https://github.com/mvc-works/calcit-workflow).
 
-Demo: http://cp.tiye.me
+Features:
 
-![](http://jiyinyiyong.u.qiniudn.com/cp.png)
+* hot swapping client & server
+* developing realtime app like building an SPA
+* ClojureScript by default
 
-This small tool is based on vuejs, cirru-html and ws.
+View showcases on http://topix.im/ .
 
-### Install
+### Usages
+
+To develop:
 
 ```bash
-npm i
-bower i
-coffee make.coffee comple # generate HTML and JS
-pm2 start process.json # run app.coffee
-sudo nginx -s reload # serving HTML/CSS/JS with Nginx
+yarn
+yarn watch
+# another terminal
+node target/main.js
+# another terminal
+yarn page
+# open http://localhost:7000
 ```
+
+To build and optimize:
+
+```bash
+yarn build-local
+```
+
+Code is editing with [calcit-editor](https://github.com/Cirru/calcit-editor).
+
+### Workflow
+
+https://github.com/Cumulo/cumulo-workflow
 
 ### License
 

@@ -1,7 +1,7 @@
 
-node_modules/
-bower_components/
-
-js/
-
-index.html
+/target
+/dist
+/node_modules
+.shadow-cljs/
+.cpcache/
+.nrepl-port
