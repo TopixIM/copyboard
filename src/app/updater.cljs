@@ -2,7 +2,8 @@
 (ns app.updater
   (:require [app.updater.session :as session]
             [app.updater.user :as user]
-            [app.updater.router :as router]))
+            [app.updater.router :as router]
+            [app.updater.snippet :as snippet]))
 
 (defn updater [db op op-data sid op-id op-time]
   (let [f (case op
@@ -13,6 +14,7 @@
             :user/log-out user/log-out
             :session/remove-notification session/remove-notification
             :router/change router/change
-            :inc (fn [db] (update db :count inc))
+            :snippet/create snippet/create
+            :snippet/remove-one snippet/remove-one
             (do (println "Unknown op:" op) identity))]
     (f db op-data sid op-id op-time)))
