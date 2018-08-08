@@ -6,10 +6,11 @@
             [respo-ui.colors :as colors]
             [respo.macros
              :refer
-             [defcomp list-> mutation-> action-> button <> span textarea div a]]
+             [defcomp list-> mutation-> cursor-> button <> span textarea pre div a]]
             [respo.comp.space :refer [=<]]
             [clojure.string :as string]
-            [respo-ui.comp.icon :refer [comp-icon]]))
+            [respo-ui.comp.icon :refer [comp-icon]]
+            [app.comp.copied :refer [comp-copied]]))
 
 (defcomp
  comp-home
@@ -21,7 +22,6 @@
      {:style ui/row}
      (textarea
       {:value content,
-       :placeholder "...",
        :style (merge ui/flex ui/textarea {:min-height 80, :font-family ui/font-code}),
        :on-input (mutation-> (assoc state :content (:value %e)))})
      (=< 8 nil)
@@ -42,13 +42,22 @@
              [k
               (div
                {:style (merge ui/row {:margin-bottom 16, :background-color (hsl 0 0 100)})}
-               (textarea
-                {:style (merge
-                         ui/flex
-                         ui/textarea
-                         {:font-family ui/font-code, :min-height 80}),
-                 :value (:content snippet),
-                 :placeholder (:content snippet)})
+               (cursor->
+                k
+                comp-copied
+                states
+                (:content snippet)
+                (pre
+                 {:style (merge
+                          ui/flex
+                          ui/textarea
+                          {:font-family ui/font-code,
+                           :min-height 80,
+                           :margin 0,
+                           :width :auto,
+                           :min-width 400}),
+                  :inner-text (:content snippet),
+                  :placeholder (:content snippet)}))
                (div
                 {:style (merge ui/row {:justify-content :flex-end, :padding 8})}
                 (span
