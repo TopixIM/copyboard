@@ -11,7 +11,7 @@
  (states value child)
  (let [state (or (:data states) {:visible? false})]
    (div
-    {:style {:position :relative, :cursor :pointer},
+    {:style (merge ui/flex {:position :relative, :cursor :pointer}),
      :on-click (fn [e d! m!]
        (copy! value)
        (m! {:visible? true})
@@ -21,7 +21,7 @@
       (div
        {:style {:position :absolute,
                 :top 8,
-                :right 16,
+                :left 8,
                 :background-color :white,
                 :border "1px solid #ddd",
                 :padding "0 8px",

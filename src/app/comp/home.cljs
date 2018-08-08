@@ -10,38 +10,45 @@
             [respo.comp.space :refer [=<]]
             [clojure.string :as string]
             [respo-ui.comp.icon :refer [comp-icon]]
-            [app.comp.copied :refer [comp-copied]]))
+            [app.comp.copied :refer [comp-copied]]
+            [app.style :as style]))
 
 (defcomp
  comp-home
  (states snippets)
  (let [state (or (:data states) {:content ""}), content (:content state)]
    (div
-    {:style (merge ui/flex {:padding "64px 16px 240px 16px", :overflow :auto})}
+    {:style (merge ui/flex {:padding "24px 16px 240px 16px", :overflow :auto})}
     (div
-     {:style ui/row}
+     {:style ui/column}
      (textarea
       {:value content,
        :style (merge ui/flex ui/textarea {:min-height 80, :font-family ui/font-code}),
        :on-input (mutation-> (assoc state :content (:value %e)))})
-     (=< 8 nil)
-     (button
-      {:style ui/button,
-       :on-click (fn [e d! m!]
-         (when (not (string/blank? content))
-           (d! :snippet/create content)
-           (m! (assoc state :content ""))))}
-      (<> "Send")))
+     (=< nil 8)
+     (div
+      {}
+      (button
+       {:style style/button,
+        :on-click (fn [e d! m!]
+          (when (not (string/blank? content))
+            (d! :snippet/create content)
+            (m! (assoc state :content ""))))}
+       (<> "Send"))))
     (=< nil 16)
     (list->
-     {:style ui/column}
+     {:style (merge ui/column {:width "100%"})}
      (->> snippets
           (sort-by (fn [[k snippet]] (unchecked-negate (:time snippet))))
           (map
            (fn [[k snippet]]
              [k
               (div
-               {:style (merge ui/row {:margin-bottom 16, :background-color (hsl 0 0 100)})}
+               {:style (merge
+                        ui/row
+                        {:margin-bottom 16,
+                         :background-color (hsl 0 0 100),
+                         :max-width "100%"})}
                (cursor->
                 k
                 comp-copied
@@ -51,15 +58,10 @@
                  {:style (merge
                           ui/flex
                           ui/textarea
-                          {:font-family ui/font-code,
-                           :min-height 80,
-                           :margin 0,
-                           :width :auto,
-                           :min-width 400}),
-                  :inner-text (:content snippet),
-                  :placeholder (:content snippet)}))
+                          {:font-family ui/font-code, :min-height 80, :margin 0}),
+                  :inner-text (:content snippet)}))
                (div
-                {:style (merge ui/row {:justify-content :flex-end, :padding 8})}
+                {:style (merge {:padding 8})}
                 (span
                  {:style {:cursor :pointer},
                   :on-click (fn [e d! m!]

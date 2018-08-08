@@ -11,12 +11,11 @@
  (logged-in? count-members)
  (div
   {:style (merge
-           ui/column-parted
-           {:width 120,
-            :justify-content :space-between,
-            :padding "0 16px",
+           ui/row-parted
+           {:justify-content :space-between,
+            :padding "8px 16px",
             :font-size 16,
-            :border-right (str "1px solid " (hsl 0 0 0 0.1)),
+            :border-top (str "1px solid " (hsl 0 0 0 0.1)),
             :font-family ui/font-fancy})}
   (div
    {:on-click (action-> :router/change {:name :home}), :style {:cursor :pointer}}
