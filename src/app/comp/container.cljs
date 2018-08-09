@@ -45,20 +45,20 @@
    (if (nil? store)
      (comp-offline)
      (div
-      {:style (merge ui/global ui/fullscreen ui/row)}
-      (comp-navigation (:logged-in? store) (:count store))
+      {:style (merge ui/global ui/fullscreen ui/column)}
       (if (:logged-in? store)
         (case (:name router)
           :home (cursor-> :snippets comp-home states (:snippets store))
           :profile (comp-profile (:user store) (:data router))
           (<> router))
         (comp-login states))
+      (comp-navigation (:logged-in? store) (:count store))
       (comp-status-color (:color store))
-      (when dev? (comp-inspect "Store" store {:bottom 0, :left 0, :max-width "100%"}))
+      (when dev? (comp-inspect "Store" store {:bottom 40, :left 0, :max-width "100%"}))
       (comp-messages
        (get-in store [:session :messages])
        {}
        (fn [info d! m!] (d! :session/remove-message info)))
-      (when dev? (comp-reel (:reel-length store) {}))))))
+      (when dev? (comp-reel (:reel-length store) {:bottom 40}))))))
 
 (def style-body {:padding "8px 16px"})
