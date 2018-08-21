@@ -22,8 +22,8 @@
        {:style {:position :absolute,
                 :top 8,
                 :left 8,
-                :background-color :white,
-                :border "1px solid #ddd",
+                :background-color :black,
+                :color :white,
                 :padding "0 8px",
                 :font-size 12}}
        (<> "Copied"))))))

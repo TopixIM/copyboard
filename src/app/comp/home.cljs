@@ -23,7 +23,10 @@
      {:style ui/column}
      (textarea
       {:value content,
-       :style (merge ui/flex ui/textarea {:min-height 80, :font-family ui/font-code}),
+       :style (merge
+               ui/flex
+               ui/textarea
+               {:min-height 80, :font-family ui/font-code, :overflow :auto}),
        :on-input (mutation-> (assoc state :content (:value %e)))})
      (=< nil 8)
      (div
@@ -58,12 +61,16 @@
                  {:style (merge
                           ui/flex
                           ui/textarea
-                          {:font-family ui/font-code, :min-height 80, :margin 0}),
+                          {:font-family ui/font-code,
+                           :min-height 80,
+                           :margin 0,
+                           :white-space :pre-wrap,
+                           :word-break :break-all}),
                   :inner-text (:content snippet)}))
                (div
                 {:style (merge {:padding 8})}
                 (span
-                 {:style {:cursor :pointer},
+                 {:style {:cursor :pointer, :color (hsl 0 80 80)},
                   :on-click (fn [e d! m!]
                     (let [confirmation? (js/confirm "Sure to delete?")]
                       (when confirmation? (d! :snippet/remove-one (:id snippet)))))}
