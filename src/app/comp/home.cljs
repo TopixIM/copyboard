@@ -11,7 +11,42 @@
             [clojure.string :as string]
             [respo-ui.comp.icon :refer [comp-icon]]
             [app.comp.copied :refer [comp-copied]]
-            [app.style :as style]))
+            [app.style :as style]
+            [respo-alerts.comp.alerts :refer [comp-confirm]]))
+
+(defcomp
+ comp-snippet
+ (states k snippet)
+ (div
+  {:style (merge
+           ui/row
+           {:margin-bottom 16, :background-color (hsl 0 0 100), :max-width "100%"})}
+  (cursor->
+   :copied
+   comp-copied
+   states
+   (:content snippet)
+   (pre
+    {:style (merge
+             ui/flex
+             ui/textarea
+             {:font-family ui/font-code,
+              :min-height 80,
+              :margin 0,
+              :white-space :pre-wrap,
+              :word-break :break-all}),
+     :inner-text (:content snippet)}))
+  (div
+   {:style (merge {:padding 8})}
+   (cursor->
+    :confirm
+    comp-confirm
+    states
+    {:trigger (span
+               {:style {:cursor :pointer, :color (hsl 0 80 80)}}
+               (comp-icon :ios-trash)),
+     :text (println (.-tagName (.-activeElement js/document)))}
+    (fn [e d! m!] (d! :snippet/remove-one (:id snippet)))))))
 
 (defcomp
  comp-home
@@ -44,35 +79,4 @@
      {:style (merge ui/column {:width "100%"})}
      (->> snippets
           (sort-by (fn [[k snippet]] (unchecked-negate (:time snippet))))
-          (map
-           (fn [[k snippet]]
-             [k
-              (div
-               {:style (merge
-                        ui/row
-                        {:margin-bottom 16,
-                         :background-color (hsl 0 0 100),
-                         :max-width "100%"})}
-               (cursor->
-                k
-                comp-copied
-                states
-                (:content snippet)
-                (pre
-                 {:style (merge
-                          ui/flex
-                          ui/textarea
-                          {:font-family ui/font-code,
-                           :min-height 80,
-                           :margin 0,
-                           :white-space :pre-wrap,
-                           :word-break :break-all}),
-                  :inner-text (:content snippet)}))
-               (div
-                {:style (merge {:padding 8})}
-                (span
-                 {:style {:cursor :pointer, :color (hsl 0 80 80)},
-                  :on-click (fn [e d! m!]
-                    (let [confirmation? (js/confirm "Sure to delete?")]
-                      (when confirmation? (d! :snippet/remove-one (:id snippet)))))}
-                 (comp-icon :ios-trash))))])))))))
+          (map (fn [[k snippet]] [k (cursor-> k comp-snippet states k snippet)])))))))
