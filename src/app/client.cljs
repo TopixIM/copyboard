@@ -39,6 +39,13 @@
 
 (def mount-target (.querySelector js/document ".app"))
 
+(defn on-window-keydown [event]
+  (println (.-tagName (.-activeElement js/document)))
+  (when (and (= "Slash" (.-code event))
+             (not= schema/box-name (.-className (.-activeElement js/document))))
+    (.select (.querySelector js/document (str "." schema/box-name)))
+    (.preventDefault event)))
+
 (defn render-app! [renderer]
   (renderer mount-target (comp-container @*states @*store) dispatch!))
 
@@ -50,6 +57,7 @@
   (connect!)
   (add-watch *store :changes #(render-app! render!))
   (add-watch *states :changes #(render-app! render!))
+  (.addEventListener js/window "keydown" #(on-window-keydown %))
   (println "App started!"))
 
 (defn reload! [] (clear-cache!) (render-app! render!) (println "Code updated."))

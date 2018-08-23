@@ -27,6 +27,7 @@
                ui/flex
                ui/textarea
                {:min-height 80, :font-family ui/font-code, :overflow :auto}),
+       :class-name schema/box-name,
        :on-input (mutation-> (assoc state :content (:value %e)))})
      (=< nil 8)
      (div
