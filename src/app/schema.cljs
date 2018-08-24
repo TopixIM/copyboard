@@ -1,6 +1,8 @@
 
 (ns app.schema )
 
+(def box-name "submit-box")
+
 (def configs {:storage-key "workflow-storage", :port 11006})
 
 (def database {:sessions {}, :users {}, :count 0, :snippets {}})
