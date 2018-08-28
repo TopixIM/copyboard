@@ -1,15 +1,15 @@
 {
-  "short_name": "Cumulo",
-  "name": "Cumulo",
+  "short_name": "Copyboard",
+  "name": "Copyboard",
   "icons": [
     {
-      "src": "http://cdn.tiye.me/logo/cumulo.png",
-      "sizes": "460x460"
+      "src": "http://cdn.tiye.me/logo/copyboard.png",
+      "sizes": "230x230"
     }
   ],
   "start_url": "index.html",
   "display": "standalone",
   "orientation": "portrait",
-  "background_color": "#eeeeff",
-  "theme_color": "#eeeeff"
+  "background_color": "#ECCE32",
+  "theme_color": "#ECCE32"
 }
