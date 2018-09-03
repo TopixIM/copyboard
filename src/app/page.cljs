@@ -3,18 +3,25 @@
   (:require [respo.render.html :refer [make-string]]
             [shell-page.core :refer [make-page spit slurp]]
             [app.comp.container :refer [comp-container]]
-            [cljs.reader :refer [read-string]]))
+            [cljs.reader :refer [read-string]]
+            [app.util :refer [get-env!]]
+            [app.config :as config]
+            ["ip" :as ip]
+            [clojure.string :as string]))
 
 (def base-info
   {:title "Copyboard",
-   :icon "http://cdn.tiye.me/logo/cumulo.png",
+   :icon (:icon config/site),
    :ssr nil,
    :inline-styles [(slurp "entry/main.css")]})
 
 (defn dev-page []
   (make-page
    ""
-   (merge base-info {:styles ["http://localhost:8100/main.css"], :scripts ["/client.js"]})))
+   (merge
+    base-info
+    {:styles [(string/replace (:dev-ui config/site) "localhost" (.address ip))],
+     :scripts ["/client.js"]})))
 
 (def preview? (= "preview" js/process.env.prod))
 

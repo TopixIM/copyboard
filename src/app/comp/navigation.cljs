@@ -4,7 +4,8 @@
             [respo-ui.core :as ui]
             [respo-ui.colors :as colors]
             [respo.comp.space :refer [=<]]
-            [respo.macros :refer [defcomp <> action-> span div]]))
+            [respo.macros :refer [defcomp <> action-> span div]]
+            [app.config :as config]))
 
 (defcomp
  comp-navigation
@@ -15,8 +16,9 @@
            {:justify-content :space-between,
             :padding "8px 16px",
             :font-size 16,
-            :border-top (str "1px solid " (hsl 0 0 0 0.1)),
-            :font-family ui/font-fancy})}
+            :font-family ui/font-fancy,
+            :background-color (:theme config/site),
+            :color :white})}
   (div
    {:on-click (action-> :router/change {:name :home}), :style {:cursor :pointer}}
    (<> span "Copyboard" nil))
