@@ -7,3 +7,7 @@ body {
 body * {
   box-sizing: border-box;
 }
+
+::-webkit-input-placeholder { /* Chrome/Opera/Safari */
+  color: #ddd;
+}
