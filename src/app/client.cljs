@@ -39,6 +39,10 @@
 
 (def mount-target (.querySelector js/document ".app"))
 
+(defn on-visibility-change! []
+  (let [status (.-visibilityState js/document)]
+    (when (and (= status "visible") (nil? @*store)) (connect!))))
+
 (defn on-window-keydown [event]
   (println (.-tagName (.-activeElement js/document)))
   (when (and (= "Slash" (.-code event))
@@ -58,6 +62,7 @@
   (add-watch *store :changes #(render-app! render!))
   (add-watch *states :changes #(render-app! render!))
   (.addEventListener js/window "keydown" #(on-window-keydown %))
+  (.addEventListener js/window "visibilitychange" #(on-visibility-change!))
   (println "App started!"))
 
 (defn reload! [] (clear-cache!) (render-app! render!) (println "Code updated."))

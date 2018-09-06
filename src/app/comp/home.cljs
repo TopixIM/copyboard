@@ -54,7 +54,7 @@
                 (span
                  {:style {:cursor :pointer, :color (hsl 0 80 80)}}
                  (comp-icon :ios-trash))),
-      :text (println (.-tagName (.-activeElement js/document)))}
+      :text "Sure to remove?"}
      (fn [e d! m!] (d! :snippet/remove-one (:id snippet))))))))
 
 (defcomp
