@@ -80,11 +80,14 @@
                ui/flex
                ui/textarea
                {:min-height 80, :font-family ui/font-code, :overflow :auto, :width "100%"}),
+       :autofocus true,
        :placeholder "Command Enter to send...",
        :class-name schema/box-name,
        :on-input (mutation-> (assoc state :content (:value %e))),
        :on-keydown (fn [e d! m!]
-         (when (and (= 13 (:keycode e)) (:meta? e)) (send! e d! m!)))})
+         (when (and (= 13 (:keycode e)) (not (:shift? e)))
+           (.preventDefault (:event e))
+           (send! e d! m!)))})
      (div
       {:style {:position :absolute, :right 8, :bottom 8}}
       (a {:style style/link, :on-click (fn [e d! m!] (send! e d! m!))} (<> "Send"))))
