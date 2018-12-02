@@ -2,7 +2,7 @@
 (ns app.comp.copied
   (:require [hsl.core :refer [hsl]]
             [respo-ui.core :as ui]
-            [respo.macros :refer [defcomp list-> cursor-> <> div button textarea span]]
+            [respo.core :refer [defcomp list-> cursor-> <> div button textarea span]]
             [respo.comp.space :refer [=<]]
             ["copy-text-to-clipboard" :as copy!]))
 
