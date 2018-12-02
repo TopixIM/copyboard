@@ -9,10 +9,10 @@
              [defcomp list-> mutation-> cursor-> button <> span textarea pre div a]]
             [respo.comp.space :refer [=<]]
             [clojure.string :as string]
-            [respo-ui.comp.icon :refer [comp-icon]]
             [app.comp.copied :refer [comp-copied]]
             [app.style :as style]
-            [respo-alerts.comp.alerts :refer [comp-confirm]]))
+            [respo-alerts.comp.alerts :refer [comp-confirm]]
+            [feather.core :refer [comp-i]]))
 
 (defcomp
  comp-snippet
@@ -20,42 +20,56 @@
  (div
   {:style (merge
            ui/row
-           {:margin-bottom 16, :background-color (hsl 0 0 100), :max-width "100%"})}
+           {:margin-bottom 16,
+            :background-color (hsl 0 0 100),
+            :max-width "100%",
+            :position :relative})}
   (cursor->
    :copied
    comp-copied
    states
    (:content snippet)
-   (div
-    {:style {:position :relative}}
-    (pre
+   (pre
+    {:style (merge
+             ui/flex
+             {:font-family ui/font-code,
+              :min-height 80,
+              :margin 0,
+              :white-space :pre-wrap,
+              :word-break :break-all,
+              :border (str "1px solid " (hsl 0 0 90)),
+              :padding 16}),
+     :inner-text (:content snippet)}))
+  (if (string/starts-with? (:content snippet) "http")
+    (a
      {:style (merge
-              ui/flex
-              {:font-family ui/font-code,
-               :min-height 80,
-               :margin 0,
-               :white-space :pre-wrap,
-               :word-break :break-all,
-               :border (str "1px solid " (hsl 0 0 90)),
-               :padding 16}),
-      :inner-text (:content snippet)})
-    (cursor->
-     :confirm
-     comp-confirm
-     states
-     {:trigger (div
-                {:style (merge
-                         {:position :absolute,
-                          :bottom 0,
-                          :right 0,
-                          :padding 16,
-                          :background-color (hsl 0 0 0 0.02),
-                          :border-radius 8})}
-                (span
-                 {:style {:cursor :pointer, :color (hsl 0 80 80)}}
-                 (comp-icon :ios-trash))),
-      :text "Sure to remove?"}
-     (fn [e d! m!] (d! :snippet/remove-one (:id snippet))))))))
+              ui/center
+              {:position :absolute,
+               :bottom 0,
+               :right 40,
+               :width 40,
+               :height 40,
+               :cursor :pointer,
+               :background-color (hsl 0 0 0 0.02)}),
+      :on-click (fn [e d! m!] (js/window.open (:content snippet)))}
+     (comp-i :external-link 14 (hsl 200 80 60))))
+  (cursor->
+   :confirm
+   comp-confirm
+   states
+   {:trigger (div
+              {:style (merge
+                       ui/center
+                       {:position :absolute,
+                        :bottom 0,
+                        :right 0,
+                        :background-color (hsl 0 0 0 0.02),
+                        :cursor :pointer,
+                        :width 40,
+                        :height 40})}
+              (comp-i :trash-2 14 (hsl 0 80 70))),
+    :text "Sure to remove?"}
+   (fn [e d! m!] (d! :snippet/remove-one (:id snippet))))))
 
 (defcomp
  comp-home
