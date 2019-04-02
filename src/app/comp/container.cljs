@@ -49,7 +49,7 @@
       (comp-navigation (:logged-in? store) (:count store))
       (if (:logged-in? store)
         (case (:name router)
-          :home (cursor-> :snippets comp-home states (:snippets store))
+          :home (cursor-> :snippets comp-home states (:snippets store) (:show-all? store))
           :profile (comp-profile (:user store) (:data router))
           (<> router))
         (comp-login states))

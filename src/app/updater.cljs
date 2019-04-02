@@ -16,5 +16,6 @@
             :router/change router/change
             :snippet/create snippet/create
             :snippet/remove-one snippet/remove-one
+            :session/show-all session/show-all
             (do (println "Unknown op:" op) identity))]
     (f db op-data sid op-id op-time)))

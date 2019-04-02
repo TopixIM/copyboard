@@ -73,7 +73,7 @@
 
 (defcomp
  comp-home
- (states snippets)
+ (states snippets show-all?)
  (let [state (or (:data states) {:content ""})
        content (:content state)
        send! (fn [e d! m!]
@@ -110,4 +110,16 @@
      {:style (merge ui/column {:width "100%"})}
      (->> snippets
           (sort-by (fn [[k snippet]] (unchecked-negate (:time snippet))))
-          (map (fn [[k snippet]] [k (cursor-> k comp-snippet states k snippet)])))))))
+          (map (fn [[k snippet]] [k (cursor-> k comp-snippet states k snippet)]))))
+    (if-not show-all?
+      (div
+       {:style ui/center}
+       (span
+        {:style {:width 120,
+                 :background-color :white,
+                 :font-family ui/font-fancy,
+                 :text-align :center,
+                 :border (str "1px solid " (hsl 0 0 90)),
+                 :cursor :pointer},
+         :inner-text "Show all",
+         :on-click (fn [e d! m!] (d! :session/show-all nil))}))))))

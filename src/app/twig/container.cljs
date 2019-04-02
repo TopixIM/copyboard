@@ -19,7 +19,13 @@
        base-data {:logged-in? logged-in?,
                   :session session,
                   :count (:count db),
-                  :reel-length (count records)}]
+                  :reel-length (count records)}
+       snippets (if (:show-all? session)
+                  (:snippets db)
+                  (->> (:snippets db)
+                       (sort-by (fn [[k snippet]] (unchecked-negate (:time snippet))))
+                       (take 8)
+                       (into {})))]
    (merge
     base-data
     (if logged-in?
@@ -30,5 +36,6 @@
                 (case (:name router) :profile (twig-members (:sessions db) (:users db)) {})),
        :count (count (:sessions db)),
        :color (color/randomColor),
-       :snippets (:snippets db)}
+       :snippets snippets,
+       :show-all? (:show-all? session)}
       nil))))

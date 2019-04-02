@@ -18,7 +18,8 @@
    :id nil,
    :nickname nil,
    :router {:name :home, :data nil, :router nil},
-   :notifications []})
+   :notifications [],
+   :show-all? false})
 
 (def snippet {:id nil, :content "", :time 0, :author-id nil})
 
