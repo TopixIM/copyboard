@@ -1,16 +1,23 @@
 
-(ns app.config (:require [app.util :refer [get-env!]]))
+(ns app.config )
 
-(def bundle-builds #{"release" "local-bundle"})
+(def cdn?
+  (cond
+    (exists? js/window) false
+    (exists? js/process) (= "true" js/process.env.cdn)
+    :else false))
 
 (def dev?
-  (if (exists? js/window)
-    (do ^boolean js/goog.DEBUG)
-    (not (contains? bundle-builds (get-env! "mode")))))
+  (let [debug? (do ^boolean js/goog.DEBUG)]
+    (if debug?
+      (cond
+        (exists? js/window) true
+        (exists? js/process) (not= "true" js/process.env.release)
+        :else true)
+      false)))
 
 (def site
-  {:storage-key "copyboard",
-   :port 11006,
+  {:port 11006,
    :title "Copyboard",
    :icon "http://cdn.tiye.me/logo/copyboard.png",
    :dev-ui "http://localhost:8100/main.css",
@@ -19,4 +26,6 @@
    :cdn-folder "tiye.me:cdn/copyboard",
    :upload-folder "tiye.me:repo/TopixIM/copyboard/",
    :server-folder "tiye.me:servers/copyboard",
-   :theme "#ECCE32"})
+   :theme "#ECCE32",
+   :storage-key "copyboard",
+   :storage-file "storage.edn"})
