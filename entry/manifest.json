@@ -9,7 +9,7 @@
   ],
   "start_url": "index.html",
   "display": "standalone",
-  "orientation": "landscape",
+  "orientation": "any",
   "background_color": "#ECCE32",
   "theme_color": "#ECCE32"
 }
