@@ -4,12 +4,12 @@
   "icons": [
     {
       "src": "http://cdn.tiye.me/logo/copyboard.png",
-      "sizes": "230x230"
+      "sizes": "320x320"
     }
   ],
   "start_url": "index.html",
   "display": "standalone",
-  "orientation": "any",
+  "orientation": "natural",
   "background_color": "#ECCE32",
   "theme_color": "#ECCE32"
 }

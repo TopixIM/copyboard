@@ -3,7 +3,6 @@
   (:require [hsl.core :refer [hsl]]
             [app.schema :as schema]
             [respo-ui.core :as ui]
-            [respo-ui.colors :as colors]
             [respo.core
              :refer
              [defcomp list-> mutation-> cursor-> button <> span textarea pre div a]]
