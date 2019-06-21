@@ -2,7 +2,6 @@
 (ns app.comp.container
   (:require [hsl.core :refer [hsl]]
             [respo-ui.core :as ui]
-            [respo-ui.colors :as colors]
             [respo.core :refer [defcomp <> div span action-> cursor-> button]]
             [respo.comp.inspect :refer [comp-inspect]]
             [respo.comp.space :refer [=<]]
@@ -12,13 +11,20 @@
             [respo-message.comp.messages :refer [comp-messages]]
             [cumulo-reel.comp.reel :refer [comp-reel]]
             [app.schema :refer [dev?]]
-            [app.comp.home :refer [comp-home]]))
+            [app.comp.home :refer [comp-home]]
+            [app.config :as config]))
 
 (defcomp
  comp-offline
  ()
  (div
-  {:style (merge ui/global ui/fullscreen ui/center)}
+  {:style (merge ui/global ui/fullscreen ui/column-dispersive)}
+  (div nil)
+  (div
+   {:style {:background-image (str "url(" (:icon config/site) ")"),
+            :width 128,
+            :height 128,
+            :background-size :contain}})
   (span
    {:style {:cursor :pointer}, :on-click (action-> :effect/connect nil)}
    (<>
