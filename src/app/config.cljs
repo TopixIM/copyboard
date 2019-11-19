@@ -23,9 +23,6 @@
    :dev-ui "http://localhost:8100/main.css",
    :release-ui "http://cdn.tiye.me/favored-fonts/main.css",
    :cdn-url "http://cdn.tiye.me/copyboard/",
-   :cdn-folder "tiye.me:cdn/copyboard",
-   :upload-folder "tiye.me:repo/TopixIM/copyboard/",
-   :server-folder "tiye.me:servers/copyboard",
    :theme "#ECCE32",
    :storage-key "copyboard",
    :storage-file "storage.edn"})
