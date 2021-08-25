@@ -3717,7 +3717,7 @@
                           |T $ {} (:text |file-content) (:type :leaf) (:at 1554226755533) (:by |root) (:id |pf6N1CNWfNKd)
                           |j $ {}
                             :data $ {}
-                              |T $ {} (:text |pr-str) (:type :leaf) (:at 1554226755533) (:by |root) (:id |Y5M4tApT8ocb)
+                              |T $ {} (:text |format-cirru-edn) (:type :leaf) (:at 1629899090967) (:by |B1y7Rc-Zz) (:id |Y5M4tApT8ocb)
                               |j $ {}
                                 :data $ {}
                                   |T $ {} (:text |assoc) (:type :leaf) (:at 1554226755533) (:by |root) (:id |keKPWcuAAvc2)
