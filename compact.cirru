@@ -1,0 +1,735 @@
+
+{} (:package |app)
+  :configs $ {} (:init-fn |app.server/main!) (:reload-fn |app.server/reload!)
+    :modules $ [] |respo.calcit/ |lilac/ |recollect/ |memof/ |respo-ui.calcit/ |ws-edn.calcit/ |cumulo-util.calcit/ |respo-message.calcit/ |cumulo-reel.calcit/ |respo-feather.calcit/ |alerts.calcit/
+    :version nil
+  :files $ {}
+    |app.updater.snippet $ {}
+      :ns $ quote
+        ns app.updater.snippet $ :require ([] app.schema :as schema)
+      :defs $ {}
+        |remove-one $ quote
+          defn remove-one (db op-data sid op-id op-time)
+            update db :snippets $ fn (snippets) (dissoc snippets op-data)
+        |create $ quote
+          defn create (db op-data sid op-id op-time)
+            assoc-in db ([] :snippets op-id)
+              merge schema/snippet $ {} (:id op-id) (:content op-data) (:time op-time)
+    |app.comp.copied $ {}
+      :ns $ quote
+        ns app.comp.copied $ :require
+          [] hsl.core :refer $ [] hsl
+          [] respo-ui.core :as ui
+          [] respo.core :refer $ [] defcomp list-> >> <> div button textarea span
+          [] respo.comp.space :refer $ [] =<
+          [] "\"copy-text-to-clipboard" :default copy!
+      :defs $ {}
+        |comp-copied $ quote
+          defcomp comp-copied (states value child)
+            let
+                cursor $ :cursor states
+                state $ or (:data states)
+                  {} $ :visible? false
+              div
+                {}
+                  :style $ merge ui/flex
+                    {} (:position :relative) (:cursor :pointer)
+                  :on-click $ fn (e d!) (copy! value)
+                    d! cursor $ {} (:visible? true)
+                    js/setTimeout
+                      \ d! cursor $ {} (:visible? false)
+                      , 1200
+                , child $ when (:visible? state)
+                  div
+                    {} $ :style
+                      {} (:position :absolute) (:top 8) (:left 8) (:background-color :black) (:color :white) (:padding "\"0 8px") (:font-size 12)
+                    <> "\"Copied"
+    |app.comp.home $ {}
+      :ns $ quote
+        ns app.comp.home $ :require
+          [] respo-ui.core :refer $ [] hsl
+          [] app.schema :as schema
+          [] respo-ui.core :as ui
+          [] respo.core :refer $ [] defcomp list-> >> button <> span textarea pre div a
+          [] respo.comp.space :refer $ [] =<
+          [] clojure.string :as string
+          [] app.comp.copied :refer $ [] comp-copied
+          [] app.style :as style
+          [] respo-alerts.core :refer $ [] use-confirm
+          [] feather.core :refer $ [] comp-i
+      :defs $ {}
+        |comp-snippet $ quote
+          defcomp comp-snippet (states k snippet)
+            let
+                remove-plugin $ use-confirm (>> states :remove)
+                  {} $ :text "\"Sure to remove?"
+              div
+                {} $ :style
+                  merge ui/row $ {} (:margin-bottom 16)
+                    :background-color $ hsl 0 0 100
+                    :max-width "\"100%"
+                    :position :relative
+                comp-copied (>> states :copied) (:content snippet)
+                  pre $ {}
+                    :style $ merge ui/flex
+                      {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all)
+                        :border $ str "\"1px solid " (hsl 0 0 90)
+                        :padding 16
+                    :inner-text $ :content snippet
+                if
+                  .starts-with? (:content snippet) "\"http"
+                  a
+                    {}
+                      :style $ merge ui/center
+                        {} (:position :absolute) (:bottom 0) (:right 40) (:width 40) (:height 40) (:cursor :pointer)
+                          :background-color $ hsl 0 0 0 0.02
+                      :on-click $ fn (e d!)
+                        js/window.open $ :content snippet
+                    comp-i :external-link 14 $ hsl 200 80 60
+                div
+                  {}
+                    :style $ merge ui/center
+                      {} (:position :absolute) (:bottom 0) (:right 0)
+                        :background-color $ hsl 0 0 0 0.02
+                        :cursor :pointer
+                        :width 40
+                        :height 40
+                    :on-click $ fn (e d!)
+                      .show remove-plugin d! $ fn ()
+                        d! :snippet/remove-one $ :id snippet
+                  comp-i :trash-2 14 $ hsl 0 80 70
+                .render remove-plugin
+        |comp-home $ quote
+          defcomp comp-home (states snippets show-all?)
+            let
+                cursor $ :cursor states
+                state $ or (:data states)
+                  {} $ :content "\""
+                content $ :content state
+                send! $ fn (e d!)
+                  when
+                    not $ .blank? content
+                    d! :snippet/create content
+                    d! cursor $ assoc state :content "\""
+              div
+                {} $ :style
+                  merge ui/flex $ {} (:padding "\"24px 16px 240px 16px") (:overflow :auto)
+                    :background-color $ hsl 0 0 97
+                div
+                  {} $ :style
+                    {} $ :position :relative
+                  textarea $ {} (:value content)
+                    :style $ merge ui/flex ui/textarea
+                      {} (:min-height 80) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%")
+                    :autofocus true
+                    :placeholder "\"Command Enter to send..."
+                    :class-name schema/box-name
+                    :on-input $ fn (e d!)
+                      d! cursor $ assoc state :content (:value e)
+                    :on-keydown $ fn (e d!)
+                      when
+                        and
+                          = 13 $ :keycode e
+                          not $ :shift? e
+                        .preventDefault $ :event e
+                        send! e d!
+                  div
+                    {} $ :style
+                      {} (:position :absolute) (:right 8) (:bottom 8)
+                    a
+                      {} (:style style/link)
+                        :on-click $ fn (e d!) (send! e d!)
+                      <> "\"Send"
+                =< nil 16
+                list->
+                  {} $ :style
+                    merge ui/column $ {} (:width "\"100%")
+                  -> snippets (.to-list)
+                    .sort-by $ fn (pair)
+                      negate $ :time (last pair)
+                    .map-pair $ fn (k snippet)
+                      [] k $ comp-snippet (>> states k) k snippet
+                if-not show-all? $ div
+                  {} $ :style ui/center
+                  span $ {}
+                    :style $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
+                      :border $ str "\"1px solid " (hsl 0 0 90)
+                      :cursor :pointer
+                    :inner-text "\"Show all"
+                    :on-click $ fn (e d!) (d! :session/show-all nil)
+    |app.comp.container $ {}
+      :ns $ quote
+        ns app.comp.container $ :require
+          [] hsl.core :refer $ [] hsl
+          [] respo-ui.core :as ui
+          [] respo.core :refer $ [] defcomp <> div span >> button
+          [] respo.comp.inspect :refer $ [] comp-inspect
+          [] respo.comp.space :refer $ [] =<
+          [] app.comp.navigation :refer $ [] comp-navigation
+          [] app.comp.profile :refer $ [] comp-profile
+          [] app.comp.login :refer $ [] comp-login
+          [] respo-message.comp.messages :refer $ [] comp-messages
+          [] cumulo-reel.comp.reel :refer $ [] comp-reel
+          [] app.schema :refer $ [] dev?
+          [] app.comp.home :refer $ [] comp-home
+          [] app.config :as config
+      :defs $ {}
+        |comp-container $ quote
+          defcomp comp-container (states store)
+            let
+                cursor $ :cursor states
+                state $ :data states
+                session $ :session store
+                router $ :router store
+              if (nil? store) (comp-offline)
+                div
+                  {} $ :style (merge ui/global ui/fullscreen ui/column)
+                  comp-navigation (:logged-in? store) (:count store)
+                  if (:logged-in? store)
+                    case (:name router)
+                      :home $ comp-home (>> states :snippets) (:snippets store) (:show-all? store)
+                      :profile $ comp-profile (:user store) (:data router)
+                      <> router
+                    comp-login $ >> states :login
+                  comp-status-color $ :color store
+                  when dev? $ comp-inspect |Store store
+                    {} (:bottom 40) (:left 0) (:max-width |100%)
+                  comp-messages
+                    get-in store $ [] :session :messages
+                    {}
+                    fn (info d!) (d! :session/remove-message info)
+                  when dev? $ comp-reel (:reel-length store)
+                    {} $ :bottom 40
+        |comp-offline $ quote
+          defcomp comp-offline () $ div
+            {} $ :style
+              merge ui/global ui/fullscreen ui/column-dispersive $ {}
+                :background-color $ :theme config/site
+            div $ {}
+              :style $ {} (:height 0)
+            div $ {}
+              :style $ {}
+                :background-image $ str "\"url(" (:icon config/site) "\")"
+                :width 128
+                :height 128
+                :background-size :contain
+            div
+              {}
+                :style $ {} (:cursor :pointer) (:line-height "\"32px")
+                :on-click $ fn (e d!) (d! :effect/connect nil)
+              <> "\"No connection..." $ {} (:font-family ui/font-fancy) (:font-size 24)
+        |comp-status-color $ quote
+          defcomp comp-status-color (color)
+            div $ {}
+              :style $ {} (:width 16) (:height 16) (:position :absolute) (:bottom 10) (:left 10) (:background-color color) (:border-radius "\"8px") (:opacity 0.8)
+        |style-body $ quote
+          def style-body $ {} (:padding "|8px 16px")
+    |app.schema $ {}
+      :ns $ quote (ns app.schema)
+      :defs $ {}
+        |notification $ quote
+          def notification $ {} (:id nil) (:kind nil) (:text nil)
+        |dev? $ quote
+          def dev? $ = "\"dev" (get-env "\"mode")
+        |user $ quote
+          def user $ {} (:name nil) (:id nil) (:nickname nil) (:avatar nil) (:password nil)
+        |session $ quote
+          def session $ {} (:user-id nil) (:id nil) (:nickname nil)
+            :router $ {} (:name :home) (:data nil) (:router nil)
+            :messages $ {}
+            :show-all? false
+        |snippet $ quote
+          def snippet $ {} (:id nil) (:content "\"") (:time 0) (:author-id nil)
+        |database $ quote
+          def database $ {}
+            :sessions $ {}
+            :users $ {}
+            :count 0
+            :snippets $ {}
+        |router $ quote
+          def router $ {} (:name nil) (:title nil)
+            :data $ {}
+            :router nil
+        |configs $ quote
+          def configs $ {} (:storage-key "\"workflow-storage") (:port 11006)
+        |box-name $ quote (def box-name "\"submit-box")
+    |app.server $ {}
+      :ns $ quote
+        ns app.server $ :require ([] app.schema :as schema)
+          [] app.updater :refer $ [] updater
+          [] cljs.reader :refer $ [] read-string
+          [] cumulo-reel.core :refer $ [] reel-reducer refresh-reel reel-schema
+          [] "\"fs" :as fs
+          [] "\"path" :as path
+          [] app.config :as config
+          [] cumulo-util.file :refer $ [] write-mildly! get-backup-path! merge-local-edn!
+          [] cumulo-util.core :refer $ [] id! repeat! unix-time! delay!
+          [] app.twig.container :refer $ [] twig-container
+          [] recollect.diff :refer $ [] diff-twig
+          [] recollect.twig :refer $ [] render-twig new-twig-loop! clear-twig-caches!
+          [] ws-edn.server :refer $ [] wss-serve! wss-send! wss-each!
+      :defs $ {}
+        |*initial-db $ quote
+          defatom *initial-db $ merge-local-edn! schema/database storage-file
+            fn (found?)
+              if found? (println "\"Found local EDN data") (println "\"Found no data")
+        |persist-db! $ quote
+          defn persist-db! () $ let
+              file-content $ format-cirru-edn
+                assoc (:db @*reel) :sessions $ {}
+              storage-path storage-file
+              backup-path $ get-backup-path!
+            write-mildly! storage-path file-content
+            write-mildly! backup-path file-content
+        |sync-clients! $ quote
+          defn sync-clients! (reel)
+            wss-each! $ fn (sid socket)
+              let
+                  db $ :db reel
+                  records $ :records reel
+                  session $ get-in db ([] :sessions sid)
+                  old-store $ or (get @*client-caches sid) nil
+                  new-store $ twig-container db session records
+                  changes $ diff-twig old-store new-store
+                    {} $ :key :id
+                when config/dev? $ println "\"Changes for" sid "\":" changes (count records)
+                if
+                  not= changes $ []
+                  do
+                    wss-send! sid $ {} (:kind :patch) (:data changes)
+                    swap! *client-caches assoc sid new-store
+            new-twig-loop!
+        |storage-file $ quote
+          def storage-file $ path/join js/__dirname (:storage-file config/site)
+        |*reader-reel $ quote (defatom *reader-reel @*reel)
+        |*loop $ quote
+          def *loop $
+        |*reel $ quote
+          defatom *reel $ merge reel-schema
+            {} (:base @*initial-db) (:db @*initial-db)
+        |*proxied-dispatch! $ quote (defatom *proxied-dispatch! dispatch!)
+        |main! $ quote
+          defn main! ()
+            println "\"Running mode:" $ if config/dev? "\"dev" "\"release"
+            let
+                port $ if (some? js/process.env.port) (js/parseInt js/process.env.port) (:port config/site)
+              run-server! port
+              println $ str "\"Server started on port:" port
+            render-loop! *loop-trigger
+            js/process.on "\"SIGINT" on-exit!
+            repeat! 600 $ fn () (persist-db!)
+        |*loop-trigger $ quote (defatom *loop-trigger 0)
+        |on-exit! $ quote
+          defn on-exit! (code _) (persist-db!)
+            ; println "\"exit code is:" $ pr-str code
+            js/process.exit
+        |dispatch! $ quote
+          defn dispatch! (op op-data sid)
+            let
+                op-id $ id!
+                op-time $ unix-time!
+              if config/dev? $ println "\"Dispatch!" (str op) op-data sid
+              if (= op :effect/persist) (persist-db!)
+                reset! *reel $ reel-reducer @*reel updater op op-data sid op-id op-time config/dev?
+        |run-server! $ quote
+          defn run-server! (port)
+            wss-serve! port $ {}
+              :on-open $ fn (sid socket) (@*proxied-dispatch! :session/connect nil sid) (println "\"New client.")
+              :on-data $ fn (sid action)
+                case-default (:kind action) (println "\"unknown action:" action)
+                  :op $ @*proxied-dispatch! (:op action) (:data action) sid
+              :on-close $ fn (sid event) (println "\"Client closed!") (@*proxied-dispatch! :session/disconnect nil sid)
+              :on-error $ fn (error) (js/console.error error)
+        |render-loop! $ quote
+          defn render-loop! (*loop)
+            when
+              not $ identical? @*reader-reel @*reel
+              reset! *reader-reel @*reel
+              sync-clients! @*reader-reel
+            reset! *loop $ delay! 0.2
+              fn () $ render-loop! *loop
+        |*client-caches $ quote
+          defatom *client-caches $ {}
+        |reload! $ quote
+          defn reload! () (println "\"Code updated.") (clear-twig-caches!) (reset! *proxied-dispatch! dispatch!)
+            reset! *reel $ refresh-reel @*reel @*initial-db updater
+            js/clearTimeout @*loop-trigger
+            render-loop! *loop-trigger
+            sync-clients! @*reader-reel
+    |app.twig.container $ {}
+      :ns $ quote
+        ns app.twig.container $ :require
+          [] app.twig.user :refer $ [] twig-user
+          [] "\"randomcolor" :as color
+      :defs $ {}
+        |twig-container $ quote
+          defn twig-container (db session records)
+            let
+                logged-in? $ some? (:user-id session)
+                router $ :router session
+                base-data $ {} (:logged-in? logged-in?) (:session session)
+                  :count $ :count db
+                  :reel-length $ count records
+                snippets $ if (:show-all? session) (:snippets db)
+                  -> (:snippets db) (.to-list)
+                    .sort-by $ fn (pair)
+                      negate $ :time (last pair)
+                    take 8
+                    pairs-map
+              merge base-data $ if logged-in?
+                {}
+                  :user $ twig-user
+                    get-in db $ [] :users (:user-id session)
+                  :router $ assoc router :data
+                    case-default (:name router) ({})
+                      :profile $ twig-members (:sessions db) (:users db)
+                  :count $ count (:sessions db)
+                  :color $ color/randomColor
+                  :snippets snippets
+                  :show-all? $ :show-all? session
+                , nil
+        |twig-members $ quote
+          defn twig-members (sessions users)
+            -> sessions $ map-kv
+              fn (k session)
+                [] k $ get-in users
+                  [] (:user-id session) :name
+    |app.updater $ {}
+      :ns $ quote
+        ns app.updater $ :require ([] app.updater.session :as session) ([] app.updater.user :as user) ([] app.updater.router :as router) ([] app.updater.snippet :as snippet)
+      :defs $ {}
+        |updater $ quote
+          defn updater (db op op-data sid op-id op-time)
+            let
+                f $ case-default op
+                  do (println "|Unknown op:" op)
+                    fn (& args) db
+                  :session/connect session/connect
+                  :session/disconnect session/disconnect
+                  :user/log-in user/log-in
+                  :user/sign-up user/sign-up
+                  :user/log-out user/log-out
+                  :session/remove-message session/remove-message
+                  :router/change router/change
+                  :snippet/create snippet/create
+                  :snippet/remove-one snippet/remove-one
+                  :session/show-all session/show-all
+              f db op-data sid op-id op-time
+    |app.twig.user $ {}
+      :ns $ quote
+        ns app.twig.user $ :require
+      :defs $ {}
+        |twig-user $ quote
+          defn twig-user (user) (dissoc user :password)
+    |app.updater.user $ {}
+      :ns $ quote
+        ns app.updater.user $ :require ([] |md5 :default md5)
+      :defs $ {}
+        |sign-up $ quote
+          defn sign-up (db op-data sid op-id op-time)
+            let-sugar
+                  [] username password
+                  , op-data
+                maybe-user $ find
+                  vals $ :users db
+                  fn (user)
+                    = username $ :name user
+              if (some? maybe-user)
+                update-in db ([] :sessions sid :messages)
+                  fn (messages)
+                    assoc messages op-id $ {} (:id op-id)
+                      :text $ str "\"Name is taken: " username
+                -> db
+                  assoc-in ([] :sessions sid :user-id) op-id
+                  assoc-in ([] :users op-id)
+                    {} (:id op-id) (:name username) (:nickname username)
+                      :password $ md5 password
+                      :avatar nil
+        |log-out $ quote
+          defn log-out (db op-data session-id op-id op-time)
+            assoc-in db ([] :sessions session-id :user-id) nil
+        |log-in $ quote
+          defn log-in (db op-data sid op-id op-time)
+            let-sugar
+                  [] username password
+                  , op-data
+                maybe-user $ -> (:users db) (vals) (.to-list)
+                  find $ fn (user)
+                    and $ = username (:name user)
+              update-in db ([] :sessions sid)
+                fn (session)
+                  if (some? maybe-user)
+                    if
+                      = (md5 password) (:password maybe-user)
+                      assoc session :user-id $ :id maybe-user
+                      update session :messages $ fn (messages)
+                        assoc messages op-id $ {} (:id op-id)
+                          :text $ str "\"Wrong password for " username
+                    update session :messages $ fn (messages)
+                      assoc messages op-id $ {} (:id op-id)
+                        :text $ str "\"No user named: " username
+    |app.comp.profile $ {}
+      :ns $ quote
+        ns app.comp.profile $ :require
+          [] respo-ui.core :refer $ [] hsl
+          [] app.schema :as schema
+          [] respo-ui.core :as ui
+          [] respo.core :refer $ [] defcomp list-> <> span div a
+          [] respo.comp.space :refer $ [] =<
+      :defs $ {}
+        |comp-profile $ quote
+          defcomp comp-profile (user members)
+            div
+              {} $ :style
+                merge ui/flex $ {} (:padding 16)
+              div
+                {} $ :style
+                  {} (:font-family ui/font-fancy) (:font-size 32) (:font-weight 100)
+                <> $ str "|Hello! " (:name user)
+              =< nil 16
+              div
+                {} $ :style ui/row
+                <> "\"Members:"
+                =< 8 nil
+                list->
+                  {} $ :style ui/row
+                  -> members (.to-list)
+                    .map-pair $ fn (k username)
+                      [] k $ div
+                        {} $ :style
+                          {} (:padding "\"0 8px")
+                            :border $ str "\"1px solid " (hsl 0 0 80)
+                            :border-radius "\"16px"
+                            :margin "\"0 4px"
+                        <> username
+              =< nil 48
+              div ({})
+                a
+                  {}
+                    :style $ {} (:font-size 14) (:cursor :pointer)
+                      :background-color $ hsl 200 80 80
+                      :color :white
+                      :padding "|0 8px"
+                    :on-click $ fn (e dispatch!) (dispatch! :user/log-out nil)
+                      .removeItem js/localStorage $ :storage-key schema/configs
+                  <> "|Log out" nil
+    |app.comp.login $ {}
+      :ns $ quote
+        ns app.comp.login $ :require
+          [] respo.core :refer $ [] defcomp <> div input button span
+          [] respo.comp.space :refer $ [] =<
+          [] respo.comp.inspect :refer $ [] comp-inspect
+          [] respo-ui.core :as ui
+          [] app.schema :as schema
+          [] app.style :as style
+          app.config :as config
+      :defs $ {}
+        |initial-state $ quote
+          def initial-state $ {} (:username |) (:password |)
+        |comp-login $ quote
+          defcomp comp-login (states)
+            let
+                cursor $ :cursor states
+                state $ or (:data states) initial-state
+              println "\"state" state
+              div
+                {} $ :style (merge ui/flex ui/center)
+                div ({})
+                  div
+                    {} $ :style ({})
+                    div ({})
+                      input $ {} (:placeholder "\"Username")
+                        :value $ :username state
+                        :style ui/input
+                        :on-input $ fn (e d!)
+                          d! cursor $ assoc state :username (:value e)
+                    =< nil 8
+                    div ({})
+                      input $ {} (:placeholder "\"Password")
+                        :value $ :password state
+                        :style ui/input
+                        :on-input $ fn (e d!)
+                          d! cursor $ assoc state :password (:value e)
+                  =< nil 8
+                  div
+                    {} $ :style
+                      {} $ :text-align :right
+                    span $ {} (:inner-text "|Sign up")
+                      :style $ merge style/link
+                      :on-click $ on-submit (:username state) (:password state) true
+                    =< 8 nil
+                    span $ {} (:inner-text "|Log in")
+                      :style $ merge style/link
+                      :on-click $ on-submit (:username state) (:password state) false
+        |on-submit $ quote
+          defn on-submit (username password signup?)
+            fn (e dispatch!)
+              dispatch! (if signup? :user/sign-up :user/log-in) ([] username password)
+              .setItem js/localStorage (:storage-key config/site)
+                format-cirru-edn $ [] username password
+    |app.style $ {}
+      :ns $ quote
+        ns app.style $ :require
+          [] respo-ui.core :refer $ [] hsl
+          [] respo-ui.core :as ui
+      :defs $ {}
+        |link $ quote
+          def link $ {} (:text-decoration :underline) (:cursor :pointer)
+            :color $ hsl 240 80 80
+            :font-family ui/font-fancy
+        |button $ quote
+          def button $ merge ui/button
+            {} $ :background-color :white
+    |app.comp.navigation $ {}
+      :ns $ quote
+        ns app.comp.navigation $ :require
+          [] hsl.core :refer $ [] hsl
+          [] respo-ui.core :as ui
+          [] respo.comp.space :refer $ [] =<
+          [] respo.core :refer $ [] defcomp <> action-> span div
+          [] app.config :as config
+      :defs $ {}
+        |comp-navigation $ quote
+          defcomp comp-navigation (logged-in? count-members)
+            div
+              {} $ :style
+                merge ui/row-parted $ {} (:justify-content :space-between) (:padding "|8px 16px") (:font-size 16) (:font-family ui/font-fancy)
+                  :background-color $ :theme config/site
+                  :color :white
+              div
+                {}
+                  :on-click $ fn (e d!)
+                    d! :router/change $ {} (:name :home)
+                  :style $ {} (:cursor :pointer)
+                <> |Copyboard nil
+              div
+                {}
+                  :style $ {} (:cursor |pointer)
+                  :on-click $ fn (e d!)
+                    d! :router/change $ {} (:name :profile)
+                <> $ if logged-in? |Me |Guest
+                =< 8 nil
+                <> count-members
+    |app.updater.router $ {}
+      :ns $ quote (ns app.updater.router)
+      :defs $ {}
+        |change $ quote
+          defn change (db op-data session-id op-id op-time)
+            assoc-in db ([] :sessions session-id :router) op-data
+    |app.updater.session $ {}
+      :ns $ quote
+        ns app.updater.session $ :require ([] app.schema :as schema)
+      :defs $ {}
+        |disconnect $ quote
+          defn disconnect (db op-data session-id op-id op-time)
+            update db :sessions $ fn (session) (dissoc session session-id)
+        |remove-message $ quote
+          defn remove-message (db op-data sid op-id op-time)
+            update-in db ([] :sessions sid :messages)
+              fn (messages)
+                dissoc messages $ :id op-data
+        |show-all $ quote
+          defn show-all (db op-data sid op-id op-time)
+            assoc-in db ([] :sessions sid :show-all?) true
+        |connect $ quote
+          defn connect (db op-data session-id op-id op-time)
+            assoc-in db ([] :sessions session-id)
+              merge schema/session $ {} (:id session-id)
+    |app.client $ {}
+      :ns $ quote
+        ns app.client $ :require
+          [] respo.core :refer $ [] render! clear-cache! realize-ssr!
+          [] respo.cursor :refer $ [] update-states
+          [] app.comp.container :refer $ [] comp-container
+          [] app.schema :as schema
+          [] app.config :as config
+          [] ws-edn.client :refer $ [] ws-connect! ws-send!
+          [] recollect.patch :refer $ [] patch-twig
+          [] cumulo-util.core :refer $ [] on-page-touch
+          [] "\"url-parse" :default url-parse
+          "\"bottom-tip" :default hud!
+          "\"./calcit.build-errors" :default client-errors
+          "\"../js-out/calcit.build-errors" :default server-errors
+      :defs $ {}
+        |render-app! $ quote
+          defn render-app! () $ render! mount-target
+            comp-container (:states @*states) @*store
+            , dispatch!
+        |on-window-keydown $ quote
+          defn on-window-keydown (event)
+            println $ .-tagName (.-activeElement js/document)
+            when
+              and
+                = "\"Slash" $ .-code event
+                not= schema/box-name $ .-className (.-activeElement js/document)
+              .select $ .querySelector js/document (str "\"." schema/box-name)
+              .preventDefault event
+        |*states $ quote
+          defatom *states $ {}
+        |mount-target $ quote
+          def mount-target $ .querySelector js/document |.app
+        |connect! $ quote
+          defn connect! () $ let
+              url-obj $ url-parse js/location.href true
+              host $ either (-> url-obj .-query .-host) js/location.hostname
+              port $ either (-> url-obj .-query .-port) (:port config/site)
+            ws-connect! (str "\"ws://" host "\":" port)
+              {}
+                :on-open $ fn (event) (simulate-login!)
+                :on-close $ fn (event) (reset! *store nil) (js/console.error "\"Lost connection!")
+                :on-data on-server-data
+        |main! $ quote
+          defn main! ()
+            println "\"Running mode:" $ if config/dev? "\"dev" "\"release"
+            render-app!
+            connect!
+            add-watch *store :changes $ fn (store prev) (render-app!)
+            add-watch *states :changes $ fn (states prev) (render-app!)
+            on-page-touch $ fn ()
+              if (nil? @*store) (connect!)
+            println "\"App started!"
+        |*store $ quote (defatom *store nil)
+        |dispatch! $ quote
+          defn dispatch! (op op-data)
+            when
+              and config/dev? $ not= op :states
+              println "\"Dispatch" op op-data
+            case-default op
+              ws-send! $ {} (:kind :op) (:op op) (:data op-data)
+              :states $ reset! *states (update-states @*states op-data)
+              :effect/connect $ connect!
+        |on-server-data $ quote
+          defn on-server-data (data)
+            case-default (:kind data) (println "\"unknown server data kind:" data)
+              :patch $ let
+                  changes $ :data data
+                when config/dev? $ js/console.log "\"Changes" (to-js-data changes)
+                reset! *store $ patch-twig @*store changes
+        |simulate-login! $ quote
+          defn simulate-login! () $ let
+              raw $ .!getItem js/localStorage (:storage-key config/site)
+            if (some? raw)
+              do (println "\"Found storage.")
+                dispatch! :user/log-in $ parse-cirru-edn raw
+              do $ println "\"Found no storage."
+        |reload! $ quote
+          defn reload! () $ if
+            or (some? client-errors) (some? server-errors)
+            hud! "\"error" $ str client-errors &newline server-errors
+            do (hud! "\"inactive" nil) (remove-watch *store :changes) (remove-watch *states :changes) (clear-cache!) (render-app!)
+              add-watch *store :changes $ fn (store prev) (render-app!)
+              add-watch *states :changes $ fn (states prev) (render-app!)
+              println "\"Code updated."
+    |app.config $ {}
+      :ns $ quote (ns app.config)
+      :defs $ {}
+        |cdn? $ quote
+          def cdn? $ cond
+              exists? js/window
+              , false
+            (exists? js/process) (= "\"true" js/process.env.cdn)
+            :else false
+        |dev? $ quote
+          def dev? $ = "\"dev" (get-env "\"mode")
+        |site $ quote
+          def site $ {} (:port 11006) (:title "\"Copyboard") (:icon "\"http://cdn.tiye.me/logo/copyboard.png") (:dev-ui "\"http://localhost:8100/main.css") (:release-ui "\"http://cdn.tiye.me/favored-fonts/main.css") (:cdn-url "\"http://cdn.tiye.me/copyboard/") (:theme "\"#ECCE32") (:storage-key "\"copyboard") (:storage-file "\"storage.cirru")
