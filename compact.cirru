@@ -69,7 +69,7 @@
                   {} $ :text "\"Sure to remove?"
               div
                 {} $ :style
-                  merge ui/row $ {} (:margin-bottom 16)
+                  merge ui/row $ {} (:margin-bottom 8)
                     :background-color $ hsl 0 0 100
                     :max-width "\"100%"
                     :position :relative
@@ -118,14 +118,14 @@
                     d! cursor $ assoc state :content "\""
               div
                 {} $ :style
-                  merge ui/flex $ {} (:padding "\"24px 16px 240px 16px") (:overflow :auto)
+                  merge ui/column ui/expand $ {} (:padding "\"12px 16px 240px 16px") (:overflow :auto)
                     :background-color $ hsl 0 0 97
                 div
                   {} $ :style
                     {} $ :position :relative
                   textarea $ {} (:value content)
                     :style $ merge ui/flex ui/textarea
-                      {} (:min-height 80) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%")
+                      {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%") (:white-space :pre)
                     :autofocus true
                     :placeholder "\"Command Enter to send..."
                     :class-name schema/box-name
@@ -136,16 +136,34 @@
                         and
                           = 13 $ :keycode e
                           not $ :shift? e
-                        .preventDefault $ :event e
+                        .!preventDefault $ :event e
                         send! e d!
+                =< nil 8
+                div
+                  {} $ :style ui/row-parted
+                  a
+                    {} (:style style/link)
+                      :on-click $ fn (e d!)
+                        d! cursor $ assoc state :content "\""
+                    <> "\"Clear"
                   div
-                    {} $ :style
-                      {} (:position :absolute) (:right 8) (:bottom 8)
+                    {} $ :style ({})
+                    a
+                      {} (:style style/link)
+                        :on-click $ fn (e d!)
+                          if (some? js/navigator.clipboard)
+                            -> js/navigator.clipboard (.!readText)
+                              .!then $ fn (text)
+                                d! cursor $ assoc state :content text
+                              .!catch $ fn (err) (js/console.error err)
+                            js/console.log "\"navigator.clipboard not available."
+                      <> "\"Read"
+                    =< 8 nil
                     button
                       {} (:style style/button)
                         :on-click $ fn (e d!) (send! e d!)
                       <> "\"Send"
-                =< nil 16
+                =< nil 8
                 list->
                   {} $ :style
                     merge ui/column $ {} (:width "\"100%")
@@ -191,10 +209,9 @@
                   {} $ :style (merge ui/global ui/fullscreen ui/column)
                   comp-navigation (:logged-in? store) (:count store)
                   if (:logged-in? store)
-                    case (:name router)
+                    case-default (:name router) (<> router)
                       :home $ comp-home (>> states :snippets) (:snippets store) (:show-all? store)
                       :profile $ comp-profile (:user store) (:data router)
-                      <> router
                     comp-login $ >> states :login
                   comp-status-color $ :color store
                   when dev? $ comp-inspect |Store store
@@ -609,7 +626,7 @@
           defcomp comp-navigation (logged-in? count-members)
             div
               {} $ :style
-                merge ui/row-parted $ {} (:justify-content :space-between) (:padding "|8px 16px") (:font-size 16) (:font-family ui/font-fancy)
+                merge ui/row-parted $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
                   :background-color $ :theme config/site
                   :color :white
               div
