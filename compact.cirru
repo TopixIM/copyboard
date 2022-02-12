@@ -108,7 +108,8 @@
             let
                 cursor $ :cursor states
                 state $ or (:data states)
-                  {} $ :content "\""
+                  {} $ :content
+                    either (js/sessionStorage.getItem "\"cp-clipboard-text") "\""
                 content $ :content state
                 send! $ fn (e d!)
                   when
@@ -140,8 +141,8 @@
                   div
                     {} $ :style
                       {} (:position :absolute) (:right 8) (:bottom 8)
-                    a
-                      {} (:style style/link)
+                    button
+                      {} (:style style/button)
                         :on-click $ fn (e d!) (send! e d!)
                       <> "\"Send"
                 =< nil 16
@@ -704,6 +705,7 @@
             on-page-touch $ fn ()
               if (nil? @*store) (connect!)
             println "\"App started!"
+            read-from-clipboard!
         |*store $ quote (defatom *store nil)
         |dispatch! $ quote
           defn dispatch! (op op-data)
@@ -721,6 +723,12 @@
                   changes $ :data data
                 when config/dev? $ js/console.log "\"Changes" (to-js-data changes)
                 reset! *store $ patch-twig @*store changes
+        |read-from-clipboard! $ quote
+          defn read-from-clipboard! () $ if (some? js/navigator.clipboard)
+            -> js/navigator.clipboard (.!readText)
+              .!then $ fn (text) (js/sessionStorage.setItem "\"cp-clipboard-text" text)
+              .!catch $ fn (err) (js/console.error err)
+            js/console.log "\"navigator.clipboard not available."
         |simulate-login! $ quote
           defn simulate-login! () $ let
               raw $ .!getItem js/localStorage (:storage-key config/site)
