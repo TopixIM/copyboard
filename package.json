@@ -16,6 +16,8 @@
   "license": "MIT",
   "dependencies": {
     "@calcit/procs": "^0.8.1",
+    "axios": "^1.5.0",
+    "mime": "^3.0.0",
     "shortid": "^2.2.16"
   },
   "devDependencies": {

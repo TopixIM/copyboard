@@ -218,6 +218,21 @@
             [] "\"copy-text-to-clipboard" :default copy!
     |app.comp.home $ %{} :FileEntry
       :defs $ {}
+        |comp-file-upload $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defcomp comp-file-upload () $ input
+              {} (:type "\"file")
+                :on-input $ fn (e d!)
+                  let
+                      event $ :event e
+                      target $ -> event .-target
+                      file $ -> target .-files .-0
+                    -> target $ set! nil
+                    if (some? file)
+                      if
+                        < (.-size file) js/1e8
+                        upload-file! file d!
+                        js/console.warn "\"File too large"
         |comp-home $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-home (states snippets show-all?)
@@ -257,11 +272,15 @@
                   =< nil 8
                   div
                     {} $ :style ui/row-parted
-                    a
-                      {} (:style style/link)
-                        :on-click $ fn (e d!)
-                          d! cursor $ assoc state :content "\""
-                      <> "\"Clear"
+                    div
+                      {} $ :class-name css/row-middle
+                      a
+                        {} (:style style/link)
+                          :on-click $ fn (e d!)
+                            d! cursor $ assoc state :content "\""
+                        <> "\"Clear"
+                      =< 8 nil
+                      comp-file-upload
                     div
                       {} $ :style ({})
                       a
@@ -338,19 +357,39 @@
                           d! :snippet/remove-one $ :id snippet
                     comp-i :trash-2 14 $ hsl 0 80 70
                   .render remove-plugin
+        |upload-file! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn upload-file! (file d!) (hint-fn async)
+              let
+                  file-key $ str (js/Date.now) "\"-"
+                    w-js-log $ .-name file
+                  res $ js-await
+                    .!post axios "\"http://localhost:4000/token" $ format-cirru-edn
+                      {} (:user |chen) (:pass |aaaa) (:file-key file-key)
+                  presigned-url $ :url
+                    parse-cirru-edn $ .-data res
+                  ret $ js-await
+                    .!put axios presigned-url file $ js-object
+                      :headers $ js-object
+                        "\"Content-Type" $ .!getType mime file-key
+                js/console.log "\"Upload result:" ret
+                d! $ :: :snippet/create-file (str "\"http://cos.tiye.me/cos-up/" file-key) :file
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.home $ :require
-            [] respo-ui.core :refer $ [] hsl
-            [] app.schema :as schema
-            [] respo-ui.core :as ui
-            [] respo.core :refer $ [] defcomp list-> >> button <> span textarea pre div a
-            [] respo.comp.space :refer $ [] =<
-            [] clojure.string :as string
-            [] app.comp.copied :refer $ [] comp-copied
-            [] app.style :as style
-            [] respo-alerts.core :refer $ [] use-confirm
-            [] feather.core :refer $ [] comp-i
+            respo-ui.core :refer $ hsl
+            respo-ui.css :as css
+            respo.css :refer $ defstyle
+            app.schema :as schema
+            respo-ui.core :as ui
+            respo.core :refer $ defcomp list-> >> button <> span textarea pre div a input
+            respo.comp.space :refer $ =<
+            app.comp.copied :refer $ comp-copied
+            app.style :as style
+            respo-alerts.core :refer $ use-confirm
+            feather.core :refer $ comp-i
+            "\"axios" :default axios
+            "\"mime" :default mime
     |app.comp.login $ %{} :FileEntry
       :defs $ {}
         |comp-login $ %{} :CodeEntry (:doc |)
@@ -535,7 +574,7 @@
               :show-all? false
         |snippet $ %{} :CodeEntry (:doc |)
           :code $ quote
-            def snippet $ {} (:id nil) (:content "\"") (:time 0) (:author-id nil)
+            def snippet $ {} (:id nil) (:content "\"") (:time 0) (:author-id nil) (:type :text)
         |user $ %{} :CodeEntry (:doc |)
           :code $ quote
             def user $ {} (:name nil) (:id nil) (:nickname nil) (:avatar nil) (:password nil)
@@ -752,6 +791,7 @@
                 (:session/remove-message op-data) (session/remove-message db op-data sid op-id op-time)
                 (:router/change op-data) (router/change db op-data sid op-id op-time)
                 (:snippet/create op-data) (snippet/create db op-data sid op-id op-time)
+                (:snippet/create-file url kind) (snippet/create-file db url kind sid op-id op-time)
                 (:snippet/remove-one op-data) (snippet/remove-one db op-data sid op-id op-time)
                 (:session/show-all op-data) (session/show-all db op-data sid op-id op-time)
                 _ $ do (eprintln "|Unknown op:" op) db
@@ -797,6 +837,11 @@
             defn create (db op-data sid op-id op-time)
               assoc-in db ([] :snippets op-id)
                 merge schema/snippet $ {} (:id op-id) (:content op-data) (:time op-time)
+        |create-file $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn create-file (db url kind sid op-id op-time)
+              assoc-in db ([] :snippets op-id)
+                merge schema/snippet $ {} (:id op-id) (:content url) (:time op-time) (:type kind) (:url url)
         |remove-one $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn remove-one (db op-data sid op-id op-time)
