@@ -15,14 +15,16 @@
   "author": "jiyinyiyong",
   "license": "MIT",
   "dependencies": {
-    "@calcit/procs": "^0.7.0-a7",
+    "@calcit/procs": "^0.8.1",
+    "axios": "^1.5.0",
+    "mime": "^3.0.0",
     "shortid": "^2.2.16"
   },
   "devDependencies": {
     "bottom-tip": "^0.1.5",
-    "copy-text-to-clipboard": "^3.1.0",
-    "feather-icons": "^4.29.0",
+    "copy-text-to-clipboard": "^3.2.0",
+    "feather-icons": "^4.29.1",
     "url-parse": "^1.5.10",
-    "vite": "^4.3.9"
+    "vite": "^4.4.9"
   }
 }
