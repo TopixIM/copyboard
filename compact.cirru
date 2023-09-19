@@ -440,7 +440,7 @@
             defn on-submit (username password signup?)
               fn (e dispatch!)
                 dispatch! (if signup? :user/sign-up :user/log-in) ([] username password)
-                .setItem js/localStorage (:storage-key config/site)
+                js/localStorage.setItem (:storage-key config/site)
                   format-cirru-edn $ [] username password
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
@@ -671,7 +671,7 @@
                     (:message sid msg)
                       let
                           action $ parse-cirru-edn msg
-                        dispatch! action sid
+                        if (tuple? action) (dispatch! action sid) (eprintln "\"invalid action:" action)
                     (:disconnect sid)
                       do (println "\"Client closed!")
                         dispatch! (:: :session/disconnect) sid
