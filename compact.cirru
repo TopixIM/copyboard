@@ -124,14 +124,15 @@
                   state $ :data states
                   session $ :session store
                   router $ :router store
+                  user $ :user store
                 if (nil? store) (comp-offline)
                   div
                     {} $ :style (merge ui/global ui/fullscreen ui/column)
                     comp-navigation (:logged-in? store) (:count store)
                     if (:logged-in? store)
                       case-default (:name router) (<> router)
-                        :home $ comp-home (>> states :snippets) (:snippets store) (:show-all? store)
-                        :profile $ comp-profile (:user store) (:data router)
+                        :home $ comp-home (>> states :snippets) (:snippets store) (:show-all? store) user
+                        :profile $ comp-profile user (:data router)
                       comp-login $ >> states :login
                     comp-status-color $ :color store
                     when dev? $ comp-inspect |Store store
@@ -220,22 +221,22 @@
       :defs $ {}
         |comp-file-upload $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defcomp comp-file-upload () $ input
-              {} (:type "\"file")
+            defcomp comp-file-upload (user)
+              input $ {} (:type "\"file")
                 :on-input $ fn (e d!)
                   let
                       event $ :event e
                       target $ -> event .-target
                       file $ -> target .-files .-0
-                    -> target $ set! nil
+                    -> target .-value $ set! nil
                     if (some? file)
                       if
                         < (.-size file) js/1e8
-                        upload-file! file d!
+                        upload-file! file user d!
                         js/console.warn "\"File too large"
         |comp-home $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defcomp comp-home (states snippets show-all?)
+            defcomp comp-home (states snippets show-all? user)
               let
                   cursor $ :cursor states
                   state $ or (:data states)
@@ -280,7 +281,7 @@
                             d! cursor $ assoc state :content "\""
                         <> "\"Clear"
                       =< 8 nil
-                      comp-file-upload
+                      comp-file-upload user
                     div
                       {} $ :style ({})
                       a
@@ -359,13 +360,16 @@
                   .render remove-plugin
         |upload-file! $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defn upload-file! (file d!) (hint-fn async)
+            defn upload-file! (file user d!) (hint-fn async)
               let
                   file-key $ str (js/Date.now) "\"-"
                     w-js-log $ .-name file
                   res $ js-await
-                    .!post axios "\"http://localhost:4000/token" $ format-cirru-edn
-                      {} (:user |chen) (:pass |aaaa) (:file-key file-key)
+                    .!post axios "\"https://cp.topix.im/token" $ w-log
+                      format-cirru-edn $ {}
+                        :user $ :name user
+                        :pass $ :token user
+                        :file-key file-key
                   presigned-url $ :url
                     parse-cirru-edn $ .-data res
                   ret $ js-await
@@ -577,7 +581,7 @@
             def snippet $ {} (:id nil) (:content "\"") (:time 0) (:author-id nil) (:type :text)
         |user $ %{} :CodeEntry (:doc |)
           :code $ quote
-            def user $ {} (:name nil) (:id nil) (:nickname nil) (:avatar nil) (:password nil)
+            def user $ {} (:name nil) (:id nil) (:nickname nil) (:avatar nil) (:password nil) (:token nil)
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote (ns app.schema)
     |app.server $ %{} :FileEntry
