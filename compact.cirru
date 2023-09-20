@@ -125,29 +125,31 @@
                   session $ :session store
                   router $ :router store
                   user $ :user store
-                if (nil? store) (comp-offline)
-                  div
-                    {} $ :style (merge ui/global ui/fullscreen ui/column)
-                    comp-navigation (:logged-in? store) (:count store)
-                    if (:logged-in? store)
-                      case-default (:name router) (<> router)
-                        :home $ comp-home (>> states :snippets) (:snippets store) (:show-all? store) user
-                        :profile $ comp-profile user (:data router)
-                      comp-login $ >> states :login
-                    comp-status-color $ :color store
-                    when dev? $ comp-inspect |Store store
-                      {} (:bottom 40) (:left 0) (:max-width |100%)
-                    comp-messages
-                      get-in store $ [] :session :messages
-                      {}
-                      fn (info d!) (d! :session/remove-message info)
-                    when dev? $ comp-reel (:reel-length store)
-                      {} $ :bottom 40
+                div
+                  {} $ :class-name (str-spaced css/global css/fullscreen css/column)
+                  comp-navigation (>> states :nav) user (:logged-in? store) (:count store) (nil? store)
+                  if (nil? store) (comp-offline)
+                    div
+                      {} $ :style (merge ui/expand ui/column)
+                      if (:logged-in? store)
+                        case-default (:name router) (<> router)
+                          :home $ comp-home (>> states :snippets) (:snippets store) (:show-all? store) user
+                          :profile $ comp-profile user (:data router)
+                        comp-login $ >> states :login
+                      comp-status-color $ :color store
+                      when dev? $ comp-inspect |Store store
+                        {} (:bottom 40) (:left 0) (:max-width |100%)
+                      comp-messages
+                        get-in store $ [] :session :messages
+                        {}
+                        fn (info d!) (d! :session/remove-message info)
+                      when dev? $ comp-reel (:reel-length store)
+                        {} $ :bottom 40
         |comp-offline $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-offline () $ div
               {} $ :style
-                merge ui/global ui/fullscreen ui/column-dispersive $ {}
+                merge ui/expand ui/fullscreen ui/column-dispersive $ {}
                   :background-color $ :theme config/site
               div $ {}
                 :style $ {} (:height 0)
@@ -175,6 +177,7 @@
           ns app.comp.container $ :require
             [] hsl.core :refer $ [] hsl
             [] respo-ui.core :as ui
+            respo-ui.css :as css
             [] respo.core :refer $ [] defcomp <> div span >> button
             [] respo.comp.inspect :refer $ [] comp-inspect
             [] respo.comp.space :refer $ [] =<
@@ -219,21 +222,6 @@
             [] "\"copy-text-to-clipboard" :default copy!
     |app.comp.home $ %{} :FileEntry
       :defs $ {}
-        |comp-file-upload $ %{} :CodeEntry (:doc |)
-          :code $ quote
-            defcomp comp-file-upload (user)
-              input $ {} (:type "\"file")
-                :on-input $ fn (e d!)
-                  let
-                      event $ :event e
-                      target $ -> event .-target
-                      file $ -> target .-files .-0
-                    -> target .-value $ set! nil
-                    if (some? file)
-                      if
-                        < (.-size file) js/1e8
-                        upload-file! file user d!
-                        js/console.warn "\"File too large"
         |comp-home $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-home (states snippets show-all? user)
@@ -280,8 +268,6 @@
                           :on-click $ fn (e d!)
                             d! cursor $ assoc state :content "\""
                         <> "\"Clear"
-                      =< 8 nil
-                      comp-file-upload user
                     div
                       {} $ :style ({})
                       a
@@ -358,26 +344,6 @@
                           d! :snippet/remove-one $ :id snippet
                     comp-i :trash-2 14 $ hsl 0 80 70
                   .render remove-plugin
-        |upload-file! $ %{} :CodeEntry (:doc |)
-          :code $ quote
-            defn upload-file! (file user d!) (hint-fn async)
-              let
-                  file-key $ str (js/Date.now) "\"-"
-                    w-js-log $ .-name file
-                  res $ js-await
-                    .!post axios "\"https://cp.topix.im/token" $ w-log
-                      format-cirru-edn $ {}
-                        :user $ :name user
-                        :pass $ :token user
-                        :file-key file-key
-                  presigned-url $ :url
-                    parse-cirru-edn $ .-data res
-                  ret $ js-await
-                    .!put axios presigned-url file $ js-object
-                      :headers $ js-object
-                        "\"Content-Type" $ .!getType mime file-key
-                js/console.log "\"Upload result:" ret
-                d! $ :: :snippet/create-file (str "\"http://cos.tiye.me/cos-up/" file-key) :file
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.home $ :require
@@ -456,18 +422,23 @@
       :defs $ {}
         |comp-navigation $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defcomp comp-navigation (logged-in? count-members)
+            defcomp comp-navigation (states user logged-in? count-members offline?)
               div
                 {} $ :style
-                  merge ui/row-parted $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
-                    :background-color $ :theme config/site
-                    :color :white
+                  merge ui/row-parted
+                    {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
+                      :background-color $ :theme config/site
+                      :color :white
+                      :z-index 100
+                    if offline? $ {} (:opacity 0.1)
                 div
-                  {}
+                  {} (:class-name css/row-middle)
                     :on-click $ fn (e d!)
                       d! :router/change $ {} (:name :home)
                     :style $ {} (:cursor :pointer)
                   <> |Copyboard nil
+                  =< 12 nil
+                  comp-file-upload (>> states :upload) user
                 div
                   {}
                     :style $ {} (:cursor |pointer)
@@ -481,9 +452,11 @@
           ns app.comp.navigation $ :require
             [] hsl.core :refer $ [] hsl
             [] respo-ui.core :as ui
+            respo-ui.css :as css
             [] respo.comp.space :refer $ [] =<
-            [] respo.core :refer $ [] defcomp <> action-> span div
+            [] respo.core :refer $ [] defcomp >> <> span div
             [] app.config :as config
+            app.comp.upload :refer $ comp-file-upload
     |app.comp.profile $ %{} :FileEntry
       :defs $ {}
         |comp-profile $ %{} :CodeEntry (:doc |)
@@ -531,6 +504,95 @@
             [] respo-ui.core :as ui
             [] respo.core :refer $ [] defcomp list-> <> span div a
             [] respo.comp.space :refer $ [] =<
+    |app.comp.upload $ %{} :FileEntry
+      :defs $ {}
+        |comp-file-upload $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defcomp comp-file-upload (states user)
+              let
+                  cursor $ :cursor states
+                  state $ either (:data states)
+                    {} $ :uploading nil
+                  up $ :uploading state
+                div
+                  {} $ :class-name css/row-middle
+                  input $ {} (:type "\"file") (:id "\"upload-input") (:class-name style-hidden-input)
+                    :on-input $ fn (e d!)
+                      let
+                          event $ :event e
+                          target $ -> event .-target
+                          file $ -> target .-files .-0
+                        -> target .-value $ set! nil
+                        if (some? file)
+                          if
+                            < (.-size file) js/1e8
+                            upload-file! cursor file user d!
+                            js/console.warn "\"File too large"
+                  a
+                    {} (:class-name css/link)
+                      :style $ {}
+                        :color $ hsl 200 90 70
+                      :on-click $ fn (e d!)
+                        .!click $ js/document.querySelector "\"#upload-input"
+                    <> "\"Upload"
+                  if (some? up)
+                    span
+                      {} (:class-name css/font-fancy)
+                        :style $ {} (:margin-left 8) (:font-size 12) (:font-style :italic)
+                          :color $ hsl 0 0 60
+                      <> $ str "\"uploading: "
+                        .round $ * 100 up
+                        , "\"%"
+        |style-hidden-input $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-hidden-input $ {}
+              "\"&" $ {} (:display :none)
+        |upload-file! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn upload-file! (cursor file user d!) (hint-fn async)
+              let
+                  file-key $ str (js/Date.now) "\"-"
+                    w-js-log $ .-name file
+                  res $ js-await
+                    .!post axios "\"https://cp.topix.im/token"
+                      w-log $ format-cirru-edn
+                        {}
+                          :user $ :name user
+                          :pass $ :token user
+                          :file-key file-key
+                      js-object $ :onUploadProgress
+                        fn (event)
+                          let
+                              percent $ w-log
+                                / (.-loaded event) (.-total event)
+                            d! $ :: :states cursor
+                              {} $ :uploading percent
+                  presigned-url $ :url
+                    parse-cirru-edn $ .-data res
+                  ret $ js-await
+                    .!put axios presigned-url file $ js-object
+                      :headers $ js-object
+                        "\"Content-Type" $ .!getType mime file-key
+                js/console.log "\"Upload result:" ret
+                d! $ :: :snippet/create-file (str "\"http://cos-sh.tiye.me/cos-up/" file-key) :file
+                d! $ :: :states cursor
+                  {} $ :uploading nil
+      :ns $ %{} :CodeEntry (:doc |)
+        :code $ quote
+          ns app.comp.upload $ :require
+            respo-ui.core :refer $ hsl
+            respo-ui.css :as css
+            respo.css :refer $ defstyle
+            app.schema :as schema
+            respo-ui.core :as ui
+            respo.core :refer $ defcomp list-> >> button <> span textarea pre div a input
+            respo.comp.space :refer $ =<
+            app.comp.copied :refer $ comp-copied
+            app.style :as style
+            respo-alerts.core :refer $ use-confirm
+            feather.core :refer $ comp-i
+            "\"axios" :default axios
+            "\"mime" :default mime
     |app.config $ %{} :FileEntry
       :defs $ {}
         |cdn? $ %{} :CodeEntry (:doc |)
