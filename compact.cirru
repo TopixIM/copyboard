@@ -228,9 +228,9 @@
             "\"copy-text-to-clipboard" :default copy!
     |app.comp.home $ %{} :FileEntry
       :defs $ {}
-        |comp-home $ %{} :CodeEntry (:doc |)
+        |comp-box $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defcomp comp-home (states snippets show-all? user)
+            defcomp comp-box (states user)
               let
                   cursor $ :cursor states
                   state $ or (:data states)
@@ -242,28 +242,31 @@
                       not $ .blank? content
                       d! :snippet/create content
                       d! cursor $ assoc state :content "\""
-                div
-                  {}
-                    :class-name $ str-spaced css/column css/expand
-                    :style $ {} (:padding "\"12px 16px 240px 16px") (:overflow :auto)
-                      :background-color $ hsl 0 0 97
-                  div
-                    {} $ :style
-                      {} $ :position :relative
-                    textarea $ {} (:value content)
-                      :style $ {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%") (:white-space :pre)
-                      :autofocus true
-                      :placeholder "\"Command Enter to send..."
-                      :class-name $ str-spaced css/flex css/textarea schema/box-name
-                      :on-input $ fn (e d!)
-                        d! cursor $ assoc state :content (:value e)
-                      :on-keydown $ fn (e d!)
-                        when
-                          and
-                            = 13 $ :keycode e
-                            not $ :shift? e
-                          .!preventDefault $ :event e
-                          send! e d!
+                div ({})
+                  textarea $ {} (:value content)
+                    :style $ {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%") (:white-space :pre)
+                    :autofocus true
+                    :placeholder "\"Command Enter to send..."
+                    :class-name $ str-spaced css/flex css/textarea schema/box-name
+                    :on-input $ fn (e d!)
+                      d! cursor $ assoc state :content (:value e)
+                    :on-keydown $ fn (e d!)
+                      when
+                        and
+                          = 13 $ :keycode e
+                          not $ :shift? e
+                        .!preventDefault $ :event e
+                        send! e d!
+                    :on-paste $ fn (e d!)
+                      let
+                          event $ :event e
+                          files $ .-files (.-clipboardData event)
+                        if
+                          > (.-length files) 0
+                          let
+                              file $ .-0 files
+                            upload-file! file user d! $ fn (_e)
+                          .!preventDefault event
                   =< nil 8
                   div
                     {} $ :class-name css/row-parted
@@ -291,19 +294,42 @@
                         {} (:style style/button)
                           :on-click $ fn (e d!) (send! e d!)
                         <> "\"Send"
-                  =< nil 8
-                  list->
-                    {} (:class-name css/column)
-                      :style $ {} (:width "\"100%")
-                    -> snippets (.to-list)
-                      .sort-by $ fn (pair)
-                        negate $ :time (last pair)
-                      .map-pair $ fn (k snippet)
-                        [] k $ comp-snippet (>> states k) k snippet
-                  if-not show-all? $ div
-                    {} $ :class-name css/center
-                    span $ {} (:class-name style-all-tag) (:inner-text "\"Show all")
-                      :on-click $ fn (e d!) (d! :session/show-all nil)
+        |comp-home $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defcomp comp-home (states snippets show-all? user)
+              div
+                {}
+                  :class-name $ str-spaced css/column css/expand
+                  :style $ {} (:padding "\"12px 16px 240px 16px") (:overflow :auto)
+                    :background-color $ hsl 0 0 97
+                  :on-dragover $ fn (e d!)
+                    -> e :event $ .!preventDefault
+                  :on-drop $ fn (e d!)
+                    -> e :event $ .!preventDefault
+                    let
+                        items $ -> e :event .-dataTransfer .-items
+                      if
+                        > (.-length items) 0
+                        upload-file!
+                          .!getAsFile $ .-0 items
+                          , user d! $ fn (_e)
+                div
+                  {} $ :style
+                    {} $ :position :relative
+                  comp-box (>> states :box) user
+                =< nil 8
+                list->
+                  {} (:class-name css/column)
+                    :style $ {} (:width "\"100%")
+                  -> snippets (.to-list)
+                    .sort-by $ fn (pair)
+                      negate $ :time (last pair)
+                    .map-pair $ fn (k snippet)
+                      [] k $ comp-snippet (>> states k) k snippet
+                if-not show-all? $ div
+                  {} $ :class-name css/center
+                  span $ {} (:class-name style-all-tag) (:inner-text "\"Show all")
+                    :on-click $ fn (e d!) (d! :session/show-all nil)
         |comp-snippet $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-snippet (states k snippet)
@@ -380,6 +406,7 @@
             feather.core :refer $ comp-i
             "\"axios" :default axios
             "\"mime" :default mime
+            app.comp.upload :refer $ upload-file!
     |app.comp.login $ %{} :FileEntry
       :defs $ {}
         |comp-login $ %{} :CodeEntry (:doc |)
@@ -550,7 +577,7 @@
                         if (some? file)
                           if
                             < (.-size file) js/1e8
-                            upload-file! cursor file user d!
+                            upload-file! file user d! $ fn (next) (d! cursor next)
                             js/console.warn "\"File too large"
                   a
                     {} (:class-name css/link)
@@ -573,10 +600,11 @@
               "\"&" $ {} (:display :none)
         |upload-file! $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defn upload-file! (cursor file user d!) (hint-fn async)
+            defn upload-file! (file user d! mutate!) (hint-fn async)
               let
-                  file-key $ str (js/Date.now) "\"-"
-                    w-js-log $ .-name file
+                  hash $ js-await (load-md5 file)
+                  file-key $ str hash "\"-"
+                    w-js-log $ either (.-name file) "\"clipboard.jpg"
                   res $ js-await
                     .!post axios "\"https://cp.topix.im/token"
                       w-log $ format-cirru-edn
@@ -589,8 +617,7 @@
                           let
                               percent $ w-log
                                 / (.-loaded event) (.-total event)
-                            d! $ :: :states cursor
-                              {} $ :uploading percent
+                            mutate! $ {} (:uploading percent)
                   presigned-url $ :url
                     parse-cirru-edn $ .-data res
                   ret $ js-await
@@ -599,8 +626,7 @@
                         "\"Content-Type" $ .!getType mime file-key
                 js/console.log "\"Upload result:" ret
                 d! $ :: :snippet/create-file (str "\"http://cos-sh.tiye.me/cos-up/" file-key) :file
-                d! $ :: :states cursor
-                  {} $ :uploading nil
+                mutate! $ {} (:uploading nil)
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.upload $ :require
@@ -617,6 +643,7 @@
             feather.core :refer $ comp-i
             "\"axios" :default axios
             "\"mime" :default mime
+            "\"../lib/md5" :refer $ load-md5
     |app.config $ %{} :FileEntry
       :defs $ {}
         |cdn? $ %{} :CodeEntry (:doc |)
