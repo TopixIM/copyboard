@@ -266,7 +266,7 @@
                           let
                               file $ .-0 files
                             upload-file! file user d! $ fn (_e)
-                          .!preventDefault event
+                          ; .!preventDefault event
                   =< nil 8
                   div
                     {} $ :class-name css/row-parted
