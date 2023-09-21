@@ -102,15 +102,15 @@
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.client $ :require
-            [] respo.core :refer $ [] render! clear-cache! realize-ssr!
-            [] respo.cursor :refer $ [] update-states
-            [] app.comp.container :refer $ [] comp-container
-            [] app.schema :as schema
-            [] app.config :as config
-            [] ws-edn.client :refer $ [] ws-connect! ws-send!
-            [] recollect.patch :refer $ [] patch-twig
-            [] cumulo-util.core :refer $ [] on-page-touch
-            [] "\"url-parse" :default url-parse
+            respo.core :refer $ render! clear-cache! realize-ssr!
+            respo.cursor :refer $ update-states
+            app.comp.container :refer $ comp-container
+            app.schema :as schema
+            app.config :as config
+            ws-edn.client :refer $ ws-connect! ws-send!
+            recollect.patch :refer $ patch-twig
+            cumulo-util.core :refer $ on-page-touch
+            "\"url-parse" :default url-parse
             "\"bottom-tip" :default hud!
             "\"./calcit.build-errors" :default client-errors
             "\"../js-out/calcit.build-errors" :default server-errors
@@ -124,29 +124,33 @@
                   state $ :data states
                   session $ :session store
                   router $ :router store
-                if (nil? store) (comp-offline)
-                  div
-                    {} $ :style (merge ui/global ui/fullscreen ui/column)
-                    comp-navigation (:logged-in? store) (:count store)
-                    if (:logged-in? store)
-                      case-default (:name router) (<> router)
-                        :home $ comp-home (>> states :snippets) (:snippets store) (:show-all? store)
-                        :profile $ comp-profile (:user store) (:data router)
-                      comp-login $ >> states :login
-                    comp-status-color $ :color store
-                    when dev? $ comp-inspect |Store store
-                      {} (:bottom 40) (:left 0) (:max-width |100%)
-                    comp-messages
-                      get-in store $ [] :session :messages
-                      {}
-                      fn (info d!) (d! :session/remove-message info)
-                    when dev? $ comp-reel (:reel-length store)
-                      {} $ :bottom 40
+                  user $ :user store
+                div
+                  {} $ :class-name (str-spaced css/global css/fullscreen css/column)
+                  comp-navigation (>> states :nav) user (:logged-in? store) (:count store) (nil? store)
+                  if (nil? store) (comp-offline)
+                    div
+                      {} $ :class-name (str-spaced css/expand css/column)
+                      if (:logged-in? store)
+                        case-default (:name router) (<> router)
+                          :home $ comp-home (>> states :snippets) (:snippets store) (:show-all? store) user
+                          :profile $ comp-profile user (:data router)
+                        comp-login $ >> states :login
+                      comp-status-color $ :color store
+                      when dev? $ comp-inspect |Store store
+                        {} (:bottom 40) (:left 0) (:max-width |100%)
+                      comp-messages
+                        get-in store $ [] :session :messages
+                        {}
+                        fn (info d!) (d! :session/remove-message info)
+                      when dev? $ comp-reel (:reel-length store)
+                        {} $ :bottom 40
         |comp-offline $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-offline () $ div
-              {} $ :style
-                merge ui/global ui/fullscreen ui/column-dispersive $ {}
+              {}
+                :class-name $ str-spaced css/expand css/fullscreen css/column-dispersive
+                :style $ {}
                   :background-color $ :theme config/site
               div $ {}
                 :style $ {} (:height 0)
@@ -164,27 +168,33 @@
         |comp-status-color $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-status-color (color)
-              div $ {}
-                :style $ {} (:width 16) (:height 16) (:position :absolute) (:bottom 10) (:left 10) (:background-color color) (:border-radius "\"8px") (:opacity 0.8)
+              div $ {} (:class-name style-status-buble)
+                :style $ {} (:background-color color)
         |style-body $ %{} :CodeEntry (:doc |)
           :code $ quote
             def style-body $ {} (:padding "|8px 16px")
+        |style-status-buble $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-status-buble $ {}
+              "\"&" $ {} (:width 16) (:height 16) (:position :absolute) (:bottom 10) (:left 10) (:border-radius "\"8px") (:opacity 0.8)
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.container $ :require
-            [] hsl.core :refer $ [] hsl
-            [] respo-ui.core :as ui
-            [] respo.core :refer $ [] defcomp <> div span >> button
-            [] respo.comp.inspect :refer $ [] comp-inspect
-            [] respo.comp.space :refer $ [] =<
-            [] app.comp.navigation :refer $ [] comp-navigation
-            [] app.comp.profile :refer $ [] comp-profile
-            [] app.comp.login :refer $ [] comp-login
-            [] respo-message.comp.messages :refer $ [] comp-messages
-            [] cumulo-reel.comp.reel :refer $ [] comp-reel
-            [] app.config :refer $ [] dev?
-            [] app.comp.home :refer $ [] comp-home
-            [] app.config :as config
+            hsl.core :refer $ hsl
+            respo-ui.core :as ui
+            respo-ui.css :as css
+            respo.core :refer $ defcomp <> div span >> button
+            respo.comp.inspect :refer $ comp-inspect
+            respo.comp.space :refer $ =<
+            app.comp.navigation :refer $ comp-navigation
+            app.comp.profile :refer $ comp-profile
+            app.comp.login :refer $ comp-login
+            respo-message.comp.messages :refer $ comp-messages
+            cumulo-reel.comp.reel :refer $ comp-reel
+            app.config :refer $ dev?
+            app.comp.home :refer $ comp-home
+            app.config :as config
+            respo.css :refer $ defstyle
     |app.comp.copied $ %{} :FileEntry
       :defs $ {}
         |comp-copied $ %{} :CodeEntry (:doc |)
@@ -211,31 +221,16 @@
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.copied $ :require
-            [] hsl.core :refer $ [] hsl
-            [] respo-ui.core :as ui
-            [] respo.core :refer $ [] defcomp list-> >> <> div button textarea span
-            [] respo.comp.space :refer $ [] =<
-            [] "\"copy-text-to-clipboard" :default copy!
+            hsl.core :refer $ hsl
+            respo-ui.core :as ui
+            respo.core :refer $ defcomp list-> >> <> div button textarea span
+            respo.comp.space :refer $ =<
+            "\"copy-text-to-clipboard" :default copy!
     |app.comp.home $ %{} :FileEntry
       :defs $ {}
-        |comp-file-upload $ %{} :CodeEntry (:doc |)
+        |comp-box $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defcomp comp-file-upload () $ input
-              {} (:type "\"file")
-                :on-input $ fn (e d!)
-                  let
-                      event $ :event e
-                      target $ -> event .-target
-                      file $ -> target .-files .-0
-                    -> target $ set! nil
-                    if (some? file)
-                      if
-                        < (.-size file) js/1e8
-                        upload-file! file d!
-                        js/console.warn "\"File too large"
-        |comp-home $ %{} :CodeEntry (:doc |)
-          :code $ quote
-            defcomp comp-home (states snippets show-all?)
+            defcomp comp-box (states user)
               let
                   cursor $ :cursor states
                   state $ or (:data states)
@@ -247,31 +242,34 @@
                       not $ .blank? content
                       d! :snippet/create content
                       d! cursor $ assoc state :content "\""
-                div
-                  {} $ :style
-                    merge ui/column ui/expand $ {} (:padding "\"12px 16px 240px 16px") (:overflow :auto)
-                      :background-color $ hsl 0 0 97
-                  div
-                    {} $ :style
-                      {} $ :position :relative
-                    textarea $ {} (:value content)
-                      :style $ merge ui/flex ui/textarea
-                        {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%") (:white-space :pre)
-                      :autofocus true
-                      :placeholder "\"Command Enter to send..."
-                      :class-name schema/box-name
-                      :on-input $ fn (e d!)
-                        d! cursor $ assoc state :content (:value e)
-                      :on-keydown $ fn (e d!)
-                        when
-                          and
-                            = 13 $ :keycode e
-                            not $ :shift? e
-                          .!preventDefault $ :event e
-                          send! e d!
+                div ({})
+                  textarea $ {} (:value content)
+                    :style $ {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%") (:white-space :pre)
+                    :autofocus true
+                    :placeholder "\"Command Enter to send..."
+                    :class-name $ str-spaced css/flex css/textarea schema/box-name
+                    :on-input $ fn (e d!)
+                      d! cursor $ assoc state :content (:value e)
+                    :on-keydown $ fn (e d!)
+                      when
+                        and
+                          = 13 $ :keycode e
+                          not $ :shift? e
+                        .!preventDefault $ :event e
+                        send! e d!
+                    :on-paste $ fn (e d!)
+                      let
+                          event $ :event e
+                          files $ .-files (.-clipboardData event)
+                        if
+                          > (.-length files) 0
+                          let
+                              file $ .-0 files
+                            upload-file! file user d! $ fn (_e)
+                          .!preventDefault event
                   =< nil 8
                   div
-                    {} $ :style ui/row-parted
+                    {} $ :class-name css/row-parted
                     div
                       {} $ :class-name css/row-middle
                       a
@@ -279,8 +277,6 @@
                           :on-click $ fn (e d!)
                             d! cursor $ assoc state :content "\""
                         <> "\"Clear"
-                      =< 8 nil
-                      comp-file-upload
                     div
                       {} $ :style ({})
                       a
@@ -298,23 +294,42 @@
                         {} (:style style/button)
                           :on-click $ fn (e d!) (send! e d!)
                         <> "\"Send"
-                  =< nil 8
-                  list->
-                    {} $ :style
-                      merge ui/column $ {} (:width "\"100%")
-                    -> snippets (.to-list)
-                      .sort-by $ fn (pair)
-                        negate $ :time (last pair)
-                      .map-pair $ fn (k snippet)
-                        [] k $ comp-snippet (>> states k) k snippet
-                  if-not show-all? $ div
-                    {} $ :style ui/center
-                    span $ {}
-                      :style $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
-                        :border $ str "\"1px solid " (hsl 0 0 90)
-                        :cursor :pointer
-                      :inner-text "\"Show all"
-                      :on-click $ fn (e d!) (d! :session/show-all nil)
+        |comp-home $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defcomp comp-home (states snippets show-all? user)
+              div
+                {}
+                  :class-name $ str-spaced css/column css/expand
+                  :style $ {} (:padding "\"12px 16px 240px 16px") (:overflow :auto)
+                    :background-color $ hsl 0 0 97
+                  :on-dragover $ fn (e d!)
+                    -> e :event $ .!preventDefault
+                  :on-drop $ fn (e d!)
+                    -> e :event $ .!preventDefault
+                    let
+                        items $ -> e :event .-dataTransfer .-items
+                      if
+                        > (.-length items) 0
+                        upload-file!
+                          .!getAsFile $ .-0 items
+                          , user d! $ fn (_e)
+                div
+                  {} $ :style
+                    {} $ :position :relative
+                  comp-box (>> states :box) user
+                =< nil 8
+                list->
+                  {} (:class-name css/column)
+                    :style $ {} (:width "\"100%")
+                  -> snippets (.to-list)
+                    .sort-by $ fn (pair)
+                      negate $ :time (last pair)
+                    .map-pair $ fn (k snippet)
+                      [] k $ comp-snippet (>> states k) k snippet
+                if-not show-all? $ div
+                  {} $ :class-name css/center
+                  span $ {} (:class-name style-all-tag) (:inner-text "\"Show all")
+                    :on-click $ fn (e d!) (d! :session/show-all nil)
         |comp-snippet $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-snippet (states k snippet)
@@ -322,58 +337,59 @@
                   remove-plugin $ use-confirm (>> states :remove)
                     {} $ :text "\"Sure to remove?"
                 div
-                  {} $ :style
-                    merge ui/row $ {} (:margin-bottom 8)
-                      :background-color $ hsl 0 0 100
-                      :max-width "\"100%"
-                      :position :relative
+                  {} $ :class-name (str-spaced css/row style-snippet)
                   comp-copied (>> states :copied) (:content snippet)
                     pre $ {}
-                      :style $ merge ui/flex
-                        {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all)
-                          :border $ str "\"1px solid " (hsl 0 0 90)
-                          :padding 16
+                      :class-name $ str-spaced css/flex style-snippet-content
                       :inner-text $ :content snippet
                   if
                     .starts-with? (:content snippet) "\"http"
                     a
                       {}
-                        :style $ merge ui/center
-                          {} (:position :absolute) (:bottom 0) (:right 40) (:width 40) (:height 40) (:cursor :pointer)
-                            :background-color $ hsl 0 0 0 0.02
+                        :class-name $ str-spaced css/center style-link-mark
                         :on-click $ fn (e d!)
                           js/window.open $ :content snippet
                       comp-i :external-link 14 $ hsl 200 80 60
                   div
                     {}
-                      :style $ merge ui/center
-                        {} (:position :absolute) (:bottom 0) (:right 0)
-                          :background-color $ hsl 0 0 0 0.02
-                          :cursor :pointer
-                          :width 40
-                          :height 40
+                      :class-name $ str-spaced css/center style-remove
                       :on-click $ fn (e d!)
                         .show remove-plugin d! $ fn ()
                           d! :snippet/remove-one $ :id snippet
                     comp-i :trash-2 14 $ hsl 0 80 70
                   .render remove-plugin
-        |upload-file! $ %{} :CodeEntry (:doc |)
+        |style-all-tag $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defn upload-file! (file d!) (hint-fn async)
-              let
-                  file-key $ str (js/Date.now) "\"-"
-                    w-js-log $ .-name file
-                  res $ js-await
-                    .!post axios "\"http://localhost:4000/token" $ format-cirru-edn
-                      {} (:user |chen) (:pass |aaaa) (:file-key file-key)
-                  presigned-url $ :url
-                    parse-cirru-edn $ .-data res
-                  ret $ js-await
-                    .!put axios presigned-url file $ js-object
-                      :headers $ js-object
-                        "\"Content-Type" $ .!getType mime file-key
-                js/console.log "\"Upload result:" ret
-                d! $ :: :snippet/create-file (str "\"http://cos.tiye.me/cos-up/" file-key) :file
+            defstyle style-all-tag $ {}
+              "\"&" $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
+                :border $ str "\"1px solid " (hsl 0 0 90)
+                :cursor :pointer
+        |style-link-mark $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-link-mark $ {}
+              "\"&" $ {} (:position :absolute) (:bottom 0) (:right 40) (:width 40) (:height 40) (:cursor :pointer)
+                :background-color $ hsl 0 0 0 0.02
+        |style-remove $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-remove $ {}
+              "\"&" $ {} (:position :absolute) (:bottom 0) (:right 0)
+                :background-color $ hsl 0 0 0 0.02
+                :cursor :pointer
+                :width 40
+                :height 40
+        |style-snippet $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-snippet $ {}
+              "\"&" $ {} (:margin-bottom 8)
+                :background-color $ hsl 0 0 100
+                :max-width "\"100%"
+                :position :relative
+        |style-snippet-content $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-snippet-content $ {}
+              "\"&" $ {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all)
+                :border $ str "\"1px solid " (hsl 0 0 90)
+                :padding 16
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.home $ :require
@@ -390,6 +406,7 @@
             feather.core :refer $ comp-i
             "\"axios" :default axios
             "\"mime" :default mime
+            app.comp.upload :refer $ upload-file!
     |app.comp.login $ %{} :FileEntry
       :defs $ {}
         |comp-login $ %{} :CodeEntry (:doc |)
@@ -398,35 +415,32 @@
               let
                   cursor $ :cursor states
                   state $ or (:data states) initial-state
-                println "\"state" state
                 div
-                  {} $ :style (merge ui/flex ui/center)
+                  {} $ :class-name (str-spaced css/flex css/center)
                   div ({})
                     div
                       {} $ :style ({})
                       div ({})
                         input $ {} (:placeholder "\"Username")
                           :value $ :username state
-                          :style ui/input
+                          :class-name css/input
                           :on-input $ fn (e d!)
                             d! cursor $ assoc state :username (:value e)
                       =< nil 8
                       div ({})
                         input $ {} (:placeholder "\"Password")
                           :value $ :password state
-                          :style ui/input
+                          :class-name css/input
                           :on-input $ fn (e d!)
                             d! cursor $ assoc state :password (:value e)
                     =< nil 8
                     div
                       {} $ :style
                         {} $ :text-align :right
-                      span $ {} (:inner-text "|Sign up")
-                        :style $ merge style/link
+                      span $ {} (:inner-text "|Sign up") (:class-name css/link)
                         :on-click $ on-submit (:username state) (:password state) true
                       =< 8 nil
-                      span $ {} (:inner-text "|Log in")
-                        :style $ merge style/link
+                      span $ {} (:inner-text "|Log in") (:class-name css/link)
                         :on-click $ on-submit (:username state) (:password state) false
         |initial-state $ %{} :CodeEntry (:doc |)
           :code $ quote
@@ -436,34 +450,38 @@
             defn on-submit (username password signup?)
               fn (e dispatch!)
                 dispatch! (if signup? :user/sign-up :user/log-in) ([] username password)
-                .setItem js/localStorage (:storage-key config/site)
+                js/localStorage.setItem (:storage-key config/site)
                   format-cirru-edn $ [] username password
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.login $ :require
-            [] respo.core :refer $ [] defcomp <> div input button span
-            [] respo.comp.space :refer $ [] =<
-            [] respo.comp.inspect :refer $ [] comp-inspect
-            [] respo-ui.core :as ui
-            [] app.schema :as schema
-            [] app.style :as style
+            respo.core :refer $ defcomp <> div input button span
+            respo.comp.space :refer $ =<
+            respo.comp.inspect :refer $ comp-inspect
+            respo-ui.core :as ui
+            app.schema :as schema
+            app.style :as style
             app.config :as config
+            respo.css :refer $ defstyle
+            respo-ui.css :as css
     |app.comp.navigation $ %{} :FileEntry
       :defs $ {}
         |comp-navigation $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defcomp comp-navigation (logged-in? count-members)
+            defcomp comp-navigation (states user logged-in? count-members offline?)
               div
-                {} $ :style
-                  merge ui/row-parted $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
-                    :background-color $ :theme config/site
-                    :color :white
+                {}
+                  :class-name $ str-spaced css/row-parted style-nav
+                  :style $ if offline?
+                    {} $ :opacity 0.1
                 div
-                  {}
+                  {} (:class-name css/row-middle)
                     :on-click $ fn (e d!)
                       d! :router/change $ {} (:name :home)
                     :style $ {} (:cursor :pointer)
                   <> |Copyboard nil
+                  =< 12 nil
+                  comp-file-upload (>> states :upload) user
                 div
                   {}
                     :style $ {} (:cursor |pointer)
@@ -472,14 +490,24 @@
                   <> $ if logged-in? |Me |Guest
                   =< 8 nil
                   <> count-members
+        |style-nav $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-nav $ {}
+              "\"&" $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
+                :background-color $ :theme config/site
+                :color :white
+                :z-index 100
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.navigation $ :require
-            [] hsl.core :refer $ [] hsl
-            [] respo-ui.core :as ui
-            [] respo.comp.space :refer $ [] =<
-            [] respo.core :refer $ [] defcomp <> action-> span div
-            [] app.config :as config
+            hsl.core :refer $ hsl
+            respo-ui.core :as ui
+            respo-ui.css :as css
+            respo.comp.space :refer $ =<
+            respo.core :refer $ defcomp >> <> span div
+            app.config :as config
+            app.comp.upload :refer $ comp-file-upload
+            respo.css :refer $ defstyle
     |app.comp.profile $ %{} :FileEntry
       :defs $ {}
         |comp-profile $ %{} :CodeEntry (:doc |)
@@ -522,11 +550,100 @@
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.profile $ :require
-            [] respo-ui.core :refer $ [] hsl
-            [] app.schema :as schema
-            [] respo-ui.core :as ui
-            [] respo.core :refer $ [] defcomp list-> <> span div a
-            [] respo.comp.space :refer $ [] =<
+            respo-ui.core :refer $ hsl
+            app.schema :as schema
+            respo-ui.core :as ui
+            respo.core :refer $ defcomp list-> <> span div a
+            respo.comp.space :refer $ =<
+    |app.comp.upload $ %{} :FileEntry
+      :defs $ {}
+        |comp-file-upload $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defcomp comp-file-upload (states user)
+              let
+                  cursor $ :cursor states
+                  state $ either (:data states)
+                    {} $ :uploading nil
+                  up $ :uploading state
+                div
+                  {} $ :class-name css/row-middle
+                  input $ {} (:type "\"file") (:id "\"upload-input") (:class-name style-hidden-input)
+                    :on-input $ fn (e d!)
+                      let
+                          event $ :event e
+                          target $ -> event .-target
+                          file $ -> target .-files .-0
+                        -> target .-value $ set! nil
+                        if (some? file)
+                          if
+                            < (.-size file) js/1e8
+                            upload-file! file user d! $ fn (next) (d! cursor next)
+                            js/console.warn "\"File too large"
+                  a
+                    {} (:class-name css/link)
+                      :style $ {}
+                        :color $ hsl 200 90 70
+                      :on-click $ fn (e d!)
+                        .!click $ js/document.querySelector "\"#upload-input"
+                    <> "\"Upload"
+                  if (some? up)
+                    span
+                      {} (:class-name css/font-fancy)
+                        :style $ {} (:margin-left 8) (:font-size 12) (:font-style :italic)
+                          :color $ hsl 0 0 60
+                      <> $ str "\"uploading: "
+                        .round $ * 100 up
+                        , "\"%"
+        |style-hidden-input $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-hidden-input $ {}
+              "\"&" $ {} (:display :none)
+        |upload-file! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn upload-file! (file user d! mutate!) (hint-fn async)
+              let
+                  hash $ js-await (load-md5 file)
+                  file-key $ str hash "\"-"
+                    w-js-log $ either (.-name file) "\"clipboard.jpg"
+                  res $ js-await
+                    .!post axios "\"https://cp.topix.im/token"
+                      w-log $ format-cirru-edn
+                        {}
+                          :user $ :name user
+                          :pass $ :token user
+                          :file-key file-key
+                      js-object $ :onUploadProgress
+                        fn (event)
+                          let
+                              percent $ w-log
+                                / (.-loaded event) (.-total event)
+                            mutate! $ {} (:uploading percent)
+                  presigned-url $ :url
+                    parse-cirru-edn $ .-data res
+                  ret $ js-await
+                    .!put axios presigned-url file $ js-object
+                      :headers $ js-object
+                        "\"Content-Type" $ .!getType mime file-key
+                js/console.log "\"Upload result:" ret
+                d! $ :: :snippet/create-file (str "\"http://cos-sh.tiye.me/cos-up/" file-key) :file
+                mutate! $ {} (:uploading nil)
+      :ns $ %{} :CodeEntry (:doc |)
+        :code $ quote
+          ns app.comp.upload $ :require
+            respo-ui.core :refer $ hsl
+            respo-ui.css :as css
+            respo.css :refer $ defstyle
+            app.schema :as schema
+            respo-ui.core :as ui
+            respo.core :refer $ defcomp list-> >> button <> span textarea pre div a input
+            respo.comp.space :refer $ =<
+            app.comp.copied :refer $ comp-copied
+            app.style :as style
+            respo-alerts.core :refer $ use-confirm
+            feather.core :refer $ comp-i
+            "\"axios" :default axios
+            "\"mime" :default mime
+            "\"../lib/md5" :refer $ load-md5
     |app.config $ %{} :FileEntry
       :defs $ {}
         |cdn? $ %{} :CodeEntry (:doc |)
@@ -577,7 +694,7 @@
             def snippet $ {} (:id nil) (:content "\"") (:time 0) (:author-id nil) (:type :text)
         |user $ %{} :CodeEntry (:doc |)
           :code $ quote
-            def user $ {} (:name nil) (:id nil) (:nickname nil) (:avatar nil) (:password nil)
+            def user $ {} (:name nil) (:id nil) (:nickname nil) (:avatar nil) (:password nil) (:token nil)
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote (ns app.schema)
     |app.server $ %{} :FileEntry
@@ -667,7 +784,7 @@
                     (:message sid msg)
                       let
                           action $ parse-cirru-edn msg
-                        dispatch! action sid
+                        if (tuple? action) (dispatch! action sid) (eprintln "\"invalid action:" action)
                     (:disconnect sid)
                       do (println "\"Client closed!")
                         dispatch! (:: :session/disconnect) sid
@@ -698,13 +815,13 @@
               new-twig-loop!
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
-          ns app.server $ :require ([] app.schema :as schema)
-            [] app.updater :refer $ [] updater
-            [] cumulo-reel.core :refer $ [] reel-reducer refresh-reel reel-schema
-            [] app.config :as config
-            [] app.twig.container :refer $ [] twig-container
-            [] recollect.diff :refer $ [] diff-twig
-            [] recollect.twig :refer $ [] render-twig new-twig-loop! clear-twig-caches!
+          ns app.server $ :require (app.schema :as schema)
+            app.updater :refer $ updater
+            cumulo-reel.core :refer $ reel-reducer refresh-reel reel-schema
+            app.config :as config
+            app.twig.container :refer $ twig-container
+            recollect.diff :refer $ diff-twig
+            recollect.twig :refer $ render-twig new-twig-loop! clear-twig-caches!
             wss.core :refer $ wss-serve! wss-send! wss-each!
             app.$meta :refer $ calcit-dirname
             calcit.std.fs :refer $ path-exists? check-write-file!
@@ -766,7 +883,7 @@
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.twig.container $ :require
-            [] app.twig.user :refer $ [] twig-user
+            app.twig.user :refer $ twig-user
             calcit.std.rand :refer $ rand-hex-color!
     |app.twig.user $ %{} :FileEntry
       :defs $ {}
