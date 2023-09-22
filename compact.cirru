@@ -336,8 +336,18 @@
               let
                   remove-plugin $ use-confirm (>> states :remove)
                     {} $ :text "\"Sure to remove?"
+                  some-img $ if
+                    and
+                      = :file $ :type snippet
+                      img-url? $ :url (w-js-log snippet)
+                    :url snippet
                 div
-                  {} $ :class-name (str-spaced css/row style-snippet)
+                  {}
+                    :class-name $ str-spaced css/row style-snippet
+                    :style $ if some-img
+                      {}
+                        :background-image $ str "\"url(" some-img "\"?imageView2/q/50/2/w/200/h/200" "\")"
+                        :text-shadow "\"1px 1px 2px white, -1px -1px 2px white, -1px 1px 2px white, 1px -1px 2px white"
                   comp-copied (>> states :copied) (:content snippet)
                     pre $ {}
                       :class-name $ str-spaced css/flex style-snippet-content
@@ -358,6 +368,10 @@
                           d! :snippet/remove-one $ :id snippet
                     comp-i :trash-2 14 $ hsl 0 80 70
                   .render remove-plugin
+        |img-url? $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn img-url? (url)
+              or (.ends-with? url "\".png") (.ends-with? url "\".jpg") (.ends-with? url "\".jpeg") (.ends-with? url "\".webp")
         |style-all-tag $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-all-tag $ {}
@@ -384,6 +398,8 @@
                 :background-color $ hsl 0 0 100
                 :max-width "\"100%"
                 :position :relative
+                :background-repeat :no-repeat
+                :background-size :contain
         |style-snippet-content $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-snippet-content $ {}
