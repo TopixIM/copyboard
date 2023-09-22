@@ -339,19 +339,35 @@
                   some-img $ if
                     and
                       = :file $ :type snippet
-                      img-url? $ :url (w-js-log snippet)
+                      img-url? $ :url snippet
                     :url snippet
+                  name $ if (string? some-img)
+                    last $ .split some-img "\"/"
                 div
                   {}
                     :class-name $ str-spaced css/row style-snippet
                     :style $ if some-img
-                      {}
-                        :background-image $ str "\"url(" some-img "\"?imageView2/q/50/2/w/200/h/200" "\")"
-                        :text-shadow "\"1px 1px 2px white, -1px -1px 2px white, -1px 1px 2px white, 1px -1px 2px white"
+                      {} $ :background-image (str "\"url(" some-img "\"?imageView2/q/50/2/w/200/h/200" "\")")
                   comp-copied (>> states :copied) (:content snippet)
                     pre $ {}
                       :class-name $ str-spaced css/flex style-snippet-content
+                      :style $ if some-img
+                        {} $ :text-shadow "\"1px 1px 1px white, -1px -1px 1px white, -1px 1px 1px white, 1px -1px 1px white"
                       :inner-text $ :content snippet
+                  if (some? some-img)
+                    a
+                      {}
+                        :class-name $ str-spaced css/center style-link-mark
+                        :style $ {} (:right 120)
+                        :on-click $ fn (e d!) (download-image! some-img)
+                      comp-i :download 14 $ hsl 200 80 60
+                  if (some? some-img)
+                    a
+                      {}
+                        :class-name $ str-spaced css/center style-link-mark
+                        :style $ {} (:right 80)
+                        :on-click $ fn (e d!) (copy-to-clipboard some-img)
+                      comp-i :copy 14 $ hsl 200 80 60
                   if
                     .starts-with? (:content snippet) "\"http"
                     a
@@ -368,6 +384,36 @@
                           d! :snippet/remove-one $ :id snippet
                     comp-i :trash-2 14 $ hsl 0 80 70
                   .render remove-plugin
+        |copy-to-clipboard $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn copy-to-clipboard (url) (hint-fn async)
+              let
+                  blob $ js-await
+                    .!blob $ js-await (js/fetch url)
+                  object-url $ js/URL.createObjectURL blob
+                js-await $ js/navigator.clipboard.write
+                  js-array $ new js/ClipboardItem
+                    let
+                        obj $ js-object
+                      aset obj (.-type blob) blob
+                      w-js-log obj
+                println "\"copied blob"
+        |download-image! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn download-image! (url) (hint-fn async)
+              let
+                  blob $ js-await
+                    .!blob $ js-await (js/fetch url)
+                  object-url $ js/URL.createObjectURL blob
+                  a-el $ js/document.createElement "\"a"
+                  name $ last (.split url "\"/")
+                set! (.-href a-el) object-url
+                set! (.-download a-el) name
+                .!setAttribute a-el "\"download" name
+                js/console.log name a-el url
+                js/document.body.appendChild a-el
+                .!click a-el
+                .!remove a-el
         |img-url? $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn img-url? (url)
@@ -383,6 +429,8 @@
             defstyle style-link-mark $ {}
               "\"&" $ {} (:position :absolute) (:bottom 0) (:right 40) (:width 40) (:height 40) (:cursor :pointer)
                 :background-color $ hsl 0 0 0 0.02
+              "\"& i" $ {} (:transition-duration "\"300ms") (:transform "\"scale(1)")
+              "\"&:active i" $ {} (:transition-duration "\"0ms") (:transform "\"scale(1.2)")
         |style-remove $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-remove $ {}
@@ -641,7 +689,7 @@
                       :headers $ js-object
                         "\"Content-Type" $ .!getType mime file-key
                 js/console.log "\"Upload result:" ret
-                d! $ :: :snippet/create-file (str "\"http://cos-sh.tiye.me/cos-up/" file-key) :file
+                d! $ :: :snippet/create-file (str "\"https://cos-sh.tiye.me/cos-up/" file-key) :file
                 mutate! $ {} (:uploading nil)
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
