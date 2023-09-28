@@ -207,7 +207,7 @@
                 div
                   {}
                     :style $ merge ui/flex
-                      {} (:position :relative) (:cursor :pointer)
+                      {} (:position :relative) (:cursor :pointer) (:max-width "\"100%")
                     :on-click $ fn (e d!) (copy! value)
                       d! cursor $ {} (:visible? true)
                       js/setTimeout
@@ -244,7 +244,7 @@
                       d! cursor $ assoc state :content "\""
                 div ({})
                   textarea $ {} (:value content)
-                    :style $ {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%") (:white-space :pre)
+                    :style $ {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%") (:white-space :pre) (:resize :vertical)
                     :autofocus true
                     :placeholder "\"Command Enter to send..."
                     :class-name $ str-spaced css/flex css/textarea schema/box-name
@@ -319,7 +319,8 @@
                   comp-box (>> states :box) user
                 =< nil 8
                 list->
-                  {} (:class-name css/column)
+                  {}
+                    :class-name $ str-spaced style-grid-list
                     :style $ {} (:width "\"100%")
                   -> snippets (.to-list)
                     .sort-by $ fn (pair)
@@ -347,13 +348,17 @@
                   {}
                     :class-name $ str-spaced css/row style-snippet
                     :style $ if some-img
-                      {} $ :background-image (str "\"url(" some-img "\"?imageView2/q/50/2/w/200/h/200" "\")")
+                      {} $ :background-image (str "\"url(" some-img "\"?imageView2/q/50/2/w/320/h/320" "\")")
                   comp-copied (>> states :copied) (:content snippet)
-                    pre $ {}
-                      :class-name $ str-spaced css/flex style-snippet-content
-                      :style $ if some-img
-                        {} $ :text-shadow "\"1px 1px 1px white, -1px -1px 1px white, -1px 1px 1px white, 1px -1px 1px white"
-                      :inner-text $ :content snippet
+                    pre
+                      {}
+                        :class-name $ str-spaced css/flex style-snippet-content
+                        :style $ if some-img
+                          {} $ ; :text-shadow "\"1px 1px 1px white, -1px -1px 1px white, -1px 1px 1px white, 1px -1px 1px white"
+                      span $ {}
+                        :style $ {}
+                          :background-color $ hsl 0 0 100 0.6
+                        :inner-text $ :content snippet
                   if (some? some-img)
                     a
                       {}
@@ -424,6 +429,10 @@
               "\"&" $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
                 :border $ str "\"1px solid " (hsl 0 0 90)
                 :cursor :pointer
+        |style-grid-list $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-grid-list $ {}
+              "\"&" $ {} (:display :grid) (:grid-template-columns "\"repeat(auto-fit, minmax(360px, 1fr))") (:gap 12)
         |style-link-mark $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-link-mark $ {}
@@ -442,18 +451,16 @@
         |style-snippet $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-snippet $ {}
-              "\"&" $ {} (:margin-bottom 8)
+              "\"&" $ {} (:margin-bottom 8) (:max-width "\"100%") (:position :relative) (:background-repeat :no-repeat) (:background-size :contain) (:min-height "\"160px") (:border-radius "\"6px") (:background-position :center)
                 :background-color $ hsl 0 0 100
-                :max-width "\"100%"
-                :position :relative
-                :background-repeat :no-repeat
-                :background-size :contain
+                :border $ str "\"1px solid " (hsl 0 0 84)
+                :transition-duration "\"140ms"
+              "\"&:hover" $ {}
+                :box-shadow $ str "\"1px 1px 4px " (hsl 0 0 0 0.3)
         |style-snippet-content $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-snippet-content $ {}
-              "\"&" $ {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all)
-                :border $ str "\"1px solid " (hsl 0 0 90)
-                :padding 16
+              "\"&" $ {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all) (:padding 16) (:max-height "\"50vh") (:max-width "\"100%") (:overflow :auto) (:line-height "\"21px") (:height "\"100%")
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.home $ :require
@@ -710,19 +717,12 @@
             "\"../lib/md5" :refer $ load-md5
     |app.config $ %{} :FileEntry
       :defs $ {}
-        |cdn? $ %{} :CodeEntry (:doc |)
-          :code $ quote
-            def cdn? $ cond
-                exists? js/window
-                , false
-              (exists? js/process) (= "\"true" js/process.env.cdn)
-              :else false
         |dev? $ %{} :CodeEntry (:doc |)
           :code $ quote
             def dev? $ = "\"dev" (get-env "\"mode" "\"release")
         |site $ %{} :CodeEntry (:doc |)
           :code $ quote
-            def site $ {} (:port 11006) (:title "\"Copyboard") (:icon "\"http://cdn.tiye.me/logo/copyboard.png") (:dev-ui "\"http://localhost:8100/main.css") (:release-ui "\"http://cdn.tiye.me/favored-fonts/main.css") (:cdn-url "\"http://cdn.tiye.me/copyboard/") (:theme "\"#ECCE32") (:storage-key "\"copyboard") (:storage-file "\"storage.cirru")
+            def site $ {} (:port 11006) (:title "\"Copyboard") (:icon "\"http://cdn.tiye.me/logo/copyboard.png") (:theme "\"#ECCE32") (:storage-key "\"copyboard") (:storage-file "\"storage.cirru")
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote (ns app.config)
     |app.schema $ %{} :FileEntry
@@ -923,7 +923,7 @@
                     -> (:snippets db) (.to-list)
                       .sort-by $ fn (pair)
                         negate $ :time (last pair)
-                      take 8
+                      take 12
                       pairs-map
                 merge base-data $ if logged-in?
                   {}
