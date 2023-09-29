@@ -12,7 +12,8 @@
           :code $ quote
             defatom *states $ {}
         |*store $ %{} :CodeEntry (:doc |)
-          :code $ quote (defatom *store nil)
+          :code $ quote
+            defatom *store $ :: :initial
         |connect! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn connect! () $ let
@@ -23,7 +24,9 @@
                 if config/dev? (str "\"ws://" host "\":" port) "\"wss://cp.topix.im/ws"
                 {}
                   :on-open $ fn (event) (simulate-login!)
-                  :on-close $ fn (event) (reset! *store nil) (js/console.error "\"Lost connection!")
+                  :on-close $ fn (event)
+                    reset! *store $ :: :offline
+                    js/console.error "\"Lost connection!"
                   :on-data on-server-data
         |dispatch! $ %{} :CodeEntry (:doc |)
           :code $ quote
@@ -46,7 +49,12 @@
               add-watch *store :changes $ fn (store prev) (render-app!)
               add-watch *states :changes $ fn (states prev) (render-app!)
               on-page-touch $ fn ()
-                if (nil? @*store) (connect!)
+                if
+                  = @*store $ :: :offline
+                  connect!
+              visibility-heartbeat $ fn ()
+                if (map? @*store)
+                  ws-send! $ :: :effect/ping
               println "\"App started!"
               read-from-clipboard!
         |mount-target $ %{} :CodeEntry (:doc |)
@@ -55,11 +63,12 @@
         |on-server-data $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn on-server-data (data)
-              tag-match data $ 
-                :patch changes
-                do
-                  when config/dev? $ js/console.log "\"Changes" changes
-                  reset! *store $ patch-twig @*store changes
+              tag-match data
+                  :patch changes
+                  do
+                    when config/dev? $ js/console.log "\"Changes" changes
+                    reset! *store $ patch-twig @*store changes
+                (:effect/pong) :ok
         |on-window-keydown $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn on-window-keydown (event)
@@ -109,7 +118,7 @@
             app.config :as config
             ws-edn.client :refer $ ws-connect! ws-send!
             recollect.patch :refer $ patch-twig
-            cumulo-util.core :refer $ on-page-touch
+            cumulo-util.core :refer $ on-page-touch visibility-heartbeat
             "\"url-parse" :default url-parse
             "\"bottom-tip" :default hud!
             "\"./calcit.build-errors" :default client-errors
@@ -119,16 +128,16 @@
         |comp-container $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-container (states store)
-              let
-                  cursor $ :cursor states
-                  state $ :data states
-                  session $ :session store
-                  router $ :router store
-                  user $ :user store
-                div
-                  {} $ :class-name (str-spaced css/global css/fullscreen css/column)
-                  comp-navigation (>> states :nav) user (:logged-in? store) (:count store) (nil? store)
-                  if (nil? store) (comp-offline)
+              case-default store
+                let
+                    cursor $ :cursor states
+                    state $ :data states
+                    session $ :session store
+                    router $ :router store
+                    user $ :user store
+                  div
+                    {} $ :class-name (str-spaced css/global css/fullscreen css/column)
+                    comp-navigation (>> states :nav) user (:logged-in? store) (:count store) (nil? store)
                     div
                       {} $ :class-name (str-spaced css/expand css/column)
                       if (:logged-in? store)
@@ -145,26 +154,31 @@
                         fn (info d!) (d! :session/remove-message info)
                       when dev? $ comp-reel (:reel-length store)
                         {} $ :bottom 40
+                (:: :initial) (comp-offline :initial)
+                (:: :offline) (comp-offline :offline)
         |comp-offline $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defcomp comp-offline () $ div
-              {}
-                :class-name $ str-spaced css/expand css/fullscreen css/column-dispersive
-                :style $ {}
-                  :background-color $ :theme config/site
-              div $ {}
-                :style $ {} (:height 0)
-              div $ {}
-                :style $ {}
-                  :background-image $ str "\"url(" (:icon config/site) "\")"
-                  :width 128
-                  :height 128
-                  :background-size :contain
+            defcomp comp-offline (state)
               div
                 {}
-                  :style $ {} (:cursor :pointer) (:line-height "\"32px")
-                  :on-click $ fn (e d!) (d! :effect/connect nil)
-                <> "\"No connection..." $ {} (:font-family ui/font-fancy) (:font-size 24)
+                  :class-name $ str-spaced css/expand css/fullscreen css/column-dispersive
+                  :style $ {}
+                    :background-color $ :theme config/site
+                div $ {}
+                  :style $ {} (:height 0)
+                div $ {}
+                  :style $ {}
+                    :background-image $ str "\"url(" (:icon config/site) "\")"
+                    :width 128
+                    :height 128
+                    :background-size :contain
+                div
+                  {}
+                    :style $ {} (:cursor :pointer) (:line-height "\"32px")
+                    :on-click $ fn (e d!) (d! :effect/connect nil)
+                  <>
+                    if (= state :offline) "\"Socket broken, click to retry." "\"Loading"
+                    {} (:font-family ui/font-fancy) (:font-size 24)
         |comp-status-color $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-status-color (color)
@@ -786,10 +800,12 @@
                   op-id $ generate-id!
                   op-time $ -> (get-time!) (.timestamp)
                 if config/dev? $ println "\"Dispatch!" (str op) sid
-                if
-                  = (nth op 0) :effect/persist
-                  persist-db!
-                  reset! *reel $ reel-reducer @*reel updater op sid op-id op-time config/dev?
+                tag-match op
+                    :effect/persist
+                    persist-db!
+                  (:effect/ping)
+                    wss-send! sid $ format-cirru-edn (:: :effect/pong)
+                  _ $ reset! *reel (reel-reducer @*reel updater op sid op-id op-time config/dev?)
         |get-backup-path! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn get-backup-path! () $ let
