@@ -369,22 +369,20 @@
                         :class-name $ str-spaced css/flex style-snippet-content
                         :style $ if some-img
                           {} $ ; :text-shadow "\"1px 1px 1px white, -1px -1px 1px white, -1px 1px 1px white, 1px -1px 1px white"
-                      span $ {}
-                        :style $ {}
-                          :background-color $ hsl 0 0 100 0.6
+                      span $ {} (:class-name style-snippet-span)
                         :inner-text $ :content snippet
                   if (some? some-img)
                     a
                       {}
                         :class-name $ str-spaced css/center style-link-mark
-                        :style $ {} (:right 120)
+                        :style $ {} (:right 104)
                         :on-click $ fn (e d!) (download-image! some-img)
                       comp-i :download 14 $ hsl 200 80 60
                   if (some? some-img)
                     a
                       {}
                         :class-name $ str-spaced css/center style-link-mark
-                        :style $ {} (:right 80)
+                        :style $ {} (:right 72)
                         :on-click $ fn (e d!) (copy-to-clipboard some-img)
                       comp-i :copy 14 $ hsl 200 80 60
                   if
@@ -392,16 +390,17 @@
                     a
                       {}
                         :class-name $ str-spaced css/center style-link-mark
+                        :style $ {} (:right 40)
                         :on-click $ fn (e d!)
                           js/window.open $ :content snippet
                       comp-i :external-link 14 $ hsl 200 80 60
                   div
                     {}
-                      :class-name $ str-spaced css/center style-remove
+                      :class-name $ str-spaced css/center style-link-mark style-remove
                       :on-click $ fn (e d!)
                         .show remove-plugin d! $ fn ()
                           d! :snippet/remove-one $ :id snippet
-                    comp-i :trash-2 14 $ hsl 0 80 70
+                    comp-i :trash-2 14 $ hsl 0 80 50
                   .render remove-plugin
         |copy-to-clipboard $ %{} :CodeEntry (:doc |)
           :code $ quote
@@ -450,31 +449,40 @@
         |style-link-mark $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-link-mark $ {}
-              "\"&" $ {} (:position :absolute) (:bottom 0) (:right 40) (:width 40) (:height 40) (:cursor :pointer)
-                :background-color $ hsl 0 0 0 0.02
+              "\"&" $ {} (:position :absolute) (:bottom 8) (:width 28) (:height 28) (:cursor :pointer) (:border-radius "\"20px") (:transition-duration "\"230ms") (:line-height 1)
+                :background-color $ hsl 0 0 100 0.9
+                :opacity 0.2
+                :box-shadow $ str "\"1px 1px 4px " (hsl 0 0 0 0.3)
+              "\"&:hover" $ {} (:transform "\"scale(1.1)")
+              (str "\"." style-snippet "\":hover &")
+                {} $ :opacity 1
               "\"& i" $ {} (:transition-duration "\"300ms") (:transform "\"scale(1)")
               "\"&:active i" $ {} (:transition-duration "\"0ms") (:transform "\"scale(1.2)")
         |style-remove $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-remove $ {}
-              "\"&" $ {} (:position :absolute) (:bottom 0) (:right 0)
-                :background-color $ hsl 0 0 0 0.02
-                :cursor :pointer
-                :width 40
-                :height 40
+              "\"&" $ {} (:right 8)
         |style-snippet $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-snippet $ {}
               "\"&" $ {} (:margin-bottom 8) (:max-width "\"100%") (:position :relative) (:background-repeat :no-repeat) (:background-size :contain) (:min-height "\"160px") (:border-radius "\"6px") (:background-position :center)
                 :background-color $ hsl 0 0 100
                 :border $ str "\"1px solid " (hsl 0 0 84)
-                :transition-duration "\"140ms"
+                :transition-duration "\"240ms"
               "\"&:hover" $ {}
-                :box-shadow $ str "\"1px 1px 4px " (hsl 0 0 0 0.3)
+                :box-shadow $ str "\"1px 1px 6px " (hsl 0 0 0 0.4)
+                :background-size :cover
         |style-snippet-content $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-snippet-content $ {}
               "\"&" $ {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all) (:padding 16) (:max-height "\"50vh") (:max-width "\"100%") (:overflow :auto) (:line-height "\"21px") (:height "\"100%")
+        |style-snippet-span $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-snippet-span $ {}
+              "\"&" $ {} (:opacity 0.5) (:transition-duration "\"240ms")
+              (str "\"." style-snippet "\":hover &")
+                {} (:opacity 1)
+                  :background-color $ hsl 0 0 100 0.9
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.home $ :require
@@ -688,20 +696,18 @@
             defn upload-file! (file user d! mutate!) (hint-fn async)
               let
                   hash $ js-await (load-md5 file)
-                  file-key $ str hash "\"-"
-                    w-js-log $ either (.-name file) "\"clipboard.jpg"
+                  file-key $ str hash "\"/"
+                    either (.-name file) "\"clipboard.jpg"
                   res $ js-await
                     .!post axios "\"https://cp.topix.im/token"
-                      w-log $ format-cirru-edn
-                        {}
-                          :user $ :name user
-                          :pass $ :token user
-                          :file-key file-key
+                      format-cirru-edn $ {}
+                        :user $ :name user
+                        :pass $ :token user
+                        :file-key file-key
                       js-object $ :onUploadProgress
                         fn (event)
                           let
-                              percent $ w-log
-                                / (.-loaded event) (.-total event)
+                              percent $ / (.-loaded event) (.-total event)
                             mutate! $ {} (:uploading percent)
                   presigned-url $ :url
                     parse-cirru-edn $ .-data res
