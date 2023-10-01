@@ -12,7 +12,8 @@
           :code $ quote
             defatom *states $ {}
         |*store $ %{} :CodeEntry (:doc |)
-          :code $ quote (defatom *store nil)
+          :code $ quote
+            defatom *store $ :: :initial
         |connect! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn connect! () $ let
@@ -23,7 +24,9 @@
                 if config/dev? (str "\"ws://" host "\":" port) "\"wss://cp.topix.im/ws"
                 {}
                   :on-open $ fn (event) (simulate-login!)
-                  :on-close $ fn (event) (reset! *store nil) (js/console.error "\"Lost connection!")
+                  :on-close $ fn (event)
+                    reset! *store $ :: :offline
+                    js/console.error "\"Lost connection!"
                   :on-data on-server-data
         |dispatch! $ %{} :CodeEntry (:doc |)
           :code $ quote
@@ -46,7 +49,12 @@
               add-watch *store :changes $ fn (store prev) (render-app!)
               add-watch *states :changes $ fn (states prev) (render-app!)
               on-page-touch $ fn ()
-                if (nil? @*store) (connect!)
+                if
+                  = @*store $ :: :offline
+                  connect!
+              visibility-heartbeat $ fn ()
+                if (map? @*store)
+                  ws-send! $ :: :effect/ping
               println "\"App started!"
               read-from-clipboard!
         |mount-target $ %{} :CodeEntry (:doc |)
@@ -55,11 +63,12 @@
         |on-server-data $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn on-server-data (data)
-              tag-match data $ 
-                :patch changes
-                do
-                  when config/dev? $ js/console.log "\"Changes" changes
-                  reset! *store $ patch-twig @*store changes
+              tag-match data
+                  :patch changes
+                  do
+                    when config/dev? $ js/console.log "\"Changes" changes
+                    reset! *store $ patch-twig @*store changes
+                (:effect/pong) :ok
         |on-window-keydown $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn on-window-keydown (event)
@@ -109,7 +118,7 @@
             app.config :as config
             ws-edn.client :refer $ ws-connect! ws-send!
             recollect.patch :refer $ patch-twig
-            cumulo-util.core :refer $ on-page-touch
+            cumulo-util.core :refer $ on-page-touch visibility-heartbeat
             "\"url-parse" :default url-parse
             "\"bottom-tip" :default hud!
             "\"./calcit.build-errors" :default client-errors
@@ -119,16 +128,16 @@
         |comp-container $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-container (states store)
-              let
-                  cursor $ :cursor states
-                  state $ :data states
-                  session $ :session store
-                  router $ :router store
-                  user $ :user store
-                div
-                  {} $ :class-name (str-spaced css/global css/fullscreen css/column)
-                  comp-navigation (>> states :nav) user (:logged-in? store) (:count store) (nil? store)
-                  if (nil? store) (comp-offline)
+              case-default store
+                let
+                    cursor $ :cursor states
+                    state $ :data states
+                    session $ :session store
+                    router $ :router store
+                    user $ :user store
+                  div
+                    {} $ :class-name (str-spaced css/global css/fullscreen css/column)
+                    comp-navigation (>> states :nav) user (:logged-in? store) (:count store) (nil? store)
                     div
                       {} $ :class-name (str-spaced css/expand css/column)
                       if (:logged-in? store)
@@ -145,26 +154,31 @@
                         fn (info d!) (d! :session/remove-message info)
                       when dev? $ comp-reel (:reel-length store)
                         {} $ :bottom 40
+                (:: :initial) (comp-offline :initial)
+                (:: :offline) (comp-offline :offline)
         |comp-offline $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defcomp comp-offline () $ div
-              {}
-                :class-name $ str-spaced css/expand css/fullscreen css/column-dispersive
-                :style $ {}
-                  :background-color $ :theme config/site
-              div $ {}
-                :style $ {} (:height 0)
-              div $ {}
-                :style $ {}
-                  :background-image $ str "\"url(" (:icon config/site) "\")"
-                  :width 128
-                  :height 128
-                  :background-size :contain
+            defcomp comp-offline (state)
               div
                 {}
-                  :style $ {} (:cursor :pointer) (:line-height "\"32px")
-                  :on-click $ fn (e d!) (d! :effect/connect nil)
-                <> "\"No connection..." $ {} (:font-family ui/font-fancy) (:font-size 24)
+                  :class-name $ str-spaced css/expand css/fullscreen css/column-dispersive
+                  :style $ {}
+                    :background-color $ :theme config/site
+                div $ {}
+                  :style $ {} (:height 0)
+                div $ {}
+                  :style $ {}
+                    :background-image $ str "\"url(" (:icon config/site) "\")"
+                    :width 128
+                    :height 128
+                    :background-size :contain
+                div
+                  {}
+                    :style $ {} (:cursor :pointer) (:line-height "\"32px")
+                    :on-click $ fn (e d!) (d! :effect/connect nil)
+                  <>
+                    if (= state :offline) "\"Socket broken, click to retry." "\"Loading"
+                    {} (:font-family ui/font-fancy) (:font-size 24)
         |comp-status-color $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-status-color (color)
@@ -207,7 +221,7 @@
                 div
                   {}
                     :style $ merge ui/flex
-                      {} (:position :relative) (:cursor :pointer)
+                      {} (:position :relative) (:cursor :pointer) (:max-width "\"100%")
                     :on-click $ fn (e d!) (copy! value)
                       d! cursor $ {} (:visible? true)
                       js/setTimeout
@@ -244,7 +258,7 @@
                       d! cursor $ assoc state :content "\""
                 div ({})
                   textarea $ {} (:value content)
-                    :style $ {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%") (:white-space :pre)
+                    :style $ {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width "\"100%") (:white-space :pre) (:resize :vertical)
                     :autofocus true
                     :placeholder "\"Command Enter to send..."
                     :class-name $ str-spaced css/flex css/textarea schema/box-name
@@ -319,7 +333,8 @@
                   comp-box (>> states :box) user
                 =< nil 8
                 list->
-                  {} (:class-name css/column)
+                  {}
+                    :class-name $ str-spaced style-grid-list
                     :style $ {} (:width "\"100%")
                   -> snippets (.to-list)
                     .sort-by $ fn (pair)
@@ -339,35 +354,84 @@
                   some-img $ if
                     and
                       = :file $ :type snippet
-                      img-url? $ :url (w-js-log snippet)
+                      img-url? $ :url snippet
                     :url snippet
+                  name $ if (string? some-img)
+                    last $ .split some-img "\"/"
                 div
                   {}
                     :class-name $ str-spaced css/row style-snippet
                     :style $ if some-img
-                      {}
-                        :background-image $ str "\"url(" some-img "\"?imageView2/q/50/2/w/200/h/200" "\")"
-                        :text-shadow "\"1px 1px 2px white, -1px -1px 2px white, -1px 1px 2px white, 1px -1px 2px white"
+                      {} $ :background-image (str "\"url(" some-img "\"?imageView2/q/50/2/w/320/h/320" "\")")
                   comp-copied (>> states :copied) (:content snippet)
-                    pre $ {}
-                      :class-name $ str-spaced css/flex style-snippet-content
-                      :inner-text $ :content snippet
+                    pre
+                      {}
+                        :class-name $ str-spaced css/flex style-snippet-content
+                        :style $ if some-img
+                          {} $ ; :text-shadow "\"1px 1px 1px white, -1px -1px 1px white, -1px 1px 1px white, 1px -1px 1px white"
+                      span $ {} (:class-name style-snippet-span)
+                        :inner-text $ :content snippet
+                  if (some? some-img)
+                    a
+                      {}
+                        :class-name $ str-spaced css/center style-link-mark
+                        :style $ {} (:right 104)
+                        :on-click $ fn (e d!) (download-image! some-img)
+                      comp-i :download 14 $ hsl 200 80 60
+                  if (some? some-img)
+                    a
+                      {}
+                        :class-name $ str-spaced css/center style-link-mark
+                        :style $ {} (:right 72)
+                        :on-click $ fn (e d!) (copy-to-clipboard some-img)
+                      comp-i :copy 14 $ hsl 200 80 60
                   if
                     .starts-with? (:content snippet) "\"http"
                     a
                       {}
                         :class-name $ str-spaced css/center style-link-mark
+                        :style $ {} (:right 40)
                         :on-click $ fn (e d!)
                           js/window.open $ :content snippet
                       comp-i :external-link 14 $ hsl 200 80 60
                   div
                     {}
-                      :class-name $ str-spaced css/center style-remove
+                      :class-name $ str-spaced css/center style-link-mark style-remove
                       :on-click $ fn (e d!)
                         .show remove-plugin d! $ fn ()
                           d! :snippet/remove-one $ :id snippet
-                    comp-i :trash-2 14 $ hsl 0 80 70
+                    comp-i :trash-2 14 $ hsl 0 80 50
                   .render remove-plugin
+        |copy-to-clipboard $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn copy-to-clipboard (url) (hint-fn async)
+              let
+                  blob $ js-await
+                    .!blob $ js-await (js/fetch url)
+                  object-url $ js/URL.createObjectURL blob
+                js-await $ js/navigator.clipboard.write
+                  js-array $ new js/ClipboardItem
+                    let
+                        obj $ js-object
+                      aset obj (.-type blob) blob
+                      w-js-log obj
+                println "\"copied blob"
+        |download-image! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn download-image! (url) (hint-fn async)
+              let
+                  blob $ js-await
+                    .!blob $ js-await (js/fetch url)
+                  object-url $ js/URL.createObjectURL blob
+                  a-el $ js/document.createElement "\"a"
+                  name $ last (.split url "\"/")
+                set! (.-href a-el) object-url
+                set! (.-download a-el) name
+                .!setAttribute a-el "\"download" name
+                js/console.log name a-el url
+                js/document.body.appendChild a-el
+                .!click a-el
+                .!remove a-el
         |img-url? $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn img-url? (url)
@@ -378,34 +442,47 @@
               "\"&" $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
                 :border $ str "\"1px solid " (hsl 0 0 90)
                 :cursor :pointer
+        |style-grid-list $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-grid-list $ {}
+              "\"&" $ {} (:display :grid) (:grid-template-columns "\"repeat(auto-fit, minmax(360px, 1fr))") (:gap 12)
         |style-link-mark $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-link-mark $ {}
-              "\"&" $ {} (:position :absolute) (:bottom 0) (:right 40) (:width 40) (:height 40) (:cursor :pointer)
-                :background-color $ hsl 0 0 0 0.02
+              "\"&" $ {} (:position :absolute) (:bottom 8) (:width 28) (:height 28) (:cursor :pointer) (:border-radius "\"20px") (:transition-duration "\"230ms") (:line-height 1)
+                :background-color $ hsl 0 0 100 0.9
+                :opacity 0.2
+                :box-shadow $ str "\"1px 1px 4px " (hsl 0 0 0 0.3)
+              "\"&:hover" $ {} (:transform "\"scale(1.1)")
+              (str "\"." style-snippet "\":hover &")
+                {} $ :opacity 1
+              "\"& i" $ {} (:transition-duration "\"300ms") (:transform "\"scale(1)")
+              "\"&:active i" $ {} (:transition-duration "\"0ms") (:transform "\"scale(1.2)")
         |style-remove $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-remove $ {}
-              "\"&" $ {} (:position :absolute) (:bottom 0) (:right 0)
-                :background-color $ hsl 0 0 0 0.02
-                :cursor :pointer
-                :width 40
-                :height 40
+              "\"&" $ {} (:right 8)
         |style-snippet $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-snippet $ {}
-              "\"&" $ {} (:margin-bottom 8)
+              "\"&" $ {} (:margin-bottom 8) (:max-width "\"100%") (:position :relative) (:background-repeat :no-repeat) (:background-size :contain) (:min-height "\"160px") (:border-radius "\"6px") (:background-position :center)
                 :background-color $ hsl 0 0 100
-                :max-width "\"100%"
-                :position :relative
-                :background-repeat :no-repeat
-                :background-size :contain
+                :border $ str "\"1px solid " (hsl 0 0 84)
+                :transition-duration "\"240ms"
+              "\"&:hover" $ {}
+                :box-shadow $ str "\"1px 1px 6px " (hsl 0 0 0 0.4)
+                :background-size :cover
         |style-snippet-content $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-snippet-content $ {}
-              "\"&" $ {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all)
-                :border $ str "\"1px solid " (hsl 0 0 90)
-                :padding 16
+              "\"&" $ {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all) (:padding 16) (:max-height "\"50vh") (:max-width "\"100%") (:overflow :auto) (:line-height "\"21px") (:height "\"100%")
+        |style-snippet-span $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defstyle style-snippet-span $ {}
+              "\"&" $ {} (:opacity 0.5) (:transition-duration "\"240ms")
+              (str "\"." style-snippet "\":hover &")
+                {} (:opacity 1)
+                  :background-color $ hsl 0 0 100 0.9
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.home $ :require
@@ -619,20 +696,18 @@
             defn upload-file! (file user d! mutate!) (hint-fn async)
               let
                   hash $ js-await (load-md5 file)
-                  file-key $ str hash "\"-"
-                    w-js-log $ either (.-name file) "\"clipboard.jpg"
+                  file-key $ str hash "\"/"
+                    either (.-name file) "\"clipboard.jpg"
                   res $ js-await
                     .!post axios "\"https://cp.topix.im/token"
-                      w-log $ format-cirru-edn
-                        {}
-                          :user $ :name user
-                          :pass $ :token user
-                          :file-key file-key
+                      format-cirru-edn $ {}
+                        :user $ :name user
+                        :pass $ :token user
+                        :file-key file-key
                       js-object $ :onUploadProgress
                         fn (event)
                           let
-                              percent $ w-log
-                                / (.-loaded event) (.-total event)
+                              percent $ / (.-loaded event) (.-total event)
                             mutate! $ {} (:uploading percent)
                   presigned-url $ :url
                     parse-cirru-edn $ .-data res
@@ -641,7 +716,7 @@
                       :headers $ js-object
                         "\"Content-Type" $ .!getType mime file-key
                 js/console.log "\"Upload result:" ret
-                d! $ :: :snippet/create-file (str "\"http://cos-sh.tiye.me/cos-up/" file-key) :file
+                d! $ :: :snippet/create-file (str "\"https://cos-sh.tiye.me/cos-up/" file-key) :file
                 mutate! $ {} (:uploading nil)
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
@@ -662,19 +737,12 @@
             "\"../lib/md5" :refer $ load-md5
     |app.config $ %{} :FileEntry
       :defs $ {}
-        |cdn? $ %{} :CodeEntry (:doc |)
-          :code $ quote
-            def cdn? $ cond
-                exists? js/window
-                , false
-              (exists? js/process) (= "\"true" js/process.env.cdn)
-              :else false
         |dev? $ %{} :CodeEntry (:doc |)
           :code $ quote
             def dev? $ = "\"dev" (get-env "\"mode" "\"release")
         |site $ %{} :CodeEntry (:doc |)
           :code $ quote
-            def site $ {} (:port 11006) (:title "\"Copyboard") (:icon "\"http://cdn.tiye.me/logo/copyboard.png") (:dev-ui "\"http://localhost:8100/main.css") (:release-ui "\"http://cdn.tiye.me/favored-fonts/main.css") (:cdn-url "\"http://cdn.tiye.me/copyboard/") (:theme "\"#ECCE32") (:storage-key "\"copyboard") (:storage-file "\"storage.cirru")
+            def site $ {} (:port 11006) (:title "\"Copyboard") (:icon "\"http://cdn.tiye.me/logo/copyboard.png") (:theme "\"#ECCE32") (:storage-key "\"copyboard") (:storage-file "\"storage.cirru")
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote (ns app.config)
     |app.schema $ %{} :FileEntry
@@ -738,10 +806,12 @@
                   op-id $ generate-id!
                   op-time $ -> (get-time!) (.timestamp)
                 if config/dev? $ println "\"Dispatch!" (str op) sid
-                if
-                  = (nth op 0) :effect/persist
-                  persist-db!
-                  reset! *reel $ reel-reducer @*reel updater op sid op-id op-time config/dev?
+                tag-match op
+                    :effect/persist
+                    persist-db!
+                  (:effect/ping)
+                    wss-send! sid $ format-cirru-edn (:: :effect/pong)
+                  _ $ reset! *reel (reel-reducer @*reel updater op sid op-id op-time config/dev?)
         |get-backup-path! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn get-backup-path! () $ let
@@ -875,7 +945,7 @@
                     -> (:snippets db) (.to-list)
                       .sort-by $ fn (pair)
                         negate $ :time (last pair)
-                      take 8
+                      take 12
                       pairs-map
                 merge base-data $ if logged-in?
                   {}
