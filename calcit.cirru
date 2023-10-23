@@ -312,8 +312,7 @@
               |j $ %{} :Leaf (:at 1500541010211) (:by |root) (:text |mount-target)
               |r $ %{} :Expr (:at 1500541010211) (:by nil)
                 :data $ {}
-                  |T $ %{} :Leaf (:at 1500541010211) (:by |root) (:text |.querySelector)
-                  |j $ %{} :Leaf (:at 1500541010211) (:by |root) (:text |js/document)
+                  |j $ %{} :Leaf (:at 1698090759291) (:by |B1y7Rc-Zz) (:text |js/document.querySelector)
                   |r $ %{} :Leaf (:at 1500541010211) (:by |root) (:text ||.app)
         |on-server-data $ %{} :CodeEntry (:doc |)
           :code $ %{} :Expr (:at 1629896048461) (:by |B1y7Rc-Zz)
@@ -4601,6 +4600,40 @@
                                               |L $ %{} :Leaf (:at 1695232884820) (:by |B1y7Rc-Zz) (:text |100)
                                               |T $ %{} :Leaf (:at 1695232294248) (:by |B1y7Rc-Zz) (:text |up)
                                       |b $ %{} :Leaf (:at 1695232894306) (:by |B1y7Rc-Zz) (:text "|\"%")
+        |decorate-name $ %{} :CodeEntry (:doc "|`paste` event uses default name `image.png` as the file name, need to overwrite that.\n\nalso spaces in filekey causes problems of inline CSS, need to replace that.")
+          :code $ %{} :Expr (:at 1698091192028) (:by |B1y7Rc-Zz)
+            :data $ {}
+              |T $ %{} :Leaf (:at 1698091193140) (:by |B1y7Rc-Zz) (:text |defn)
+              |b $ %{} :Leaf (:at 1698091192028) (:by |B1y7Rc-Zz) (:text |decorate-name)
+              |h $ %{} :Expr (:at 1698091192028) (:by |B1y7Rc-Zz)
+                :data $ {}
+                  |T $ %{} :Leaf (:at 1698091201480) (:by |B1y7Rc-Zz) (:text |img-name)
+              |l $ %{} :Expr (:at 1698091202863) (:by |B1y7Rc-Zz)
+                :data $ {}
+                  |T $ %{} :Leaf (:at 1698091203219) (:by |B1y7Rc-Zz) (:text |if)
+                  |b $ %{} :Expr (:at 1698091204072) (:by |B1y7Rc-Zz)
+                    :data $ {}
+                      |D $ %{} :Leaf (:at 1698091204754) (:by |B1y7Rc-Zz) (:text |=)
+                      |L $ %{} :Leaf (:at 1698091207823) (:by |B1y7Rc-Zz) (:text "|\"image.png")
+                      |T $ %{} :Leaf (:at 1698091203599) (:by |B1y7Rc-Zz) (:text |img-name)
+                  |h $ %{} :Expr (:at 1698091237807) (:by |B1y7Rc-Zz)
+                    :data $ {}
+                      |D $ %{} :Leaf (:at 1698091247580) (:by |B1y7Rc-Zz) (:text |str)
+                      |T $ %{} :Leaf (:at 1698091250230) (:by |B1y7Rc-Zz) (:text "|\"pasted-")
+                      |b $ %{} :Expr (:at 1698091340383) (:by |B1y7Rc-Zz)
+                        :data $ {}
+                          |D $ %{} :Leaf (:at 1698091362999) (:by |B1y7Rc-Zz) (:text |.!toISOString)
+                          |T $ %{} :Expr (:at 1698091253862) (:by |B1y7Rc-Zz)
+                            :data $ {}
+                              |D $ %{} :Leaf (:at 1698091339071) (:by |B1y7Rc-Zz) (:text |new)
+                              |T $ %{} :Leaf (:at 1698091338093) (:by |B1y7Rc-Zz) (:text |js/Date)
+                      |h $ %{} :Leaf (:at 1698091270033) (:by |B1y7Rc-Zz) (:text "|\".png")
+                  |l $ %{} :Expr (:at 1698091429111) (:by |B1y7Rc-Zz)
+                    :data $ {}
+                      |D $ %{} :Leaf (:at 1698091433534) (:by |B1y7Rc-Zz) (:text |.replace)
+                      |T $ %{} :Leaf (:at 1698091274077) (:by |B1y7Rc-Zz) (:text |img-name)
+                      |b $ %{} :Leaf (:at 1698091436594) (:by |B1y7Rc-Zz) (:text "|\" ")
+                      |h $ %{} :Leaf (:at 1698091438878) (:by |B1y7Rc-Zz) (:text "|\"-")
         |style-hidden-input $ %{} :CodeEntry (:doc |)
           :code $ %{} :Expr (:at 1695232694528) (:by |B1y7Rc-Zz)
             :data $ {}
@@ -4657,14 +4690,17 @@
                               |D $ %{} :Leaf (:at 1694974035009) (:by |B1y7Rc-Zz) (:text |str)
                               |J $ %{} :Leaf (:at 1695236970112) (:by |B1y7Rc-Zz) (:text |hash)
                               |P $ %{} :Leaf (:at 1696058337312) (:by |B1y7Rc-Zz) (:text "|\"/")
-                              |T $ %{} :Expr (:at 1695235825936) (:by |B1y7Rc-Zz)
+                              |T $ %{} :Expr (:at 1698091188489) (:by |B1y7Rc-Zz)
                                 :data $ {}
-                                  |D $ %{} :Leaf (:at 1695235826894) (:by |B1y7Rc-Zz) (:text |either)
-                                  |T $ %{} :Expr (:at 1694974033327) (:by |B1y7Rc-Zz)
+                                  |D $ %{} :Leaf (:at 1698091191246) (:by |B1y7Rc-Zz) (:text |decorate-name)
+                                  |T $ %{} :Expr (:at 1695235825936) (:by |B1y7Rc-Zz)
                                     :data $ {}
-                                      |T $ %{} :Leaf (:at 1694974033327) (:by |B1y7Rc-Zz) (:text |.-name)
-                                      |b $ %{} :Leaf (:at 1694974033327) (:by |B1y7Rc-Zz) (:text |file)
-                                  |b $ %{} :Leaf (:at 1695235849659) (:by |B1y7Rc-Zz) (:text "|\"clipboard.jpg")
+                                      |D $ %{} :Leaf (:at 1695235826894) (:by |B1y7Rc-Zz) (:text |either)
+                                      |T $ %{} :Expr (:at 1694974033327) (:by |B1y7Rc-Zz)
+                                        :data $ {}
+                                          |T $ %{} :Leaf (:at 1694974033327) (:by |B1y7Rc-Zz) (:text |.-name)
+                                          |b $ %{} :Leaf (:at 1694974033327) (:by |B1y7Rc-Zz) (:text |file)
+                                      |b $ %{} :Leaf (:at 1695235849659) (:by |B1y7Rc-Zz) (:text "|\"clipboard.jpg")
                       |T $ %{} :Expr (:at 1694971913502) (:by |B1y7Rc-Zz)
                         :data $ {}
                           |D $ %{} :Leaf (:at 1694971914956) (:by |B1y7Rc-Zz) (:text |res)
