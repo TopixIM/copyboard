@@ -59,7 +59,7 @@
               read-from-clipboard!
         |mount-target $ %{} :CodeEntry (:doc |)
           :code $ quote
-            def mount-target $ .querySelector js/document |.app
+            def mount-target $ js/document.querySelector |.app
         |on-server-data $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn on-server-data (data)
@@ -687,6 +687,14 @@
                       <> $ str "\"uploading: "
                         .round $ * 100 up
                         , "\"%"
+        |decorate-name $ %{} :CodeEntry (:doc "|`paste` event uses default name `image.png` as the file name, need to overwrite that.\n\nalso spaces in filekey causes problems of inline CSS, need to replace that.")
+          :code $ quote
+            defn decorate-name (img-name)
+              if (= "\"image.png" img-name)
+                str "\"pasted-"
+                  .!toISOString $ new js/Date
+                  , "\".png"
+                .replace img-name "\" " "\"-"
         |style-hidden-input $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-hidden-input $ {}
@@ -697,7 +705,7 @@
               let
                   hash $ js-await (load-md5 file)
                   file-key $ str hash "\"/"
-                    either (.-name file) "\"clipboard.jpg"
+                    decorate-name $ either (.-name file) "\"clipboard.jpg"
                   res $ js-await
                     .!post axios "\"https://cp.topix.im/token"
                       format-cirru-edn $ {}
