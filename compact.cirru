@@ -95,6 +95,7 @@
                 add-watch *store :changes $ fn (store prev) (render-app!)
                 add-watch *states :changes $ fn (states prev) (render-app!)
                 println "\"Code updated."
+                hud! "\"ok~"
         |render-app! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn render-app! () $ render! mount-target
@@ -322,11 +323,9 @@
                     -> e :event $ .!preventDefault
                     let
                         items $ -> e :event .-dataTransfer .-items
-                      if
-                        > (.-length items) 0
-                        upload-file!
-                          .!getAsFile $ .-0 items
-                          , user d! $ fn (_e)
+                      -> items js/Array.from $ .!forEach
+                        fn (item & _a)
+                          upload-file! (.!getAsFile item) user d! $ fn (_e)
                 div
                   {} $ :style
                     {} $ :position :relative
@@ -660,18 +659,19 @@
                   up $ :uploading state
                 div
                   {} $ :class-name css/row-middle
-                  input $ {} (:type "\"file") (:id "\"upload-input") (:class-name style-hidden-input)
+                  input $ {} (:type "\"file") (:id "\"upload-input") (:class-name style-hidden-input) (:multiple true)
                     :on-input $ fn (e d!)
                       let
                           event $ :event e
                           target $ -> event .-target
-                          file $ -> target .-files .-0
+                          files $ -> target .-files
+                        -> files js/Array.from $ .!forEach
+                          fn (file & _a)
+                            if
+                              < (.-size file) js/1e8
+                              upload-file! file user d! $ fn (next) (d! cursor next)
+                              js/console.warn "\"File too large"
                         -> target .-value $ set! nil
-                        if (some? file)
-                          if
-                            < (.-size file) js/1e8
-                            upload-file! file user d! $ fn (next) (d! cursor next)
-                            js/console.warn "\"File too large"
                   a
                     {} (:class-name css/link)
                       :style $ {}
@@ -694,7 +694,7 @@
                 str "\"pasted-"
                   .!toISOString $ new js/Date
                   , "\".png"
-                .replace img-name "\" " "\"-"
+                -> img-name (.replace "\" " "\"-") (.replace "\")" "\"_bo_") (.replace "\"(" "\"_bc_")
         |style-hidden-input $ %{} :CodeEntry (:doc |)
           :code $ quote
             defstyle style-hidden-input $ {}
