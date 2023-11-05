@@ -906,7 +906,6 @@
                     do
                       wss-send! sid $ format-cirru-edn (:: :patch changes)
                       swap! *client-caches assoc sid new-store
-              new-twig-loop!
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.server $ :require (app.schema :as schema)
@@ -915,7 +914,7 @@
             app.config :as config
             app.twig.container :refer $ twig-container
             recollect.diff :refer $ diff-twig
-            recollect.twig :refer $ render-twig new-twig-loop! clear-twig-caches!
+            recollect.twig :refer $ render-twig clear-twig-caches!
             wss.core :refer $ wss-serve! wss-send! wss-each!
             app.$meta :refer $ calcit-dirname
             calcit.std.fs :refer $ path-exists? check-write-file!
