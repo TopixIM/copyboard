@@ -4,9 +4,9 @@
   "description": "Cumulo Workflow",
   "main": "index.js",
   "scripts": {
-    "compile-page": "cr --emit-js --once",
+    "compile-page": "cr --once js",
     "release-page": "vite build --base=./",
-    "watch-page": "cr --emit-js"
+    "watch-page": "cr js"
   },
   "repository": {
     "type": "git",
@@ -15,9 +15,9 @@
   "author": "jiyinyiyong",
   "license": "MIT",
   "dependencies": {
-    "@calcit/procs": "^0.8.50",
-    "axios": "^1.6.8",
-    "mime": "^4.0.3",
+    "@calcit/procs": "^0.9.1",
+    "axios": "^1.7.3",
+    "mime": "^4.0.4",
     "shortid": "^2.2.16"
   },
   "devDependencies": {
@@ -26,6 +26,6 @@
     "feather-icons": "^4.29.2",
     "spark-md5": "^3.0.2",
     "url-parse": "^1.5.10",
-    "vite": "^5.2.11"
+    "vite": "^5.4.0"
   }
 }
