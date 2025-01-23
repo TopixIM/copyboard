@@ -4,10 +4,12 @@
     :modules $ [] |respo.calcit/ |lilac/ |recollect/ |memof/ |respo-ui.calcit/ |ws-edn.calcit/ |cumulo-util.calcit/ |respo-message.calcit/ |cumulo-reel.calcit/ |respo-feather.calcit/ |alerts.calcit/
   :entries $ {}
     :server $ {} (:init-fn |app.server/main!) (:port 6001) (:reload-fn |app.server/reload!) (:storage-key |calcit.cirru)
-      :modules $ [] |lilac/ |recollect/ |memof/ |cumulo-util.calcit/ |cumulo-reel.calcit/ |calcit.std/ |calcit-wss/
+      :modules $ [] |lilac/ |recollect/ |memof/ |cumulo-util.calcit/ |cumulo-reel.calcit/ |calcit.std/ |calcit-wss/ |calcit-http/
   :files $ {}
     |app.client $ %{} :FileEntry
       :defs $ {}
+        |*preview-data $ %{} :CodeEntry (:doc |)
+          :code $ quote (defatom *preview-data nil)
         |*states $ %{} :CodeEntry (:doc |)
           :code $ quote
             defatom *states $ {}
@@ -38,7 +40,19 @@
                   :states cursor s
                   reset! *states $ update-states @*states cursor s
                 (:effect/connect) (connect!)
+                (:preview/load snippets)
+                  reset! *store $ :: :preview snippets
                 _ $ ws-send! op
+        |load-preview-data! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn load-preview-data! () (hint-fn async)
+              let
+                  response $ js-await
+                    js/fetch $ if config/dev? "\"http://localhost:11030/" "\"/apis/query"
+                  text $ js-await (.!text response)
+                ; js/console.log "\"preview" $ parse-cirru-edn text
+                reset! *preview-data $ pairs-map
+                  :snippets-list $ parse-cirru-edn text
         |main! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn main! ()
@@ -48,6 +62,8 @@
               connect!
               add-watch *store :changes $ fn (store prev) (render-app!)
               add-watch *states :changes $ fn (states prev) (render-app!)
+              add-watch *preview-data :changes $ fn (states prev) (render-app!)
+              load-preview-data!
               on-page-touch $ fn ()
                 if
                   = @*store $ :: :offline
@@ -99,7 +115,7 @@
         |render-app! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn render-app! () $ render! mount-target
-              comp-container (:states @*states) @*store
+              comp-container (:states @*states) @*store @*preview-data
               , dispatch!
         |simulate-login! $ %{} :CodeEntry (:doc |)
           :code $ quote
@@ -128,8 +144,15 @@
       :defs $ {}
         |comp-container $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defcomp comp-container (states store)
-              case-default store
+            defcomp comp-container (states store preview-data)
+              if (tuple? store)
+                if (some? preview-data)
+                  comp-home (>> states :preview) preview-data true nil
+                  tag-match store
+                      :initial
+                      comp-offline :initial
+                    (:offline) (comp-offline :offline)
+                    _ $ <> "\"unknown"
                 let
                     cursor $ :cursor states
                     state $ :data states
@@ -155,8 +178,6 @@
                         fn (info d!) (d! :session/remove-message info)
                       when dev? $ comp-reel (:reel-length store)
                         {} $ :bottom 40
-                (:: :initial) (comp-offline :initial)
-                (:: :offline) (comp-offline :offline)
         |comp-offline $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-offline (state)
@@ -326,10 +347,11 @@
                       -> items js/Array.from $ .!forEach
                         fn (item & _a)
                           upload-file! (.!getAsFile item) user d! $ fn (_e)
-                div
-                  {} $ :style
-                    {} $ :position :relative
-                  comp-box (>> states :box) user
+                if (some? user)
+                  div
+                    {} $ :style
+                      {} $ :position :relative
+                    comp-box (>> states :box) user
                 =< nil 8
                 list->
                   {}
@@ -750,7 +772,7 @@
             def dev? $ = "\"dev" (get-env "\"mode" "\"release")
         |site $ %{} :CodeEntry (:doc |)
           :code $ quote
-            def site $ {} (:port 11006) (:title "\"Copyboard") (:icon "\"http://cdn.tiye.me/logo/copyboard.png") (:theme "\"#ECCE32") (:storage-key "\"copyboard") (:storage-file "\"storage.cirru")
+            def site $ {} (:port 11006) (:http-port 11030) (:title "\"Copyboard") (:icon "\"http://cdn.tiye.me/logo/copyboard.png") (:theme "\"#ECCE32") (:storage-key "\"copyboard") (:storage-file "\"storage.cirru")
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote (ns app.config)
     |app.schema $ %{} :FileEntry
@@ -843,6 +865,20 @@
         |on-exit! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn on-exit! () (persist-db!) (; println "\"exit code is...") (quit! 0)
+        |on-request! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn on-request! (req)
+              let
+                  db $ :db @*reel
+                  snippets $ -> (:snippets db) (&map:to-list)
+                    &list:sort-by $ fn (pair)
+                      negate $ &map:get (last pair) :time
+                    take 12
+                    with-cpu-time
+                {} (:code 200)
+                  :headers $ {} (:content-type |application/cirru-edn) (:Access-Control-Allow-Origin "\"*")
+                  :body $ format-cirru-edn
+                    {} $ :snippets-list snippets
         |persist-db! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn persist-db! () $ let
@@ -883,6 +919,11 @@
                       do (println "\"Client closed!")
                         dispatch! (:: :session/disconnect) sid
                     _ $ println "\"unknown data:" data
+              http.core/serve-http!
+                {}
+                  :port $ :http-port config/site
+                  :host |0.0.0.0
+                fn (req) (on-request! req)
         |storage-file $ %{} :CodeEntry (:doc |)
           :code $ quote
             def storage-file $ if (empty? calcit-dirname)
@@ -949,11 +990,12 @@
                     :count $ :count db
                     :reel-length $ count records
                   snippets $ if (:show-all? session) (:snippets db)
-                    -> (:snippets db) (.to-list)
-                      .sort-by $ fn (pair)
-                        negate $ :time (last pair)
+                    -> (:snippets db) (&map:to-list)
+                      &list:sort-by $ fn (pair)
+                        negate $ &map:get (last pair) :time
                       take 12
                       pairs-map
+                      with-cpu-time
                 merge base-data $ if logged-in?
                   {}
                     :user $ twig-user
@@ -1004,6 +1046,7 @@
                 (:snippet/create-file url kind) (snippet/create-file db url kind sid op-id op-time)
                 (:snippet/remove-one op-data) (snippet/remove-one db op-data sid op-id op-time)
                 (:session/show-all op-data) (session/show-all db op-data sid op-id op-time)
+                (:preview/load snippets) (:: :preview snippets)
                 _ $ do (eprintln "|Unknown op:" op) db
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote

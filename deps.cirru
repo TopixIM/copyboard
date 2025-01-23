@@ -12,4 +12,5 @@
     |Respo/respo-feather.calcit |main
     |Respo/alerts.calcit |main
     |calcit-lang/calcit-wss |main
+    |calcit-lang/calcit-http |0.1.4
     |calcit-lang/calcit.std |main
