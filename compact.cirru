@@ -147,7 +147,7 @@
             defcomp comp-container (states store preview-data)
               if (tuple? store)
                 if (some? preview-data)
-                  comp-preview (>> states :preview) preview-data
+                  comp-preview (>> states :preview) preview-data :connecting
                   tag-match store
                       :initial
                       comp-offline :initial
@@ -170,7 +170,7 @@
                           :profile $ comp-profile user (:data router)
                         div ({})
                           if (some? preview-data)
-                            comp-preview (>> states :preview) preview-data
+                            comp-preview (>> states :preview) preview-data :login
                           comp-login $ >> states :login
                       comp-status-color $ :color store
                       when dev? $ comp-inspect |Store store
@@ -206,10 +206,12 @@
                     {} (:font-family ui/font-fancy) (:font-size 24)
         |comp-preview $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defn comp-preview (states preview-data)
+            defn comp-preview (states preview-data stage)
               div ({})
                 div $ {}
-                  :style $ {} (:height 176) (:margin-bottom 8)
+                  :style $ {}
+                    :height $ if (= stage :login) 144 176
+                    :margin-bottom 8
                     :background-color $ hsl 0 0 90
                     :margin-top 24
                 comp-home states preview-data true nil
