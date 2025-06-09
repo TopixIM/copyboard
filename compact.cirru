@@ -147,7 +147,12 @@
             defcomp comp-container (states store preview-data)
               if (tuple? store)
                 if (some? preview-data)
-                  comp-home (>> states :preview) preview-data true nil
+                  div ({})
+                    div $ {}
+                      :style $ {} (:height 176) (:margin-bottom 8)
+                        :background-color $ hsl 0 0 90
+                        :margin-top 24
+                    comp-home (>> states :preview) preview-data true nil
                   tag-match store
                       :initial
                       comp-offline :initial
@@ -216,7 +221,7 @@
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.container $ :require
-            hsl.core :refer $ hsl
+            respo.util.format :refer $ hsl
             respo-ui.core :as ui
             respo-ui.css :as css
             respo.core :refer $ defcomp <> div span >> button
