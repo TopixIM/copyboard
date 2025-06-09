@@ -57,13 +57,13 @@
           :code $ quote
             defn main! ()
               println "\"Running mode:" $ if config/dev? "\"dev" "\"release"
+              load-preview-data!
               if config/dev? $ load-console-formatter!
               render-app!
               connect!
               add-watch *store :changes $ fn (store prev) (render-app!)
               add-watch *states :changes $ fn (states prev) (render-app!)
               add-watch *preview-data :changes $ fn (states prev) (render-app!)
-              load-preview-data!
               on-page-touch $ fn ()
                 if
                   = @*store $ :: :offline
@@ -147,12 +147,7 @@
             defcomp comp-container (states store preview-data)
               if (tuple? store)
                 if (some? preview-data)
-                  div ({})
-                    div $ {}
-                      :style $ {} (:height 176) (:margin-bottom 8)
-                        :background-color $ hsl 0 0 90
-                        :margin-top 24
-                    comp-home (>> states :preview) preview-data true nil
+                  comp-preview (>> states :preview) preview-data
                   tag-match store
                       :initial
                       comp-offline :initial
@@ -173,7 +168,10 @@
                         case-default (:name router) (<> router)
                           :home $ comp-home (>> states :snippets) (:snippets store) (:show-all? store) user
                           :profile $ comp-profile user (:data router)
-                        comp-login $ >> states :login
+                        div ({})
+                          if (some? preview-data)
+                            comp-preview (>> states :preview) preview-data
+                          comp-login $ >> states :login
                       comp-status-color $ :color store
                       when dev? $ comp-inspect |Store store
                         {} (:bottom 40) (:left 0) (:max-width |100%)
@@ -206,6 +204,15 @@
                   <>
                     if (= state :offline) "\"Socket broken, click to retry." "\"Loading"
                     {} (:font-family ui/font-fancy) (:font-size 24)
+        |comp-preview $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn comp-preview (states preview-data)
+              div ({})
+                div $ {}
+                  :style $ {} (:height 176) (:margin-bottom 8)
+                    :background-color $ hsl 0 0 90
+                    :margin-top 24
+                comp-home states preview-data true nil
         |comp-status-color $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-status-color (color)
@@ -535,7 +542,9 @@
                   cursor $ :cursor states
                   state $ or (:data states) initial-state
                 div
-                  {} $ :class-name (str-spaced css/flex css/center)
+                  {}
+                    :class-name $ str-spaced css/flex css/center
+                    :style $ {} (:padding "\"80px")
                   div ({})
                     div
                       {} $ :style ({})
