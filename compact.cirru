@@ -51,8 +51,7 @@
                     js/fetch $ if config/dev? "\"http://localhost:11030/" "\"/apis/query"
                   text $ js-await (.!text response)
                 ; js/console.log "\"preview" $ parse-cirru-edn text
-                reset! *preview-data $ pairs-map
-                  :snippets-list $ parse-cirru-edn text
+                reset! *preview-data $ :snippets-list (parse-cirru-edn text)
         |main! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn main! ()
@@ -371,11 +370,11 @@
                   {}
                     :class-name $ str-spaced style-grid-list
                     :style $ {} (:width "\"100%")
-                  -> snippets (.to-list)
-                    .sort-by $ fn (pair)
-                      negate $ :time (last pair)
-                    .map-pair $ fn (k snippet)
-                      [] k $ comp-snippet (>> states k) k snippet
+                  -> snippets reverse $ .map
+                    fn (snippet)
+                      let
+                          k $ :id snippet
+                        [] k $ comp-snippet (>> states k) k snippet
                 if-not show-all? $ div
                   {} $ :class-name css/center
                   span $ {} (:class-name style-all-tag) (:inner-text "\"Show all")
@@ -878,6 +877,15 @@
               set-interval 200 $ fn () (render-loop!)
               set-interval 600000 $ fn () (persist-db!)
               on-control-c on-exit!
+        |migrate-storage! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn migrate-storage! () $ let
+                data $ parse-cirru-edn (read-file "\"storage.cirru")
+                new-data $ update data :snippets
+                  fn (ss)
+                    -> (vals ss) .to-list $ .sort-by
+                      fn (s) (:time s)
+              write-file "\"storage-new.cirru" $ format-cirru-edn new-data
         |on-exit! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn on-exit! () (persist-db!) (; println "\"exit code is...") (quit! 0)
@@ -886,13 +894,9 @@
             defn on-request! (req)
               let
                   db $ :db @*reel
-                  snippets $ -> (:snippets db) (&map:to-list)
-                    &list:sort-by $ fn (pair)
-                      negate $ &map:get (last pair) :time
-                    take 12
-                    with-cpu-time
+                  snippets $ -> (:snippets db) (take-last 12) (with-cpu-time)
                 {} (:code 200)
-                  :headers $ {} (:content-type |application/cirru-edn) (:Access-Control-Allow-Origin "\"*")
+                  :headers $ {} (:content-type |text/cirru-edn) (:Access-Control-Allow-Origin "\"*")
                   :body $ format-cirru-edn
                     {} $ :snippets-list snippets
         |persist-db! $ %{} :CodeEntry (:doc |)
@@ -1006,12 +1010,7 @@
                     :count $ :count db
                     :reel-length $ count records
                   snippets $ if (:show-all? session) (:snippets db)
-                    -> (:snippets db) (&map:to-list)
-                      &list:sort-by $ fn (pair)
-                        negate $ &map:get (last pair) :time
-                      take 12
-                      pairs-map
-                      with-cpu-time
+                    -> (:snippets db) (take-last 12) (with-cpu-time)
                 merge base-data $ if logged-in?
                   {}
                     :user $ twig-user
@@ -1104,17 +1103,21 @@
         |create $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn create (db op-data sid op-id op-time)
-              assoc-in db ([] :snippets op-id)
-                merge schema/snippet $ {} (:id op-id) (:content op-data) (:time op-time)
+              update db :snippets $ fn (ss)
+                conj ss $ merge schema/snippet
+                  {} (:id op-id) (:content op-data) (:time op-time)
         |create-file $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn create-file (db url kind sid op-id op-time)
-              assoc-in db ([] :snippets op-id)
-                merge schema/snippet $ {} (:id op-id) (:content url) (:time op-time) (:type kind) (:url url)
+              update db :snippets $ fn (ss)
+                conj ss $ merge schema/snippet
+                  {} (:id op-id) (:content url) (:time op-time) (:type kind) (:url url)
         |remove-one $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defn remove-one (db op-data sid op-id op-time)
-              update db :snippets $ fn (snippets) (dissoc snippets op-data)
+            defn remove-one (db snippet-id sid op-id op-time)
+              update db :snippets $ fn (snippets)
+                filter-not snippets $ fn (s)
+                  = snippet-id $ &map:get s :id
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.updater.snippet $ :require ([] app.schema :as schema)
