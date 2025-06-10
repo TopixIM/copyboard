@@ -4,10 +4,12 @@
     :modules $ [] |respo.calcit/ |lilac/ |recollect/ |memof/ |respo-ui.calcit/ |ws-edn.calcit/ |cumulo-util.calcit/ |respo-message.calcit/ |cumulo-reel.calcit/ |respo-feather.calcit/ |alerts.calcit/
   :entries $ {}
     :server $ {} (:init-fn |app.server/main!) (:port 6001) (:reload-fn |app.server/reload!) (:storage-key |calcit.cirru)
-      :modules $ [] |lilac/ |recollect/ |memof/ |cumulo-util.calcit/ |cumulo-reel.calcit/ |calcit.std/ |calcit-wss/
+      :modules $ [] |lilac/ |recollect/ |memof/ |cumulo-util.calcit/ |cumulo-reel.calcit/ |calcit.std/ |calcit-wss/ |calcit-http/
   :files $ {}
     |app.client $ %{} :FileEntry
       :defs $ {}
+        |*preview-data $ %{} :CodeEntry (:doc |)
+          :code $ quote (defatom *preview-data nil)
         |*states $ %{} :CodeEntry (:doc |)
           :code $ quote
             defatom *states $ {}
@@ -38,16 +40,29 @@
                   :states cursor s
                   reset! *states $ update-states @*states cursor s
                 (:effect/connect) (connect!)
+                (:preview/load snippets)
+                  reset! *store $ :: :preview snippets
                 _ $ ws-send! op
+        |load-preview-data! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn load-preview-data! () (hint-fn async)
+              let
+                  response $ js-await
+                    js/fetch $ if config/dev? "\"http://localhost:11030/" "\"/apis/query"
+                  text $ js-await (.!text response)
+                ; js/console.log "\"preview" $ parse-cirru-edn text
+                reset! *preview-data $ :snippets-list (parse-cirru-edn text)
         |main! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn main! ()
               println "\"Running mode:" $ if config/dev? "\"dev" "\"release"
+              load-preview-data!
               if config/dev? $ load-console-formatter!
               render-app!
               connect!
               add-watch *store :changes $ fn (store prev) (render-app!)
               add-watch *states :changes $ fn (states prev) (render-app!)
+              add-watch *preview-data :changes $ fn (states prev) (render-app!)
               on-page-touch $ fn ()
                 if
                   = @*store $ :: :offline
@@ -99,7 +114,7 @@
         |render-app! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn render-app! () $ render! mount-target
-              comp-container (:states @*states) @*store
+              comp-container (:states @*states) @*store @*preview-data
               , dispatch!
         |simulate-login! $ %{} :CodeEntry (:doc |)
           :code $ quote
@@ -128,8 +143,15 @@
       :defs $ {}
         |comp-container $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defcomp comp-container (states store)
-              case-default store
+            defcomp comp-container (states store preview-data)
+              if (tuple? store)
+                if (some? preview-data)
+                  comp-preview (>> states :preview) preview-data :connecting
+                  tag-match store
+                      :initial
+                      comp-offline :initial
+                    (:offline) (comp-offline :offline)
+                    _ $ <> "\"unknown"
                 let
                     cursor $ :cursor states
                     state $ :data states
@@ -145,7 +167,10 @@
                         case-default (:name router) (<> router)
                           :home $ comp-home (>> states :snippets) (:snippets store) (:show-all? store) user
                           :profile $ comp-profile user (:data router)
-                        comp-login $ >> states :login
+                        div ({})
+                          if (some? preview-data)
+                            comp-preview (>> states :preview) preview-data :login
+                          comp-login $ >> states :login
                       comp-status-color $ :color store
                       when dev? $ comp-inspect |Store store
                         {} (:bottom 40) (:left 0) (:max-width |100%)
@@ -155,8 +180,6 @@
                         fn (info d!) (d! :session/remove-message info)
                       when dev? $ comp-reel (:reel-length store)
                         {} $ :bottom 40
-                (:: :initial) (comp-offline :initial)
-                (:: :offline) (comp-offline :offline)
         |comp-offline $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-offline (state)
@@ -180,6 +203,17 @@
                   <>
                     if (= state :offline) "\"Socket broken, click to retry." "\"Loading"
                     {} (:font-family ui/font-fancy) (:font-size 24)
+        |comp-preview $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn comp-preview (states preview-data stage)
+              div ({})
+                div $ {}
+                  :style $ {}
+                    :height $ if (= stage :login) 144 176
+                    :margin-bottom 8
+                    :background-color $ hsl 0 0 90
+                    :margin-top 24
+                comp-home states preview-data true nil
         |comp-status-color $ %{} :CodeEntry (:doc |)
           :code $ quote
             defcomp comp-status-color (color)
@@ -195,7 +229,7 @@
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.comp.container $ :require
-            hsl.core :refer $ hsl
+            respo.util.format :refer $ hsl
             respo-ui.core :as ui
             respo-ui.css :as css
             respo.core :refer $ defcomp <> div span >> button
@@ -326,20 +360,21 @@
                       -> items js/Array.from $ .!forEach
                         fn (item & _a)
                           upload-file! (.!getAsFile item) user d! $ fn (_e)
-                div
-                  {} $ :style
-                    {} $ :position :relative
-                  comp-box (>> states :box) user
+                if (some? user)
+                  div
+                    {} $ :style
+                      {} $ :position :relative
+                    comp-box (>> states :box) user
                 =< nil 8
                 list->
                   {}
                     :class-name $ str-spaced style-grid-list
                     :style $ {} (:width "\"100%")
-                  -> snippets (.to-list)
-                    .sort-by $ fn (pair)
-                      negate $ :time (last pair)
-                    .map-pair $ fn (k snippet)
-                      [] k $ comp-snippet (>> states k) k snippet
+                  -> snippets reverse $ .map
+                    fn (snippet)
+                      let
+                          k $ :id snippet
+                        [] k $ comp-snippet (>> states k) k snippet
                 if-not show-all? $ div
                   {} $ :class-name css/center
                   span $ {} (:class-name style-all-tag) (:inner-text "\"Show all")
@@ -508,7 +543,9 @@
                   cursor $ :cursor states
                   state $ or (:data states) initial-state
                 div
-                  {} $ :class-name (str-spaced css/flex css/center)
+                  {}
+                    :class-name $ str-spaced css/flex css/center
+                    :style $ {} (:padding "\"80px")
                   div ({})
                     div
                       {} $ :style ({})
@@ -750,7 +787,7 @@
             def dev? $ = "\"dev" (get-env "\"mode" "\"release")
         |site $ %{} :CodeEntry (:doc |)
           :code $ quote
-            def site $ {} (:port 11006) (:title "\"Copyboard") (:icon "\"http://cdn.tiye.me/logo/copyboard.png") (:theme "\"#ECCE32") (:storage-key "\"copyboard") (:storage-file "\"storage.cirru")
+            def site $ {} (:port 11006) (:http-port 11030) (:title "\"Copyboard") (:icon "\"http://cdn.tiye.me/logo/copyboard.png") (:theme "\"#ECCE32") (:storage-key "\"copyboard") (:storage-file "\"storage.cirru")
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote (ns app.config)
     |app.schema $ %{} :FileEntry
@@ -840,9 +877,28 @@
               set-interval 200 $ fn () (render-loop!)
               set-interval 600000 $ fn () (persist-db!)
               on-control-c on-exit!
+        |migrate-storage! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn migrate-storage! () $ let
+                data $ parse-cirru-edn (read-file "\"storage.cirru")
+                new-data $ update data :snippets
+                  fn (ss)
+                    -> (vals ss) .to-list $ .sort-by
+                      fn (s) (:time s)
+              write-file "\"storage-new.cirru" $ format-cirru-edn new-data
         |on-exit! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn on-exit! () (persist-db!) (; println "\"exit code is...") (quit! 0)
+        |on-request! $ %{} :CodeEntry (:doc |)
+          :code $ quote
+            defn on-request! (req)
+              let
+                  db $ :db @*reel
+                  snippets $ -> (:snippets db) (take-last 12) (with-cpu-time)
+                {} (:code 200)
+                  :headers $ {} (:content-type |text/cirru-edn) (:Access-Control-Allow-Origin "\"*")
+                  :body $ format-cirru-edn
+                    {} $ :snippets-list snippets
         |persist-db! $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn persist-db! () $ let
@@ -883,6 +939,11 @@
                       do (println "\"Client closed!")
                         dispatch! (:: :session/disconnect) sid
                     _ $ println "\"unknown data:" data
+              http.core/serve-http!
+                {}
+                  :port $ :http-port config/site
+                  :host |0.0.0.0
+                fn (req) (on-request! req)
         |storage-file $ %{} :CodeEntry (:doc |)
           :code $ quote
             def storage-file $ if (empty? calcit-dirname)
@@ -949,11 +1010,7 @@
                     :count $ :count db
                     :reel-length $ count records
                   snippets $ if (:show-all? session) (:snippets db)
-                    -> (:snippets db) (.to-list)
-                      .sort-by $ fn (pair)
-                        negate $ :time (last pair)
-                      take 12
-                      pairs-map
+                    -> (:snippets db) (take-last 12) (with-cpu-time)
                 merge base-data $ if logged-in?
                   {}
                     :user $ twig-user
@@ -1004,6 +1061,7 @@
                 (:snippet/create-file url kind) (snippet/create-file db url kind sid op-id op-time)
                 (:snippet/remove-one op-data) (snippet/remove-one db op-data sid op-id op-time)
                 (:session/show-all op-data) (session/show-all db op-data sid op-id op-time)
+                (:preview/load snippets) (:: :preview snippets)
                 _ $ do (eprintln "|Unknown op:" op) db
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
@@ -1045,17 +1103,21 @@
         |create $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn create (db op-data sid op-id op-time)
-              assoc-in db ([] :snippets op-id)
-                merge schema/snippet $ {} (:id op-id) (:content op-data) (:time op-time)
+              update db :snippets $ fn (ss)
+                conj ss $ merge schema/snippet
+                  {} (:id op-id) (:content op-data) (:time op-time)
         |create-file $ %{} :CodeEntry (:doc |)
           :code $ quote
             defn create-file (db url kind sid op-id op-time)
-              assoc-in db ([] :snippets op-id)
-                merge schema/snippet $ {} (:id op-id) (:content url) (:time op-time) (:type kind) (:url url)
+              update db :snippets $ fn (ss)
+                conj ss $ merge schema/snippet
+                  {} (:id op-id) (:content url) (:time op-time) (:type kind) (:url url)
         |remove-one $ %{} :CodeEntry (:doc |)
           :code $ quote
-            defn remove-one (db op-data sid op-id op-time)
-              update db :snippets $ fn (snippets) (dissoc snippets op-data)
+            defn remove-one (db snippet-id sid op-id op-time)
+              update db :snippets $ fn (snippets)
+                filter-not snippets $ fn (s)
+                  = snippet-id $ &map:get s :id
       :ns $ %{} :CodeEntry (:doc |)
         :code $ quote
           ns app.updater.snippet $ :require ([] app.schema :as schema)
