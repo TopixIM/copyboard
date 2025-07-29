@@ -6,7 +6,9 @@ js-out/
 node_modules/
 dist/
 
-storage.cirru
+storage*.cirru
 backups/
 
 yarn-error.log
+
+.DS_Store
