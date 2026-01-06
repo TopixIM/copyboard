@@ -6,7 +6,7 @@
     |Respo/respo-feather.calcit |main
     |Respo/respo-message.calcit |0.0.9
     |Respo/respo-ui.calcit |0.6.3
-    |Respo/respo.calcit |0.16.23
+    |Respo/respo.calcit |0.16.24
     |calcit-lang/calcit-http |0.1.4
     |calcit-lang/calcit-wss |0.2.6
     |calcit-lang/calcit.std |0.2.6
