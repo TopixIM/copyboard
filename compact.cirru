@@ -1,5 +1,5 @@
 
-{} (:package |app)
+{} (:about "|file is generated - never edit directly; learn cr edit/tree workflows before changing") (:package |app)
   :configs $ {} (:init-fn |app.client/main!) (:reload-fn |app.client/reload!) (:version |0.0.1)
     :modules $ [] |respo.calcit/ |lilac/ |recollect/ |memof/ |respo-ui.calcit/ |ws-edn.calcit/ |cumulo-util.calcit/ |respo-message.calcit/ |cumulo-reel.calcit/ |respo-feather.calcit/ |alerts.calcit/
   :entries $ {}
@@ -316,13 +316,16 @@
                       d! :snippet/create content
                       d! cursor $ assoc state :content |
                   confirm-plugin $ use-confirm (>> states :clipboard-confirm)
-                    {} $ :text "|检测到剪切板内容，是否填充到输入框？"
+                    {} $ :text "|Clipboard content detected, would you like to fill it into the input box?"
                 []
                   %{} respo.schema/RespoListener (:name :clipboard-listener)
                     :handler $ fn (event d!)
                       tag-match event $ 
                         :clipboard/read text
-                        .show confirm-plugin d! $ fn () (d! :snippet/create text)
+                        when
+                          not $ .blank? text
+                          .show-with-text confirm-plugin d! (str "|Clipboard content detected, would you like to fill it into the input box?\n" text)
+                            fn () $ d! :snippet/create text
                   div ({})
                     textarea $ {} (:value content)
                       :style $ {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width |100%) (:white-space :pre) (:resize :vertical)

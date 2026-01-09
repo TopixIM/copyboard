@@ -2,7 +2,7 @@
 {} (:calcit-version |0.10.4)
   :dependencies $ {} (|Cumulo/cumulo-reel.calcit |main)
     |Cumulo/cumulo-util.calcit |main
-    |Respo/alerts.calcit |0.10.3
+    |Respo/alerts.calcit |0.10.4
     |Respo/respo-feather.calcit |main
     |Respo/respo-message.calcit |0.0.9
     |Respo/respo-ui.calcit |0.6.3
