@@ -8,38 +8,38 @@
   :files $ {}
     |app.client $ %{} :FileEntry
       :defs $ {}
-        |*preview-data $ %{} :CodeEntry (:doc |)
+        |*preview-data $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote (defatom *preview-data nil)
           :examples $ []
-        |*states $ %{} :CodeEntry (:doc |)
+        |*states $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defatom *states $ {}
           :examples $ []
-        |*store $ %{} :CodeEntry (:doc |)
+        |*store $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defatom *store $ :: :initial
           :examples $ []
-        |connect! $ %{} :CodeEntry (:doc |)
+        |connect! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn connect! () $ let
                 url-obj $ url-parse js/location.href true
                 host $ either (-> url-obj .-query .-host) js/location.hostname
                 port $ either (-> url-obj .-query .-port) (:port config/site)
               ws-connect!
-                if config/dev? (str "\"ws://" host "\":" port) "\"wss://cp.topix.im/ws"
+                if config/dev? (str |ws:// host |: port) |wss://cp.topix.im/ws
                 {}
                   :on-open $ fn (event) (simulate-login!)
                   :on-close $ fn (event)
                     reset! *store $ :: :offline
-                    js/console.error "\"Lost connection!"
+                    js/console.error "|Lost connection!"
                   :on-data on-server-data
           :examples $ []
-        |dispatch! $ %{} :CodeEntry (:doc |)
+        |dispatch! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn dispatch! (op)
               when
                 and config/dev? $ not= (nth op 0) :states
-                js/console.log "\"Dispatch" op
+                js/console.log |Dispatch op
               tag-match op
                   :states cursor s
                   reset! *states $ update-states @*states cursor s
@@ -48,20 +48,21 @@
                   reset! *store $ :: :preview snippets
                 _ $ ws-send! op
           :examples $ []
-        |load-preview-data! $ %{} :CodeEntry (:doc |)
+        |load-preview-data! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
-            defn load-preview-data! () (hint-fn async)
+            defn load-preview-data! ()
+              hint-fn $ {} (:async true)
               let
                   response $ js-await
-                    js/fetch $ if config/dev? "\"http://localhost:11030/" "\"/apis/query"
+                    js/fetch $ if config/dev? |http://localhost:11030/ |/apis/query
                   text $ js-await (.!text response)
-                ; js/console.log "\"preview" $ parse-cirru-edn text
+                ; js/console.log |preview $ parse-cirru-edn text
                 reset! *preview-data $ :snippets-list (parse-cirru-edn text)
           :examples $ []
-        |main! $ %{} :CodeEntry (:doc |)
+        |main! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn main! ()
-              println "\"Running mode:" $ if config/dev? "\"dev" "\"release"
+              println "|Running mode:" $ if config/dev? |dev |release
               load-preview-data!
               if config/dev? $ load-console-formatter!
               render-app!
@@ -76,70 +77,70 @@
               visibility-heartbeat $ fn ()
                 if (map? @*store)
                   ws-send! $ :: :effect/ping
-              println "\"App started!"
+              println "|App started!"
               js/setTimeout read-from-clipboard! 500
           :examples $ []
-        |mount-target $ %{} :CodeEntry (:doc |)
+        |mount-target $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def mount-target $ js/document.querySelector |.app
           :examples $ []
-        |on-server-data $ %{} :CodeEntry (:doc |)
+        |on-server-data $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn on-server-data (data)
               tag-match data
                   :patch changes
                   do
-                    when config/dev? $ js/console.log "\"Changes" changes
+                    when config/dev? $ js/console.log |Changes changes
                     reset! *store $ patch-twig @*store changes
                 (:effect/pong) :ok
           :examples $ []
-        |on-window-keydown $ %{} :CodeEntry (:doc |)
+        |on-window-keydown $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn on-window-keydown (event)
               println $ .-tagName (.-activeElement js/document)
               when
                 and
-                  = "\"Slash" $ .-code event
+                  = |Slash $ .-code event
                   not= schema/box-name $ .-className (.-activeElement js/document)
-                .select $ .querySelector js/document (str "\"." schema/box-name)
+                .select $ .querySelector js/document (str |. schema/box-name)
                 .preventDefault event
           :examples $ []
-        |read-from-clipboard! $ %{} :CodeEntry (:doc |)
+        |read-from-clipboard! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn read-from-clipboard! () $ if (some? js/navigator.clipboard)
               -> js/navigator.clipboard (.!readText)
                 .!then $ fn (text)
                   respo.controller.client/send-to-component! $ :: :clipboard/read text
                 .!catch $ fn (err) (js/console.error err)
-              js/console.log "\"navigator.clipboard not available."
+              js/console.log "|navigator.clipboard not available."
           :examples $ []
-        |reload! $ %{} :CodeEntry (:doc |)
+        |reload! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn reload! () $ if
               or (some? client-errors) (some? server-errors)
-              hud! "\"error" $ str client-errors &newline server-errors
-              do (hud! "\"inactive" nil) (remove-watch *store :changes) (remove-watch *states :changes) (clear-cache!) (render-app!)
+              hud! |error $ str client-errors &newline server-errors
+              do (hud! |inactive nil) (remove-watch *store :changes) (remove-watch *states :changes) (clear-cache!) (render-app!)
                 add-watch *store :changes $ fn (store prev) (render-app!)
                 add-watch *states :changes $ fn (states prev) (render-app!)
-                println "\"Code updated."
-                hud! "\"ok~"
+                println "|Code updated."
+                hud! |ok~
           :examples $ []
-        |render-app! $ %{} :CodeEntry (:doc |)
+        |render-app! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn render-app! () $ render! mount-target
               comp-container (:states @*states) @*store @*preview-data
               , dispatch!
           :examples $ []
-        |simulate-login! $ %{} :CodeEntry (:doc |)
+        |simulate-login! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn simulate-login! () $ let
                 raw $ js/localStorage.getItem (:storage-key config/site)
               if (some? raw)
-                do (println "\"Found storage.")
+                do (println "|Found storage.")
                   dispatch! $ :: :user/log-in (parse-cirru-edn raw)
-                do $ println "\"Found no storage."
+                do $ println "|Found no storage."
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.client $ :require
             respo.core :refer $ render! clear-cache! realize-ssr!
@@ -150,14 +151,13 @@
             ws-edn.client :refer $ ws-connect! ws-send!
             recollect.patch :refer $ patch-twig
             cumulo-util.core :refer $ on-page-touch visibility-heartbeat
-            "\"url-parse" :default url-parse
-            "\"bottom-tip" :default hud!
-            "\"./calcit.build-errors" :default client-errors
-            "\"../js-out/calcit.build-errors" :default server-errors
-        :examples $ []
+            |url-parse :default url-parse
+            |bottom-tip :default hud!
+            |./calcit.build-errors :default client-errors
+            |../js-out/calcit.build-errors :default server-errors
     |app.comp.container $ %{} :FileEntry
       :defs $ {}
-        |comp-container $ %{} :CodeEntry (:doc |)
+        |comp-container $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-container (states store preview-data)
               if (tuple? store)
@@ -167,7 +167,7 @@
                       :initial
                       comp-offline :initial
                     (:offline) (comp-offline :offline)
-                    _ $ <> "\"unknown"
+                    _ $ <> |unknown
                 let
                     cursor $ :cursor states
                     state $ :data states
@@ -197,7 +197,7 @@
                       when dev? $ comp-reel (:reel-length store)
                         {} $ :bottom 40
           :examples $ []
-        |comp-offline $ %{} :CodeEntry (:doc |)
+        |comp-offline $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-offline (state)
               div
@@ -209,19 +209,19 @@
                   :style $ {} (:height 0)
                 div $ {}
                   :style $ {}
-                    :background-image $ str "\"url(" (:icon config/site) "\")"
+                    :background-image $ str "|url(" (:icon config/site) "|)"
                     :width 128
                     :height 128
                     :background-size :contain
                 div
                   {}
-                    :style $ {} (:cursor :pointer) (:line-height "\"32px")
+                    :style $ {} (:cursor :pointer) (:line-height |32px)
                     :on-click $ fn (e d!) (d! :effect/connect nil)
                   <>
-                    if (= state :offline) "\"Socket broken, click to retry." "\"Loading"
+                    if (= state :offline) "|Socket broken, click to retry." |Loading
                     {} (:font-family ui/font-fancy) (:font-size 24)
           :examples $ []
-        |comp-preview $ %{} :CodeEntry (:doc |)
+        |comp-preview $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn comp-preview (states preview-data stage)
               div ({})
@@ -233,22 +233,22 @@
                     :margin-top 24
                 comp-home states preview-data true nil
           :examples $ []
-        |comp-status-color $ %{} :CodeEntry (:doc |)
+        |comp-status-color $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-status-color (color)
               div $ {} (:class-name style-status-buble)
                 :style $ {} (:background-color color)
           :examples $ []
-        |style-body $ %{} :CodeEntry (:doc |)
+        |style-body $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def style-body $ {} (:padding "|8px 16px")
           :examples $ []
-        |style-status-buble $ %{} :CodeEntry (:doc |)
+        |style-status-buble $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defstyle style-status-buble $ {}
-              "\"&" $ {} (:width 16) (:height 16) (:position :absolute) (:bottom 10) (:left 10) (:border-radius "\"8px") (:opacity 0.8)
+              |& $ {} (:width 16) (:height 16) (:position :absolute) (:bottom 10) (:left 10) (:border-radius |8px) (:opacity 0.8)
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.comp.container $ :require
             respo.util.format :refer $ hsl
@@ -266,10 +266,9 @@
             app.comp.home :refer $ comp-home
             app.config :as config
             respo.css :refer $ defstyle
-        :examples $ []
     |app.comp.copied $ %{} :FileEntry
       :defs $ {}
-        |comp-copied $ %{} :CodeEntry (:doc |)
+        |comp-copied $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-copied (states value child)
               let
@@ -279,7 +278,7 @@
                 div
                   {}
                     :style $ merge ui/flex
-                      {} (:position :relative) (:cursor :pointer) (:max-width "\"100%")
+                      {} (:position :relative) (:cursor :pointer) (:max-width |100%)
                     :on-click $ fn (e d!) (copy! value)
                       d! cursor $ {} (:visible? true)
                       js/setTimeout
@@ -288,21 +287,20 @@
                   , child $ when (:visible? state)
                     div
                       {} $ :style
-                        {} (:position :absolute) (:top 8) (:left 8) (:background-color :black) (:color :white) (:padding "\"0 8px") (:font-size 12)
-                      <> "\"Copied"
+                        {} (:position :absolute) (:top 8) (:left 8) (:background-color :black) (:color :white) (:padding "|0 8px") (:font-size 12)
+                      <> |Copied
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.comp.copied $ :require
             hsl.core :refer $ hsl
             respo-ui.core :as ui
             respo.core :refer $ defcomp list-> >> <> div button textarea span
             respo.comp.space :refer $ =<
-            "\"copy-text-to-clipboard" :default copy!
-        :examples $ []
+            |copy-text-to-clipboard :default copy!
     |app.comp.home $ %{} :FileEntry
       :defs $ {}
-        |comp-box $ %{} :CodeEntry (:doc |)
+        |comp-box $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-box (states user)
               let
@@ -320,7 +318,7 @@
                 []
                   %{} respo.schema/RespoListener (:name :clipboard-listener)
                     :handler $ fn (event d!)
-                      tag-match event $ 
+                      tag-match event $
                         :clipboard/read text
                         when
                           not $ .blank? text
@@ -379,13 +377,13 @@
                           <> |Send
                     .render confirm-plugin
           :examples $ []
-        |comp-home $ %{} :CodeEntry (:doc |)
+        |comp-home $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-home (states snippets show-all? user)
               div
                 {}
                   :class-name $ str-spaced css/column css/expand
-                  :style $ {} (:padding "\"12px 16px 240px 16px") (:overflow :auto)
+                  :style $ {} (:padding "|12px 16px 240px 16px") (:overflow :auto)
                     :background-color $ hsl 0 0 97
                   :on-dragover $ fn (e d!)
                     -> e :event $ .!preventDefault
@@ -405,7 +403,7 @@
                 list->
                   {}
                     :class-name $ str-spaced style-grid-list
-                    :style $ {} (:width "\"100%")
+                    :style $ {} (:width |100%)
                   -> snippets reverse $ .map
                     fn (snippet)
                       let
@@ -413,33 +411,33 @@
                         [] k $ comp-snippet (>> states k) k snippet
                 if-not show-all? $ div
                   {} $ :class-name css/center
-                  span $ {} (:class-name style-all-tag) (:inner-text "\"Show all")
+                  span $ {} (:class-name style-all-tag) (:inner-text "|Show all")
                     :on-click $ fn (e d!) (d! :session/show-all nil)
           :examples $ []
-        |comp-snippet $ %{} :CodeEntry (:doc |)
+        |comp-snippet $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-snippet (states k snippet)
               let
                   remove-plugin $ use-confirm (>> states :remove)
-                    {} $ :text "\"Sure to remove?"
+                    {} $ :text "|Sure to remove?"
                   some-img $ if
                     and
                       = :file $ :type snippet
                       img-url? $ :url snippet
                     :url snippet
                   name $ if (string? some-img)
-                    last $ .split some-img "\"/"
+                    last $ .split some-img |/
                 div
                   {}
                     :class-name $ str-spaced css/row style-snippet
                     :style $ if some-img
-                      {} $ :background-image (str "\"url(" some-img "\"?imageView2/q/50/2/w/320/h/320" "\")")
+                      {} $ :background-image (str "|url(" some-img |?imageView2/q/50/2/w/320/h/320 "|)")
                   comp-copied (>> states :copied) (:content snippet)
                     pre
                       {}
                         :class-name $ str-spaced css/flex style-snippet-content
                         :style $ if some-img
-                          {} $ ; :text-shadow "\"1px 1px 1px white, -1px -1px 1px white, -1px 1px 1px white, 1px -1px 1px white"
+                          {} $ ; :text-shadow "|1px 1px 1px white, -1px -1px 1px white, -1px 1px 1px white, 1px -1px 1px white"
                       span $ {} (:class-name style-snippet-span)
                         :inner-text $ :content snippet
                   if (some? some-img)
@@ -457,7 +455,7 @@
                         :on-click $ fn (e d!) (copy-to-clipboard some-img)
                       comp-i :copy 14 $ hsl 200 80 60
                   if
-                    .starts-with? (:content snippet) "\"http"
+                    .starts-with? (:content snippet) |http
                     a
                       {}
                         :class-name $ str-spaced css/center style-link-mark
@@ -474,9 +472,10 @@
                     comp-i :trash-2 14 $ hsl 0 80 50
                   .render remove-plugin
           :examples $ []
-        |copy-to-clipboard $ %{} :CodeEntry (:doc |)
+        |copy-to-clipboard $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
-            defn copy-to-clipboard (url) (hint-fn async)
+            defn copy-to-clipboard (url)
+              hint-fn $ {} (:async true)
               let
                   blob $ js-await
                     .!blob $ js-await (js/fetch url)
@@ -487,85 +486,86 @@
                         obj $ js-object
                       aset obj (.-type blob) blob
                       w-js-log obj
-                println "\"copied blob"
+                println "|copied blob"
           :examples $ []
-        |download-image! $ %{} :CodeEntry (:doc |)
+        |download-image! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
-            defn download-image! (url) (hint-fn async)
+            defn download-image! (url)
+              hint-fn $ {} (:async true)
               let
                   blob $ js-await
                     .!blob $ js-await (js/fetch url)
                   object-url $ js/URL.createObjectURL blob
-                  a-el $ js/document.createElement "\"a"
-                  name $ last (.split url "\"/")
+                  a-el $ js/document.createElement |a
+                  name $ last (.split url |/)
                 set! (.-href a-el) object-url
                 set! (.-download a-el) name
-                .!setAttribute a-el "\"download" name
+                .!setAttribute a-el |download name
                 js/console.log name a-el url
                 js/document.body.appendChild a-el
                 .!click a-el
                 .!remove a-el
           :examples $ []
-        |img-url? $ %{} :CodeEntry (:doc |)
+        |img-url? $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn img-url? (url)
-              or (.ends-with? url "\".png") (.ends-with? url "\".jpg") (.ends-with? url "\".jpeg") (.ends-with? url "\".webp")
+              or (.ends-with? url |.png) (.ends-with? url |.jpg) (.ends-with? url |.jpeg) (.ends-with? url |.webp)
           :examples $ []
-        |style-all-tag $ %{} :CodeEntry (:doc |)
+        |style-all-tag $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defstyle style-all-tag $ {}
-              "\"&" $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
-                :border $ str "\"1px solid " (hsl 0 0 90)
+              |& $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
+                :border $ str "|1px solid " (hsl 0 0 90)
                 :cursor :pointer
           :examples $ []
-        |style-grid-list $ %{} :CodeEntry (:doc |)
+        |style-grid-list $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defstyle style-grid-list $ {}
-              "\"&" $ {} (:display :grid) (:grid-template-columns "\"repeat(auto-fit, minmax(360px, 1fr))") (:gap 12)
+              |& $ {} (:display :grid) (:grid-template-columns "|repeat(auto-fit, minmax(360px, 1fr))") (:gap 12)
           :examples $ []
-        |style-link-mark $ %{} :CodeEntry (:doc |)
+        |style-link-mark $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defstyle style-link-mark $ {}
-              "\"&" $ {} (:position :absolute) (:bottom 8) (:width 28) (:height 28) (:cursor :pointer) (:border-radius "\"20px") (:transition-duration "\"230ms") (:line-height 1)
+              |& $ {} (:position :absolute) (:bottom 8) (:width 28) (:height 28) (:cursor :pointer) (:border-radius |20px) (:transition-duration |230ms) (:line-height 1)
                 :background-color $ hsl 0 0 100 0.9
                 :opacity 0.2
-                :box-shadow $ str "\"1px 1px 4px " (hsl 0 0 0 0.3)
-              "\"&:hover" $ {} (:transform "\"scale(1.1)")
-              (str "\"." style-snippet "\":hover &")
+                :box-shadow $ str "|1px 1px 4px " (hsl 0 0 0 0.3)
+              |&:hover $ {} (:transform "|scale(1.1)")
+              (str |. style-snippet "|:hover &")
                 {} $ :opacity 1
-              "\"& i" $ {} (:transition-duration "\"300ms") (:transform "\"scale(1)")
-              "\"&:active i" $ {} (:transition-duration "\"0ms") (:transform "\"scale(1.2)")
+              "|& i" $ {} (:transition-duration |300ms) (:transform "|scale(1)")
+              "|&:active i" $ {} (:transition-duration |0ms) (:transform "|scale(1.2)")
           :examples $ []
-        |style-remove $ %{} :CodeEntry (:doc |)
+        |style-remove $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defstyle style-remove $ {}
-              "\"&" $ {} (:right 8)
+              |& $ {} (:right 8)
           :examples $ []
-        |style-snippet $ %{} :CodeEntry (:doc |)
+        |style-snippet $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defstyle style-snippet $ {}
-              "\"&" $ {} (:margin-bottom 8) (:max-width "\"100%") (:position :relative) (:background-repeat :no-repeat) (:background-size :contain) (:min-height "\"160px") (:border-radius "\"6px") (:background-position :center)
+              |& $ {} (:margin-bottom 8) (:max-width |100%) (:position :relative) (:background-repeat :no-repeat) (:background-size :contain) (:min-height |160px) (:border-radius |6px) (:background-position :center)
                 :background-color $ hsl 0 0 100
-                :border $ str "\"1px solid " (hsl 0 0 84)
-                :transition-duration "\"240ms"
-              "\"&:hover" $ {}
-                :box-shadow $ str "\"1px 1px 6px " (hsl 0 0 0 0.4)
+                :border $ str "|1px solid " (hsl 0 0 84)
+                :transition-duration |240ms
+              |&:hover $ {}
+                :box-shadow $ str "|1px 1px 6px " (hsl 0 0 0 0.4)
                 :background-size :cover
           :examples $ []
-        |style-snippet-content $ %{} :CodeEntry (:doc |)
+        |style-snippet-content $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defstyle style-snippet-content $ {}
-              "\"&" $ {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all) (:padding 16) (:max-height "\"50vh") (:max-width "\"100%") (:overflow :auto) (:line-height "\"21px") (:height "\"100%")
+              |& $ {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all) (:padding 16) (:max-height |50vh) (:max-width |100%) (:overflow :auto) (:line-height |21px) (:height |100%)
           :examples $ []
-        |style-snippet-span $ %{} :CodeEntry (:doc |)
+        |style-snippet-span $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defstyle style-snippet-span $ {}
-              "\"&" $ {} (:opacity 0.5) (:transition-duration "\"240ms")
-              (str "\"." style-snippet "\":hover &")
+              |& $ {} (:opacity 0.5) (:transition-duration |240ms)
+              (str |. style-snippet "|:hover &")
                 {} (:opacity 1)
                   :background-color $ hsl 0 0 100 0.9
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.comp.home $ :require
             respo-ui.core :refer $ hsl
@@ -579,13 +579,12 @@
             app.style :as style
             respo-alerts.core :refer $ use-confirm
             feather.core :refer $ comp-i
-            "\"axios" :default axios
-            "\"mime" :default mime
+            |axios :default axios
+            |mime :default mime
             app.comp.upload :refer $ upload-file!
-        :examples $ []
     |app.comp.login $ %{} :FileEntry
       :defs $ {}
-        |comp-login $ %{} :CodeEntry (:doc |)
+        |comp-login $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-login (states)
               let
@@ -594,19 +593,19 @@
                 div
                   {}
                     :class-name $ str-spaced css/flex css/center
-                    :style $ {} (:padding "\"80px")
+                    :style $ {} (:padding |80px)
                   div ({})
                     div
                       {} $ :style ({})
                       div ({})
-                        input $ {} (:placeholder "\"Username")
+                        input $ {} (:placeholder |Username)
                           :value $ :username state
                           :class-name css/input
                           :on-input $ fn (e d!)
                             d! cursor $ assoc state :username (:value e)
                       =< nil 8
                       div ({})
-                        input $ {} (:placeholder "\"Password")
+                        input $ {} (:placeholder |Password)
                           :value $ :password state
                           :class-name css/input
                           :on-input $ fn (e d!)
@@ -621,11 +620,11 @@
                       span $ {} (:inner-text "|Log in") (:class-name css/link)
                         :on-click $ on-submit (:username state) (:password state) false
           :examples $ []
-        |initial-state $ %{} :CodeEntry (:doc |)
+        |initial-state $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def initial-state $ {} (:username |) (:password |)
           :examples $ []
-        |on-submit $ %{} :CodeEntry (:doc |)
+        |on-submit $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn on-submit (username password signup?)
               fn (e dispatch!)
@@ -633,7 +632,7 @@
                 js/localStorage.setItem (:storage-key config/site)
                   format-cirru-edn $ [] username password
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.comp.login $ :require
             respo.core :refer $ defcomp <> div input button span
@@ -645,10 +644,9 @@
             app.config :as config
             respo.css :refer $ defstyle
             respo-ui.css :as css
-        :examples $ []
     |app.comp.navigation $ %{} :FileEntry
       :defs $ {}
-        |comp-navigation $ %{} :CodeEntry (:doc |)
+        |comp-navigation $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-navigation (states user logged-in? count-members offline?)
               div
@@ -673,15 +671,15 @@
                   =< 8 nil
                   <> count-members
           :examples $ []
-        |style-nav $ %{} :CodeEntry (:doc |)
+        |style-nav $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defstyle style-nav $ {}
-              "\"&" $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
+              |& $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
                 :background-color $ :theme config/site
                 :color :white
                 :z-index 100
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.comp.navigation $ :require
             hsl.core :refer $ hsl
@@ -692,10 +690,9 @@
             app.config :as config
             app.comp.upload :refer $ comp-file-upload
             respo.css :refer $ defstyle
-        :examples $ []
     |app.comp.profile $ %{} :FileEntry
       :defs $ {}
-        |comp-profile $ %{} :CodeEntry (:doc |)
+        |comp-profile $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-profile (user members)
               div
@@ -708,7 +705,7 @@
                 =< nil 16
                 div
                   {} $ :style ui/row
-                  <> "\"Members:"
+                  <> |Members:
                   =< 8 nil
                   list->
                     {} $ :style ui/row
@@ -716,10 +713,10 @@
                       .map-pair $ fn (k username)
                         [] k $ div
                           {} $ :style
-                            {} (:padding "\"0 8px")
-                              :border $ str "\"1px solid " (hsl 0 0 80)
-                              :border-radius "\"16px"
-                              :margin "\"0 4px"
+                            {} (:padding "|0 8px")
+                              :border $ str "|1px solid " (hsl 0 0 80)
+                              :border-radius |16px
+                              :margin "|0 4px"
                           <> username
                 =< nil 48
                 div ({})
@@ -733,7 +730,7 @@
                         .removeItem js/localStorage $ :storage-key schema/configs
                     <> "|Log out" nil
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.comp.profile $ :require
             respo-ui.core :refer $ hsl
@@ -741,10 +738,9 @@
             respo-ui.core :as ui
             respo.core :refer $ defcomp list-> <> span div a
             respo.comp.space :refer $ =<
-        :examples $ []
     |app.comp.upload $ %{} :FileEntry
       :defs $ {}
-        |comp-file-upload $ %{} :CodeEntry (:doc |)
+        |comp-file-upload $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-file-upload (states user)
               let
@@ -754,7 +750,7 @@
                   up $ :uploading state
                 div
                   {} $ :class-name css/row-middle
-                  input $ {} (:type "\"file") (:id "\"upload-input") (:class-name style-hidden-input) (:multiple true)
+                  input $ {} (:type |file) (:id |upload-input) (:class-name style-hidden-input) (:multiple true)
                     :on-input $ fn (e d!)
                       let
                           event $ :event e
@@ -765,47 +761,48 @@
                             if
                               < (.-size file) js/1e8
                               upload-file! file user d! $ fn (next) (d! cursor next)
-                              js/console.warn "\"File too large"
+                              js/console.warn "|File too large"
                         -> target .-value $ set! nil
                   a
                     {} (:class-name css/link)
                       :style $ {}
                         :color $ hsl 200 90 70
                       :on-click $ fn (e d!)
-                        .!click $ js/document.querySelector "\"#upload-input"
-                    <> "\"Upload"
+                        .!click $ js/document.querySelector |#upload-input
+                    <> |Upload
                   if (some? up)
                     span
                       {} (:class-name css/font-fancy)
                         :style $ {} (:margin-left 8) (:font-size 12) (:font-style :italic)
                           :color $ hsl 0 0 60
-                      <> $ str "\"uploading: "
+                      <> $ str "|uploading: "
                         .round $ * 100 up
-                        , "\"%"
+                        , |%
           :examples $ []
-        |decorate-name $ %{} :CodeEntry (:doc "|`paste` event uses default name `image.png` as the file name, need to overwrite that.\n\nalso spaces in filekey causes problems of inline CSS, need to replace that.")
+        |decorate-name $ %{} :CodeEntry (:doc "|`paste` event uses default name `image.png` as the file name, need to overwrite that.\n\nalso spaces in filekey causes problems of inline CSS, need to replace that.") (:schema nil)
           :code $ quote
             defn decorate-name (img-name)
-              if (= "\"image.png" img-name)
-                str "\"pasted-"
+              if (= |image.png img-name)
+                str |pasted-
                   .!toISOString $ new js/Date
-                  , "\".png"
-                -> img-name (.replace "\" " "\"-") (.replace "\")" "\"_bo_") (.replace "\"(" "\"_bc_")
+                  , |.png
+                -> img-name (.replace "| " |-) (.replace "|)" |_bo_) (.replace "|(" |_bc_)
           :examples $ []
-        |style-hidden-input $ %{} :CodeEntry (:doc |)
+        |style-hidden-input $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defstyle style-hidden-input $ {}
-              "\"&" $ {} (:display :none)
+              |& $ {} (:display :none)
           :examples $ []
-        |upload-file! $ %{} :CodeEntry (:doc |)
+        |upload-file! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
-            defn upload-file! (file user d! mutate!) (hint-fn async)
+            defn upload-file! (file user d! mutate!)
+              hint-fn $ {} (:async true)
               let
                   hash $ js-await (load-md5 file)
-                  file-key $ str hash "\"/"
-                    decorate-name $ either (.-name file) "\"clipboard.jpg"
+                  file-key $ str hash |/
+                    decorate-name $ either (.-name file) |clipboard.jpg
                   res $ js-await
-                    .!post axios "\"https://cp.topix.im/token"
+                    .!post axios |https://cp.topix.im/token
                       format-cirru-edn $ {}
                         :user $ :name user
                         :pass $ :token user
@@ -820,12 +817,12 @@
                   ret $ js-await
                     .!put axios presigned-url file $ js-object
                       :headers $ js-object
-                        "\"Content-Type" $ .!getType mime file-key
-                js/console.log "\"Upload result:" ret
-                d! $ :: :snippet/create-file (str "\"https://cos-sh.tiye.me/cos-up/" file-key) :file
+                        |Content-Type $ .!getType mime file-key
+                js/console.log "|Upload result:" ret
+                d! $ :: :snippet/create-file (str |https://cos-sh.tiye.me/cos-up/ file-key) :file
                 mutate! $ {} (:uploading nil)
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.comp.upload $ :require
             respo-ui.core :refer $ hsl
@@ -839,33 +836,31 @@
             app.style :as style
             respo-alerts.core :refer $ use-confirm
             feather.core :refer $ comp-i
-            "\"axios" :default axios
-            "\"mime" :default mime
-            "\"../lib/md5" :refer $ load-md5
-        :examples $ []
+            |axios :default axios
+            |mime :default mime
+            |../lib/md5 :refer $ load-md5
     |app.config $ %{} :FileEntry
       :defs $ {}
-        |dev? $ %{} :CodeEntry (:doc |)
+        |dev? $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
-            def dev? $ = "\"dev" (get-env "\"mode" "\"release")
+            def dev? $ = |dev (get-env |mode |release)
           :examples $ []
-        |site $ %{} :CodeEntry (:doc |)
+        |site $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
-            def site $ {} (:port 11006) (:http-port 11030) (:title "\"Copyboard") (:icon "\"http://cdn.tiye.me/logo/copyboard.png") (:theme "\"#ECCE32") (:storage-key "\"copyboard") (:storage-file "\"storage.cirru")
+            def site $ {} (:port 11006) (:http-port 11030) (:title |Copyboard) (:icon |http://cdn.tiye.me/logo/copyboard.png) (:theme |#ECCE32) (:storage-key |copyboard) (:storage-file |storage.cirru)
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote (ns app.config)
-        :examples $ []
     |app.schema $ %{} :FileEntry
       :defs $ {}
-        |box-name $ %{} :CodeEntry (:doc |)
-          :code $ quote (def box-name "\"submit-box")
+        |box-name $ %{} :CodeEntry (:doc |) (:schema nil)
+          :code $ quote (def box-name |submit-box)
           :examples $ []
-        |configs $ %{} :CodeEntry (:doc |)
+        |configs $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
-            def configs $ {} (:storage-key "\"workflow-storage") (:port 11006)
+            def configs $ {} (:storage-key |workflow-storage) (:port 11006)
           :examples $ []
-        |database $ %{} :CodeEntry (:doc |)
+        |database $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def database $ {}
               :sessions $ {}
@@ -873,63 +868,62 @@
               :count 0
               :snippets $ {}
           :examples $ []
-        |notification $ %{} :CodeEntry (:doc |)
+        |notification $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def notification $ {} (:id nil) (:kind nil) (:text nil)
           :examples $ []
-        |router $ %{} :CodeEntry (:doc |)
+        |router $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def router $ {} (:name nil) (:title nil)
               :data $ {}
               :router nil
           :examples $ []
-        |session $ %{} :CodeEntry (:doc |)
+        |session $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def session $ {} (:user-id nil) (:id nil) (:nickname nil)
               :router $ {} (:name :home) (:data nil) (:router nil)
               :messages $ {}
               :show-all? false
           :examples $ []
-        |snippet $ %{} :CodeEntry (:doc |)
+        |snippet $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
-            def snippet $ {} (:id nil) (:content "\"") (:time 0) (:author-id nil) (:type :text)
+            def snippet $ {} (:id nil) (:content |) (:time 0) (:author-id nil) (:type :text)
           :examples $ []
-        |user $ %{} :CodeEntry (:doc |)
+        |user $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def user $ {} (:name nil) (:id nil) (:nickname nil) (:avatar nil) (:password nil) (:token nil)
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote (ns app.schema)
-        :examples $ []
     |app.server $ %{} :FileEntry
       :defs $ {}
-        |*client-caches $ %{} :CodeEntry (:doc |)
+        |*client-caches $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defatom *client-caches $ {}
           :examples $ []
-        |*initial-db $ %{} :CodeEntry (:doc |)
+        |*initial-db $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defatom *initial-db $ if
               path-exists? $ w-log storage-file
-              do (println "\"Found local EDN data")
+              do (println "|Found local EDN data")
                 merge schema/database $ parse-cirru-edn (read-file storage-file)
-              do (println "\"Found no data") schema/database
+              do (println "|Found no data") schema/database
           :examples $ []
-        |*reader-reel $ %{} :CodeEntry (:doc |)
+        |*reader-reel $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote (defatom *reader-reel @*reel)
           :examples $ []
-        |*reel $ %{} :CodeEntry (:doc |)
+        |*reel $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defatom *reel $ merge reel-schema
               {} (:base @*initial-db) (:db @*initial-db)
           :examples $ []
-        |dispatch! $ %{} :CodeEntry (:doc |)
+        |dispatch! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn dispatch! (op sid)
               let
                   op-id $ generate-id!
                   op-time $ -> (get-time!) (.timestamp)
-                if config/dev? $ println "\"Dispatch!" (str op) sid
+                if config/dev? $ println |Dispatch! (str op) sid
                 tag-match op
                     :effect/persist
                     persist-db!
@@ -937,54 +931,54 @@
                     wss-send! sid $ format-cirru-edn (:: :effect/pong)
                   _ $ reset! *reel (reel-reducer @*reel updater op sid op-id op-time config/dev?)
           :examples $ []
-        |get-backup-path! $ %{} :CodeEntry (:doc |)
+        |get-backup-path! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn get-backup-path! () $ let
                 now $ extract-time (get-time!)
-              join-path calcit-dirname "\"backups"
+              join-path calcit-dirname |backups
                 str $ :month now
-                str (:day now) "\"-snapshot.cirru"
+                str (:day now) |-snapshot.cirru
           :examples $ []
-        |main! $ %{} :CodeEntry (:doc |)
+        |main! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn main! ()
-              println "\"Running mode:" $ if config/dev? "\"dev" "\"release"
+              println "|Running mode:" $ if config/dev? |dev |release
               let
-                  p? $ get-env "\"port"
+                  p? $ get-env |port
                   port $ if (some? p?) (parse-float p?) (:port config/site)
                 run-server! port
-                println $ str "\"Server started on port:" port
-              do (; "\"init it before doing multi-threading") (identity @*reader-reel)
+                println $ str "|Server started on port:" port
+              do (; "|init it before doing multi-threading") (identity @*reader-reel)
               set-interval 200 $ fn () (render-loop!)
               set-interval 600000 $ fn () (persist-db!)
               on-control-c on-exit!
           :examples $ []
-        |migrate-storage! $ %{} :CodeEntry (:doc |)
+        |migrate-storage! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn migrate-storage! () $ let
-                data $ parse-cirru-edn (read-file "\"storage.cirru")
+                data $ parse-cirru-edn (read-file |storage.cirru)
                 new-data $ update data :snippets
                   fn (ss)
                     -> (vals ss) .to-list $ .sort-by
                       fn (s) (:time s)
-              write-file "\"storage-new.cirru" $ format-cirru-edn new-data
+              write-file |storage-new.cirru $ format-cirru-edn new-data
           :examples $ []
-        |on-exit! $ %{} :CodeEntry (:doc |)
+        |on-exit! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
-            defn on-exit! () (persist-db!) (; println "\"exit code is...") (quit! 0)
+            defn on-exit! () (persist-db!) (; println "|exit code is...") (quit! 0)
           :examples $ []
-        |on-request! $ %{} :CodeEntry (:doc |)
+        |on-request! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn on-request! (req)
               let
                   db $ :db @*reel
                   snippets $ -> (:snippets db) (take-last 12) (with-cpu-time)
                 {} (:code 200)
-                  :headers $ {} (:content-type |text/cirru-edn) (:Access-Control-Allow-Origin "\"*")
+                  :headers $ {} (:content-type |text/cirru-edn) (:Access-Control-Allow-Origin |*)
                   :body $ format-cirru-edn
                     {} $ :snippets-list snippets
           :examples $ []
-        |persist-db! $ %{} :CodeEntry (:doc |)
+        |persist-db! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn persist-db! () $ let
                 file-content $ format-cirru-edn
@@ -994,22 +988,22 @@
               check-write-file! storage-path file-content
               check-write-file! backup-path file-content
           :examples $ []
-        |reload! $ %{} :CodeEntry (:doc |)
+        |reload! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
-            defn reload! () (println "\"Code updated..")
-              if (not config/dev?) (raise "\"reloading only happens in dev mode")
+            defn reload! () (println "|Code updated..")
+              if (not config/dev?) (raise "|reloading only happens in dev mode")
               clear-twig-caches!
               reset! *reel $ refresh-reel @*reel @*initial-db updater
               sync-clients! @*reader-reel
           :examples $ []
-        |render-loop! $ %{} :CodeEntry (:doc |)
+        |render-loop! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn render-loop! () $ when
               not $ identical? @*reader-reel @*reel
               reset! *reader-reel @*reel
               sync-clients! @*reader-reel
           :examples $ []
-        |run-server! $ %{} :CodeEntry (:doc |)
+        |run-server! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn run-server! (port)
               wss-serve! (&{} :port port)
@@ -1018,28 +1012,28 @@
                       :connect sid
                       do
                         dispatch! (:: :session/connect) sid
-                        println "\"New client."
+                        println "|New client."
                     (:message sid msg)
                       let
                           action $ parse-cirru-edn msg
-                        if (tuple? action) (dispatch! action sid) (eprintln "\"invalid action:" action)
+                        if (tuple? action) (dispatch! action sid) (eprintln "|invalid action:" action)
                     (:disconnect sid)
-                      do (println "\"Client closed!")
+                      do (println "|Client closed!")
                         dispatch! (:: :session/disconnect) sid
-                    _ $ println "\"unknown data:" data
+                    _ $ println "|unknown data:" data
               http.core/serve-http!
                 {}
                   :port $ :http-port config/site
                   :host |0.0.0.0
                 fn (req) (on-request! req)
           :examples $ []
-        |storage-file $ %{} :CodeEntry (:doc |)
+        |storage-file $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def storage-file $ if (empty? calcit-dirname)
               str calcit-dirname $ :storage-file config/site
-              str calcit-dirname "\"/" $ :storage-file config/site
+              str calcit-dirname |/ $ :storage-file config/site
           :examples $ []
-        |sync-clients! $ %{} :CodeEntry (:doc |)
+        |sync-clients! $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn sync-clients! (reel)
               wss-each! $ fn (sid)
@@ -1051,14 +1045,14 @@
                     new-store $ twig-container db session records
                     changes $ diff-twig old-store new-store
                       {} $ :key :id
-                  ; when config/dev? $ println "\"Changes for" sid "\":" changes (count records)
+                  ; when config/dev? $ println "|Changes for" sid |: changes (count records)
                   if
                     not= changes $ []
                     do
                       wss-send! sid $ format-cirru-edn (:: :patch changes)
                       swap! *client-caches assoc sid new-store
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.server $ :require (app.schema :as schema)
             app.updater :refer $ updater
@@ -1073,29 +1067,27 @@
             calcit.std.time :refer $ set-interval
             calcit.std.date :refer $ get-time! extract-time
             calcit.std.path :refer $ join-path
-        :examples $ []
     |app.style $ %{} :FileEntry
       :defs $ {}
-        |button $ %{} :CodeEntry (:doc |)
+        |button $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def button $ merge ui/button
               {} $ :background-color :white
           :examples $ []
-        |link $ %{} :CodeEntry (:doc |)
+        |link $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             def link $ {} (:text-decoration :underline) (:cursor :pointer)
               :color $ hsl 240 80 80
               :font-family ui/font-fancy
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.style $ :require
             [] respo-ui.core :refer $ [] hsl
             [] respo-ui.core :as ui
-        :examples $ []
     |app.twig.container $ %{} :FileEntry
       :defs $ {}
-        |twig-container $ %{} :CodeEntry (:doc |)
+        |twig-container $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn twig-container (db session records)
               let
@@ -1119,7 +1111,7 @@
                     :show-all? $ :show-all? session
                   {}
           :examples $ []
-        |twig-members $ %{} :CodeEntry (:doc |)
+        |twig-members $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn twig-members (sessions users)
               -> sessions $ map-kv
@@ -1127,25 +1119,23 @@
                   [] k $ get-in users
                     [] (:user-id session) :name
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.twig.container $ :require
             app.twig.user :refer $ twig-user
             calcit.std.rand :refer $ rand-hex-color!
-        :examples $ []
     |app.twig.user $ %{} :FileEntry
       :defs $ {}
-        |twig-user $ %{} :CodeEntry (:doc |)
+        |twig-user $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn twig-user (user) (dissoc user :password)
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.twig.user $ :require
-        :examples $ []
     |app.updater $ %{} :FileEntry
       :defs $ {}
-        |updater $ %{} :CodeEntry (:doc |)
+        |updater $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn updater (db op sid op-id op-time)
               tag-match op
@@ -1164,79 +1154,75 @@
                 (:preview/load snippets) (:: :preview snippets)
                 _ $ do (eprintln "|Unknown op:" op) db
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.updater $ :require ([] app.updater.session :as session) ([] app.updater.user :as user) ([] app.updater.router :as router) ([] app.updater.snippet :as snippet)
-        :examples $ []
     |app.updater.router $ %{} :FileEntry
       :defs $ {}
-        |change $ %{} :CodeEntry (:doc |)
+        |change $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn change (db op-data session-id op-id op-time)
               assoc-in db ([] :sessions session-id :router) op-data
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote (ns app.updater.router)
-        :examples $ []
     |app.updater.session $ %{} :FileEntry
       :defs $ {}
-        |connect $ %{} :CodeEntry (:doc |)
+        |connect $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn connect (db session-id op-id op-time)
               assoc-in db ([] :sessions session-id)
                 merge schema/session $ {} (:id session-id)
           :examples $ []
-        |disconnect $ %{} :CodeEntry (:doc |)
+        |disconnect $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn disconnect (db session-id op-id op-time)
               update db :sessions $ fn (session) (dissoc session session-id)
           :examples $ []
-        |remove-message $ %{} :CodeEntry (:doc |)
+        |remove-message $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn remove-message (db op-data sid op-id op-time)
               update-in db ([] :sessions sid :messages)
                 fn (messages)
                   dissoc messages $ :id op-data
           :examples $ []
-        |show-all $ %{} :CodeEntry (:doc |)
+        |show-all $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn show-all (db op-data sid op-id op-time)
               assoc-in db ([] :sessions sid :show-all?) true
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.updater.session $ :require ([] app.schema :as schema)
-        :examples $ []
     |app.updater.snippet $ %{} :FileEntry
       :defs $ {}
-        |create $ %{} :CodeEntry (:doc |)
+        |create $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn create (db op-data sid op-id op-time)
               update db :snippets $ fn (ss)
                 conj ss $ merge schema/snippet
                   {} (:id op-id) (:content op-data) (:time op-time)
           :examples $ []
-        |create-file $ %{} :CodeEntry (:doc |)
+        |create-file $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn create-file (db url kind sid op-id op-time)
               update db :snippets $ fn (ss)
                 conj ss $ merge schema/snippet
                   {} (:id op-id) (:content url) (:time op-time) (:type kind) (:url url)
           :examples $ []
-        |remove-one $ %{} :CodeEntry (:doc |)
+        |remove-one $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn remove-one (db snippet-id sid op-id op-time)
               update db :snippets $ fn (snippets)
                 filter-not snippets $ fn (s)
                   = snippet-id $ &map:get s :id
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.updater.snippet $ :require ([] app.schema :as schema)
-        :examples $ []
     |app.updater.user $ %{} :FileEntry
       :defs $ {}
-        |log-in $ %{} :CodeEntry (:doc |)
+        |log-in $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn log-in (db op-data sid op-id op-time)
               let-sugar
@@ -1253,17 +1239,17 @@
                         assoc session :user-id $ :id maybe-user
                         update session :messages $ fn (messages)
                           assoc messages op-id $ {} (:id op-id)
-                            :text $ str "\"Wrong password for " username
+                            :text $ str "|Wrong password for " username
                       update session :messages $ fn (messages)
                         assoc messages op-id $ {} (:id op-id)
-                          :text $ str "\"No user named: " username
+                          :text $ str "|No user named: " username
           :examples $ []
-        |log-out $ %{} :CodeEntry (:doc |)
+        |log-out $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn log-out (db op-data session-id op-id op-time)
               assoc-in db ([] :sessions session-id :user-id) nil
           :examples $ []
-        |sign-up $ %{} :CodeEntry (:doc |)
+        |sign-up $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defn sign-up (db op-data sid op-id op-time)
               let-sugar
@@ -1277,7 +1263,7 @@
                   update-in db ([] :sessions sid :messages)
                     fn (messages)
                       assoc messages op-id $ {} (:id op-id)
-                        :text $ str "\"Name is taken: " username
+                        :text $ str "|Name is taken: " username
                   -> db
                     assoc-in ([] :sessions sid :user-id) op-id
                     assoc-in ([] :users op-id)
@@ -1285,8 +1271,7 @@
                         :password $ md5 password
                         :avatar nil
           :examples $ []
-      :ns $ %{} :CodeEntry (:doc |)
+      :ns $ %{} :NsEntry (:doc |)
         :code $ quote
           ns app.updater.user $ :require
             calcit.std.hash :refer $ md5
-        :examples $ []

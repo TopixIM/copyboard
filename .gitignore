@@ -12,3 +12,6 @@ backups/
 yarn-error.log
 
 .DS_Store
+
+.yarn/*.gz
+
