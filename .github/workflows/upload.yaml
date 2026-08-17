@@ -18,13 +18,13 @@ jobs:
 
     - run: corepack enable && corepack prepare yarn@4.13.0 --activate
 
-    - uses: calcit-lang/setup-cr@0.0.8
+    - uses: calcit-lang/setup-cr@0.0.9
 
-    - run: caps --ci && cr compact.cirru --entry server ir
+    - run: caps --ci && cr calcit.cirru --entry server ir
 
     - run: yarn install --immutable && yarn compile-page && yarn release-page
 
-    - run: mkdir -p dist-server && cp compact.cirru package.json deps.cirru dist-server
+    - run: mkdir -p dist-server && cp calcit.cirru package.json deps.cirru dist-server
       name: Copy server scripts
 
     - name: Upload web assets
