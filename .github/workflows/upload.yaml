@@ -10,7 +10,7 @@ jobs:
   test:
     runs-on: ubuntu-latest
     steps:
-    - uses: actions/checkout@v4
+    - uses: actions/checkout@v6
 
     - uses: actions/setup-node@v6
       with:
@@ -18,17 +18,18 @@ jobs:
 
     - run: corepack enable && corepack prepare yarn@4.13.0 --activate
 
-    - uses: calcit-lang/setup-cr@0.0.8
+    - uses: calcit-lang/setup-cr@0.0.9
 
-    - run: caps --ci && cr compact.cirru --entry server ir
+    - run: caps --ci && cr calcit.cirru --entry server ir
 
     - run: yarn install --immutable && yarn compile-page && yarn release-page
 
-    - run: mkdir -p dist-server && cp compact.cirru package.json deps.cirru dist-server
+    - run: mkdir -p dist-server && cp calcit.cirru package.json deps.cirru dist-server
       name: Copy server scripts
 
     - name: Upload web assets
       id: deploy
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: Pendect/action-rsyncer@v2.0.0
       env:
         DEPLOY_KEY: ${{secrets.rsync_private_key}}
@@ -40,10 +41,12 @@ jobs:
         dest: 'rsync-user@tiye.me:/web-assets/repo/${{ github.repository }}'
 
     - name: Display status from deploy
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: echo "${{ steps.deploy.outputs.status }}"
 
     - name: Upload server script
       id: deploy-server
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       uses: Pendect/action-rsyncer@v2.0.0
       env:
         DEPLOY_KEY: ${{secrets.rsync_private_key}}
@@ -55,4 +58,5 @@ jobs:
         dest: 'rsync-user@tiye.me:/servers/copyboard/'
 
     - name: Display status from deploy
+      if: github.event_name == 'push' && github.ref == 'refs/heads/main'
       run: echo "${{ steps.deploy-server.outputs.status }}"

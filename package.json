@@ -5,7 +5,7 @@
   "main": "index.js",
   "packageManager": "yarn@4.13.0",
   "scripts": {
-    "compile-page": "cr compact.cirru js",
+    "compile-page": "cr calcit.cirru js",
     "release-page": "vite build --base=./",
     "watch-page": "cr js"
   },
@@ -16,7 +16,7 @@
   "author": "jiyinyiyong",
   "license": "MIT",
   "dependencies": {
-    "@calcit/procs": "^0.12.14",
+    "@calcit/procs": "^0.13.27",
     "axios": "^1.18.0",
     "mime": "^4.1.0"
   },
