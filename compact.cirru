@@ -160,7 +160,7 @@
         |comp-container $ %{} :CodeEntry (:doc |) (:schema nil)
           :code $ quote
             defcomp comp-container (states store preview-data)
-              if (tuple? store)
+              if (enum? store)
                 if (some? preview-data)
                   comp-preview (>> states :preview) preview-data :connecting
                   tag-match store
@@ -1016,7 +1016,7 @@
                     (:message sid msg)
                       let
                           action $ parse-cirru-edn msg
-                        if (tuple? action) (dispatch! action sid) (eprintln "|invalid action:" action)
+                        if (enum? action) (dispatch! action sid) (eprintln "|invalid action:" action)
                     (:disconnect sid)
                       do (println "|Client closed!")
                         dispatch! (:: :session/disconnect) sid
