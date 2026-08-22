@@ -9,7 +9,7 @@ Copyboard
 migrate from old file to new:
 
 ```bash
-cr -1 --init-fn app.server/migrate-storage!
+calcit calcit.cirru --init-fn app.server/migrate-storage!
 ```
 
 ### Workflow
