@@ -3,11 +3,11 @@
   "version": "0.1.0",
   "description": "Cumulo Workflow",
   "main": "index.js",
-  "packageManager": "yarn@4.13.0",
+  "packageManager": "yarn@4.12.0",
   "scripts": {
-    "compile-page": "cr calcit.cirru js",
+    "compile-page": "calcit calcit.cirru js",
     "release-page": "vite build --base=./",
-    "watch-page": "cr js"
+    "watch-page": "calcit -w calcit.cirru js"
   },
   "repository": {
     "type": "git",
@@ -16,7 +16,7 @@
   "author": "jiyinyiyong",
   "license": "MIT",
   "dependencies": {
-    "@calcit/procs": "^0.13.27",
+    "@calcit/procs": "^0.13.29",
     "axios": "^1.18.0",
     "mime": "^4.1.0"
   },
