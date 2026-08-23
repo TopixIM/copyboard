@@ -54,6 +54,29 @@ jobs:
           sleep 1
         done
         curl --fail --silent --show-error http://127.0.0.1:11030/ > /dev/null
+        node --input-type=module -e '
+          const payload = Buffer.from("Cjo6ICd1c2VyL2xvZy1pbiAkIFtdIHxjaGVuIHxiYWQtcGFzc3dvcmQK", "base64").toString();
+          await new Promise((resolve, reject) => {
+            const ws = new WebSocket("ws://127.0.0.1:11006");
+            let loginSent = false;
+            const timeout = setTimeout(() => reject(new Error("WebSocket login response timeout")), 10000);
+            ws.addEventListener("open", () => setTimeout(() => {
+              loginSent = true;
+              ws.send(payload);
+            }, 500));
+            ws.addEventListener("message", () => {
+              if (loginSent) {
+                clearTimeout(timeout);
+                ws.close();
+                resolve();
+              }
+            });
+            ws.addEventListener("error", (event) => {
+              clearTimeout(timeout);
+              reject(event.error || new Error("WebSocket error"));
+            });
+          });
+        '
         kill -0 "$server_pid"
 
     - run: yarn install --immutable && yarn compile-page && yarn release-page

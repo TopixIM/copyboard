@@ -1257,8 +1257,9 @@
             defn sync-clients! (reel)
               wss-each! $ fn (sid)
                 let
-                    db $ option:unwrap-or (get reel :db) {}
-                    records $ option:unwrap-or (get reel :records) []
+                    reel-state $ unsafe-coerce reel 'cumulo-reel.core/ReelState
+                    db $ :db reel-state
+                    records $ :records reel-state
                     session $ get-in db ([] :sessions sid)
                     old-store $ or (get @*client-caches sid) nil
                     new-store $ twig-container db session records
@@ -1481,10 +1482,10 @@
                   maybe-user $ ->
                     option:unwrap-or (get db :users) {}
                     vals
-                    (.to-list)
-                    find $ fn (user)
-                      and $ = username
-                        option:unwrap-or (get user :name) |unknown
+                    , &set:to-list
+                      find $ fn (user)
+                        and $ = username
+                          option:unwrap-or (get user :name) |unknown
                 update-in db ([] :sessions sid)
                   fn (session?)
                     if (option:some? maybe-user)
@@ -1535,7 +1536,7 @@
                     ->
                       option:unwrap-or (get db :users) {}
                       vals
-                      (.to-list)
+                      , &set:to-list
                     fn (user)
                       = username $ option:unwrap-or (get user :name) |unknown
                 if (option:some? maybe-user)
