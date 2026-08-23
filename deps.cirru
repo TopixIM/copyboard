@@ -7,7 +7,7 @@
     |Respo/respo-feather.calcit |0.4.4
     |Respo/respo-message.calcit |0.0.13
     |Respo/respo-ui.calcit |0.7.9
-    |Respo/respo.calcit |0.16.84-calcit-0.13.37.0
+    |Respo/respo.calcit |0.16.84
     |Respo/respo-value.calcit |0.5.1
     |calcit-lang/calcit-http |0.3.3
     |calcit-lang/calcit-wss |0.2.12
