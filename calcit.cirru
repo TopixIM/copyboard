@@ -172,7 +172,7 @@
                 all-states @*states
                 nested-states $ if (map? all-states)
                   get-or all-states :states $ {}
-                  , {}
+                  {}
                 component-states $ if (map? nested-states) nested-states ({})
               render! mount-target (comp-container component-states @*store @*preview-data) dispatch!
           :examples $ []
@@ -220,13 +220,13 @@
                     _ $ <> |unknown
                 let
                     cursor $ option:unwrap-or (get states :cursor) []
-                    state $ option:unwrap-or (get states :data) {}
-                    session $ option:unwrap-or (get store :session) {}
-                    router $ option:unwrap-or (get store :router) {}
-                    user $ option:unwrap-or (get store :user) {}
+                    state $ option:unwrap-or (get states :data) ({})
+                    session $ option:unwrap-or (get store :session) ({})
+                    router $ option:unwrap-or (get store :router) ({})
+                    user $ option:unwrap-or (get store :user) ({})
                     logged-in? $ option:unwrap-or (get store :logged-in?) false
                     count-members $ option:unwrap-or (get store :count) 0
-                    snippets $ option:unwrap-or (get store :snippets) {}
+                    snippets $ option:unwrap-or (get store :snippets) ({})
                     show-all? $ option:unwrap-or (get store :show-all?) false
                     color $ option:unwrap-or (get store :color) |white
                     reel-length $ option:unwrap-or (get store :reel-length) 0
@@ -241,7 +241,7 @@
                           <> router
                           :home $ comp-home (>> states :snippets) snippets show-all? user
                           :profile $ comp-profile user
-                            option:unwrap-or (get router :data) {}
+                            option:unwrap-or (get router :data) ({})
                         div ({})
                           if (some? preview-data)
                             comp-preview (>> states :preview) preview-data :login
@@ -250,7 +250,7 @@
                       when dev? $ comp-inspect |Store store
                         {} (:bottom 40) (:left 0) (:max-width |100%)
                       comp-messages
-                        option:unwrap-or (get session :messages) {}
+                        option:unwrap-or (get session :messages) ({})
                         {}
                         fn (info d!) (d! :session/remove-message info)
                       when dev? $ comp-reel reel-length
@@ -621,7 +621,7 @@
                   do
                     let
                         event $ unsafe-coerce
-                            option:unwrap-or (get e :event) (js-object)
+                          option:unwrap-or (get e :event) (js-object)
                           , JsObject
                         data-transfer $ unsafe-coerce (.-dataTransfer event) JsObject
                         items $ unsafe-coerce (.-items data-transfer) JsObject
@@ -758,14 +758,14 @@
                         {} $ :text-align :right
                       span $ {} (:inner-text "|Sign up") (:class-name css/link)
                         :on-click $ on-submit
-                            option:unwrap-or (get state :username) |
-                          (option:unwrap-or (get state :password) |)
+                          option:unwrap-or (get state :username) |
+                          option:unwrap-or (get state :password) |
                           , true
                       =< 8 nil
                       span $ {} (:inner-text "|Log in") (:class-name css/link)
                         :on-click $ on-submit
-                            option:unwrap-or (get state :username) |
-                          (option:unwrap-or (get state :password) |)
+                          option:unwrap-or (get state :username) |
+                          option:unwrap-or (get state :password) |
                           , false
           :examples $ []
           :schema $ :: 'Dynamic
