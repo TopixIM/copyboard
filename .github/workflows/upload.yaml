@@ -33,51 +33,7 @@ jobs:
         calcit calcit.cirru --entry server --check-only
 
     - name: Smoke-test native server
-      run: |
-        calcit calcit.cirru --entry server > server.log 2>&1 &
-        server_pid=$!
-        cleanup() {
-          status=$?
-          if kill -0 "$server_pid" 2>/dev/null; then
-            kill "$server_pid" || true
-          fi
-          if [ "$status" -ne 0 ]; then
-            cat server.log || true
-          fi
-          exit "$status"
-        }
-        trap cleanup EXIT
-        for _ in {1..20}; do
-          if curl --fail --silent http://127.0.0.1:11030/ > /dev/null; then
-            break
-          fi
-          sleep 1
-        done
-        curl --fail --silent --show-error http://127.0.0.1:11030/ > /dev/null
-        node --input-type=module -e '
-          const payload = Buffer.from("Cjo6ICd1c2VyL2xvZy1pbiAkIFtdIHxjaGVuIHxiYWQtcGFzc3dvcmQK", "base64").toString();
-          await new Promise((resolve, reject) => {
-            const ws = new WebSocket("ws://127.0.0.1:11006");
-            let loginSent = false;
-            const timeout = setTimeout(() => reject(new Error("WebSocket login response timeout")), 10000);
-            ws.addEventListener("open", () => setTimeout(() => {
-              loginSent = true;
-              ws.send(payload);
-            }, 500));
-            ws.addEventListener("message", () => {
-              if (loginSent) {
-                clearTimeout(timeout);
-                ws.close();
-                resolve();
-              }
-            });
-            ws.addEventListener("error", (event) => {
-              clearTimeout(timeout);
-              reject(event.error || new Error("WebSocket error"));
-            });
-          });
-        '
-        kill -0 "$server_pid"
+      run: yarn smoke-server
 
     - run: yarn install --immutable && yarn compile-page && yarn release-page
 
