@@ -27,9 +27,18 @@ jobs:
         caps --ci
         calcit calcit.cirru edit format
         git diff --exit-code -- calcit.cirru
+        calcit calcit.cirru --check-only
         calcit calcit.cirru --entry server --check-only
 
     - run: yarn install --immutable && yarn compile-page && yarn release-page
+
+    - name: Upload build artifact
+      uses: actions/upload-artifact@v4
+      with:
+        name: copyboard-dist
+        path: dist
+        if-no-files-found: error
+        retention-days: 3
 
     - run: mkdir -p dist-server && cp calcit.cirru package.json deps.cirru dist-server
       name: Copy server scripts
