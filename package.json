@@ -7,6 +7,7 @@
   "scripts": {
     "compile-page": "calcit calcit.cirru js",
     "release-page": "vite build --base=./",
+    "smoke-server": "node scripts/smoke-native-server.mjs",
     "watch-page": "calcit -w calcit.cirru js"
   },
   "repository": {
@@ -16,7 +17,7 @@
   "author": "jiyinyiyong",
   "license": "MIT",
   "dependencies": {
-    "@calcit/procs": "^0.13.29",
+    "@calcit/procs": "0.13.37",
     "axios": "^1.18.0",
     "mime": "^4.1.0"
   },

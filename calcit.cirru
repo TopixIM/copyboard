@@ -66,14 +66,18 @@
           :code $ quote
             defn load-preview-data! ()
               hint-fn $ {} (:async true)
-              let
-                  response $ js-await
-                    js/fetch $ if config/dev? |http://localhost:11030/ |/apis/query
-                  text $ js-await (.!text response)
-                ; js/console.log |preview $ parse-cirru-edn text
-                reset! *preview-data $ option:unwrap-or
-                  get (parse-cirru-edn text) :snippets-list
-                  , {}
+              try
+                let
+                    response $ js-await
+                      js/fetch $ if config/dev? |http://localhost:11030/ |/apis/query
+                    text $ js-await (.!text response)
+                    parsed $ parse-cirru-edn text
+                    snippets $ if (map? parsed)
+                      get-or parsed :snippets-list $ []
+                      , []
+                  reset! *preview-data $ if (list? snippets) snippets ([])
+                fn (error) (js/console.warn |Failed-to-load-preview-data error)
+                  reset! *preview-data $ []
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Dynamic)
@@ -142,7 +146,8 @@
                     .!then promise $ fn (text)
                       respo.controller.client/send-to-component! $ :: :clipboard/read text
                     , JsObject
-                .!catch result $ fn (err) (js/console.error err)
+                .!catch result $ fn (err)
+                  do (js/console.warn |Clipboard-read-skipped err) nil
               js/console.log "|navigator.clipboard not available."
           :examples $ []
           :schema $ :: 'Fn
@@ -163,17 +168,19 @@
           :schema $ :: 'Dynamic
         |render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote
-            defn render-app! () $ render! mount-target
-              comp-container
-                option:unwrap-or (get @*states :states) {}
-                , @*store @*preview-data
-              , dispatch!
+            defn render-app! () $ let
+                all-states @*states
+                nested-states $ if (map? all-states)
+                  get-or all-states :states $ {}
+                  {}
+                component-states $ if (map? nested-states) nested-states ({})
+              render! mount-target (comp-container component-states @*store @*preview-data) dispatch!
           :examples $ []
           :schema $ :: 'Dynamic
         |simulate-login! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn simulate-login! () $ let
-                raw $ js/localStorage.getItem (:storage-key config/site)
+                raw $ js/localStorage.getItem (get-or config/site :storage-key |copyboard)
               if (js-present? raw)
                 do (println "|Found storage.")
                   dispatch! $ :: :user/log-in
@@ -213,13 +220,13 @@
                     _ $ <> |unknown
                 let
                     cursor $ option:unwrap-or (get states :cursor) []
-                    state $ option:unwrap-or (get states :data) {}
-                    session $ option:unwrap-or (get store :session) {}
-                    router $ option:unwrap-or (get store :router) {}
-                    user $ option:unwrap-or (get store :user) {}
+                    state $ option:unwrap-or (get states :data) ({})
+                    session $ option:unwrap-or (get store :session) ({})
+                    router $ option:unwrap-or (get store :router) ({})
+                    user $ option:unwrap-or (get store :user) ({})
                     logged-in? $ option:unwrap-or (get store :logged-in?) false
                     count-members $ option:unwrap-or (get store :count) 0
-                    snippets $ option:unwrap-or (get store :snippets) {}
+                    snippets $ option:unwrap-or (get store :snippets) ({})
                     show-all? $ option:unwrap-or (get store :show-all?) false
                     color $ option:unwrap-or (get store :color) |white
                     reel-length $ option:unwrap-or (get store :reel-length) 0
@@ -234,7 +241,7 @@
                           <> router
                           :home $ comp-home (>> states :snippets) snippets show-all? user
                           :profile $ comp-profile user
-                            option:unwrap-or (get router :data) {}
+                            option:unwrap-or (get router :data) ({})
                         div ({})
                           if (some? preview-data)
                             comp-preview (>> states :preview) preview-data :login
@@ -243,7 +250,7 @@
                       when dev? $ comp-inspect |Store store
                         {} (:bottom 40) (:left 0) (:max-width |100%)
                       comp-messages
-                        option:unwrap-or (get session :messages) {}
+                        option:unwrap-or (get session :messages) ({})
                         {}
                         fn (info d!) (d! :session/remove-message info)
                       when dev? $ comp-reel reel-length
@@ -257,12 +264,12 @@
                 {}
                   :class-name $ str-spaced css/expand css/fullscreen css/column-dispersive
                   :style $ {}
-                    :background-color $ :theme config/site
+                    :background-color $ get-or config/site :theme |#ECCE32
                 div $ {}
                   :style $ {} (:height 0)
                 div $ {}
                   :style $ {}
-                    :background-image $ str "|url(" (:icon config/site) "|)"
+                    :background-image $ str "|url(" (get-or config/site :icon |) "|)"
                     :width 128
                     :height 128
                     :background-size :contain
@@ -340,9 +347,11 @@
                       {} (:position :relative) (:cursor :pointer) (:max-width |100%)
                     :on-click $ fn (e d!) (copy! value)
                       d! cursor $ {} (:visible? true)
-                      js/setTimeout
-                        \ d! cursor $ {} (:visible? false)
-                        , 1200
+                      do
+                        js/setTimeout
+                          \ d! cursor $ {} (:visible? false)
+                          , 1200
+                        , nil
                   , child $ when
                     option:unwrap-or (get state :visible?) false
                     div
@@ -393,19 +402,21 @@
                         .!preventDefault $ option:unwrap-or (get e :event) (js-object)
                         send! e d!
                     :on-paste $ fn (e d!)
-                      let
-                          event $ unsafe-coerce
-                            option:unwrap-or (get e :event) (js-object)
-                            , JsObject
-                          clipboard-data $ unsafe-coerce (.-clipboardData event) JsObject
-                          files $ unsafe-coerce (.-files clipboard-data) JsObject
-                        if
-                          >
-                            unsafe-coerce (.-length files) 'Number
-                            , 0
-                          let
-                              file $ unsafe-coerce (.-0 files) JsObject
-                            upload-file! file user d! $ fn (_e)
+                      do
+                        let
+                            event $ unsafe-coerce
+                              option:unwrap-or (get e :event) (js-object)
+                              , JsObject
+                            clipboard-data $ unsafe-coerce (.-clipboardData event) JsObject
+                            files $ unsafe-coerce (.-files clipboard-data) JsObject
+                          if
+                            >
+                              unsafe-coerce (.-length files) 'Number
+                              , 0
+                            let
+                                file $ unsafe-coerce (.-0 files) JsObject
+                              upload-file! file user d! $ fn (_e)
+                        , nil
                 []
                   %{} respo.schema/RespoListener (:name :clipboard-listener)
                     :handler $ fn (event d!)
@@ -432,16 +443,19 @@
                         a
                           {} (:style style/link)
                             :on-click $ fn (e d!)
-                              if (js-present? js/navigator.clipboard)
-                                let
-                                    clipboard $ unsafe-coerce js/navigator.clipboard JsObject
-                                    promise $ unsafe-coerce (.!readText clipboard) JsObject
-                                    result $ unsafe-coerce
-                                      .!then promise $ fn (text)
-                                        d! cursor $ assoc state :content text
-                                      , JsObject
-                                  .!catch result $ fn (err) (js/console.error err)
-                                js/console.log "|navigator.clipboard not available."
+                              do
+                                if (js-present? js/navigator.clipboard)
+                                  let
+                                      clipboard $ unsafe-coerce js/navigator.clipboard JsObject
+                                      promise $ unsafe-coerce (.!readText clipboard) JsObject
+                                      result $ unsafe-coerce
+                                        .!then promise $ fn (text)
+                                          d! cursor $ assoc state :content text
+                                        , JsObject
+                                    .!catch result $ fn (err)
+                                      do (js/console.error err) nil
+                                  js/console.log "|navigator.clipboard not available."
+                                , nil
                           <> |Read
                         =< 8 nil
                         button
@@ -459,7 +473,11 @@
             defcomp comp-home (states snippets show-all? user)
               div
                 unsafe-coerce (home-props user) respo.schema/DomProps
-                (if (some? user) (div ({} (:style ({} (:position :relative)))) (comp-box (>> states :box) user)))
+                if (some? user)
+                  div
+                    {} $ :style
+                      {} $ :position :relative
+                    comp-box (>> states :box) user
                 =< nil 8
                 list->
                   {}
@@ -511,14 +529,16 @@
                       {}
                         :class-name $ str-spaced css/center style-link-mark
                         :style $ {} (:right 104)
-                        :on-click $ fn (e d!) (download-image! some-img)
+                        :on-click $ fn (e d!)
+                          do (download-image! some-img) nil
                       comp-i :download 14 $ hsl 200 80 60
                   if (some? some-img)
                     a
                       {}
                         :class-name $ str-spaced css/center style-link-mark
                         :style $ {} (:right 72)
-                        :on-click $ fn (e d!) (copy-to-clipboard some-img)
+                        :on-click $ fn (e d!)
+                          do (copy-to-clipboard some-img) nil
                       comp-i :copy 14 $ hsl 200 80 60
                   if
                     .starts-with?
@@ -529,7 +549,9 @@
                         :class-name $ str-spaced css/center style-link-mark
                         :style $ {} (:right 40)
                         :on-click $ fn (e d!)
-                          js/window.open $ option:unwrap-or (get snippet :content) |
+                          do
+                            js/window.open $ option:unwrap-or (get snippet :content) |
+                            , nil
                       comp-i :external-link 14 $ hsl 200 80 60
                   div
                     {}
@@ -591,18 +613,24 @@
                 :style $ {} (:padding "|12px 16px 240px 16px") (:overflow :auto)
                   :background-color $ hsl 0 0 97
                 :on-dragover $ fn (e d!)
-                  .!preventDefault $ option:unwrap-or (get e :event) (js-object)
+                  do
+                    .!preventDefault $ option:unwrap-or (get e :event) (js-object)
+                    , nil
                 :on-drop $ fn (e d!)
                   .!preventDefault $ option:unwrap-or (get e :event) (js-object)
-                  let
-                      event $ unsafe-coerce
+                  do
+                    let
+                        event $ unsafe-coerce
                           option:unwrap-or (get e :event) (js-object)
-                        , JsObject
-                      data-transfer $ unsafe-coerce (.-dataTransfer event) JsObject
-                      items $ unsafe-coerce (.-items data-transfer) JsObject
-                      items-array $ unsafe-coerce (js/Array.from items) JsObject
-                    .!forEach items-array $ fn (item & _a)
-                      upload-file! (.!getAsFile item) user d! $ fn (_e)
+                          , JsObject
+                        data-transfer $ unsafe-coerce (.-dataTransfer event) JsObject
+                        items $ unsafe-coerce (.-items data-transfer) JsObject
+                        items-array $ unsafe-coerce (js/Array.from items) JsObject
+                      .!forEach items-array $ fn (item & _a)
+                        do
+                          upload-file! (.!getAsFile item) user d! $ fn (_e)
+                          , nil
+                    , nil
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Dynamic)
@@ -730,14 +758,14 @@
                         {} $ :text-align :right
                       span $ {} (:inner-text "|Sign up") (:class-name css/link)
                         :on-click $ on-submit
-                            option:unwrap-or (get state :username) |
-                          (option:unwrap-or (get state :password) |)
+                          option:unwrap-or (get state :username) |
+                          option:unwrap-or (get state :password) |
                           , true
                       =< 8 nil
                       span $ {} (:inner-text "|Log in") (:class-name css/link)
                         :on-click $ on-submit
-                            option:unwrap-or (get state :username) |
-                          (option:unwrap-or (get state :password) |)
+                          option:unwrap-or (get state :username) |
+                          option:unwrap-or (get state :password) |
                           , false
           :examples $ []
           :schema $ :: 'Dynamic
@@ -751,7 +779,7 @@
             defn on-submit (username password signup?)
               fn (e dispatch!)
                 dispatch! (if signup? :user/sign-up :user/log-in) ([] username password)
-                js/localStorage.setItem (:storage-key config/site)
+                js/localStorage.setItem (get-or config/site :storage-key |copyboard)
                   format-cirru-edn $ [] username password
           :examples $ []
           :schema $ :: 'Dynamic
@@ -799,7 +827,7 @@
           :code $ quote
             defstyle style-nav $ {}
               |& $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
-                :background-color $ :theme config/site
+                :background-color $ get-or config/site :theme |#ECCE32
                 :color :white
                 :z-index 100
           :examples $ []
@@ -853,7 +881,7 @@
                         :color :white
                         :padding "|0 8px"
                       :on-click $ fn (e dispatch!) (dispatch! :user/log-out nil)
-                        .removeItem js/localStorage $ :storage-key schema/configs
+                        .removeItem js/localStorage $ get-or config/site :storage-key |copyboard
                     <> "|Log out" nil
           :examples $ []
           :schema $ :: 'Dynamic
@@ -861,7 +889,7 @@
         :code $ quote
           ns app.comp.profile $ :require
             respo-ui.core :refer $ hsl
-            app.schema :as schema
+            app.config :as config
             respo-ui.core :as ui
             respo.core :refer $ defcomp list-> <> span div a
             respo.comp.space :refer $ =<
@@ -881,25 +909,31 @@
                   {} $ :class-name css/row-middle
                   input $ {} (:type |file) (:id |upload-input) (:class-name style-hidden-input) (:multiple true)
                     :on-input $ fn (e d!)
-                      let
-                          event $ option:unwrap-or (get e :event) (js-object)
-                          target $ unsafe-coerce (.-target event) JsObject
-                          files $ unsafe-coerce (.-files target) JsObject
-                          files-array $ unsafe-coerce (js/Array.from files) JsObject
-                        .!forEach files-array $ fn (file & _a)
-                          if
-                            <
-                              unsafe-coerce (.-size file) 'Number
-                              , 100000000
-                            upload-file! file user d! $ fn (next) (d! cursor next)
-                            js/console.warn "|File too large"
-                        set! (.-value target) nil
+                      do
+                        let
+                            event $ option:unwrap-or (get e :event) (js-object)
+                            target $ unsafe-coerce (.-target event) JsObject
+                            files $ unsafe-coerce (.-files target) JsObject
+                            files-array $ unsafe-coerce (js/Array.from files) JsObject
+                          .!forEach files-array $ fn (file & _a)
+                            do
+                              if
+                                <
+                                  unsafe-coerce (.-size file) 'Number
+                                  , 100000000
+                                upload-file! file user d! $ fn (next) (d! cursor next)
+                                js/console.warn "|File too large"
+                              , nil
+                          set! (.-value target) nil
+                        , nil
                   a
                     {} (:class-name css/link)
                       :style $ {}
                         :color $ hsl 200 90 70
                       :on-click $ fn (e d!)
-                        .!click $ unsafe-coerce (js/document.querySelector |#upload-input) JsObject
+                        do
+                          .!click $ unsafe-coerce (js/document.querySelector |#upload-input) JsObject
+                          , nil
                     <> |Upload
                   if uploading? $ span
                     {} (:class-name css/font-fancy)
@@ -1022,7 +1056,7 @@
               :sessions $ {}
               :users $ {}
               :count 0
-              :snippets $ {}
+              :snippets $ []
           :examples $ []
           :schema $ :: 'Dynamic
         |notification $ %{} 'CodeEntry (:doc |)
@@ -1145,9 +1179,10 @@
           :code $ quote
             defn on-request! (req)
               let
-                  db $ option:unwrap-or (get @*reel :db) {}
+                  reel $ unsafe-coerce @*reel 'cumulo-reel.core/ReelState
+                  db $ :db reel
                   snippets $ ->
-                    option:unwrap-or (get db :snippets) {}
+                    get-or db :snippets $ []
                     take-last 12
                     with-cpu-time
                 {} (:code 200)
@@ -1159,10 +1194,9 @@
         |persist-db! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn persist-db! () $ let
+                reel $ unsafe-coerce @*reel 'cumulo-reel.core/ReelState
                 file-content $ format-cirru-edn
-                  assoc
-                    option:unwrap-or (get @*reel :db) {}
-                    , :sessions $ {}
+                  assoc (:db reel) :sessions $ {}
                 storage-path storage-file
                 backup-path $ get-backup-path!
               check-write-file! storage-path file-content
@@ -1223,8 +1257,9 @@
             defn sync-clients! (reel)
               wss-each! $ fn (sid)
                 let
-                    db $ option:unwrap-or (get reel :db) {}
-                    records $ option:unwrap-or (get reel :records) []
+                    reel-state $ unsafe-coerce reel 'cumulo-reel.core/ReelState
+                    db $ :db reel-state
+                    records $ :records reel-state
                     session $ get-in db ([] :sessions sid)
                     old-store $ or (get @*client-caches sid) nil
                     new-store $ twig-container db session records
@@ -1447,10 +1482,10 @@
                   maybe-user $ ->
                     option:unwrap-or (get db :users) {}
                     vals
-                    (.to-list)
-                    find $ fn (user)
-                      and $ = username
-                        option:unwrap-or (get user :name) |unknown
+                    , &set:to-list
+                      find $ fn (user)
+                        and $ = username
+                          option:unwrap-or (get user :name) |unknown
                 update-in db ([] :sessions sid)
                   fn (session?)
                     if (option:some? maybe-user)
@@ -1501,7 +1536,7 @@
                     ->
                       option:unwrap-or (get db :users) {}
                       vals
-                      (.to-list)
+                      , &set:to-list
                     fn (user)
                       = username $ option:unwrap-or (get user :name) |unknown
                 if (option:some? maybe-user)
