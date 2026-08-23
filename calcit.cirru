@@ -472,7 +472,11 @@
             defcomp comp-home (states snippets show-all? user)
               div
                 unsafe-coerce (home-props user) respo.schema/DomProps
-                (if (some? user) (div ({} (:style ({} (:position :relative)))) (comp-box (>> states :box) user)))
+                if (some? user)
+                  div
+                    {} $ :style
+                      {} $ :position :relative
+                    comp-box (>> states :box) user
                 =< nil 8
                 list->
                   {}
