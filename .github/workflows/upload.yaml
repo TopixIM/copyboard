@@ -33,7 +33,7 @@ jobs:
         calcit calcit.cirru --entry server --check-only
 
     - name: Smoke-test native server
-      run: yarn smoke-server
+      run: node scripts/smoke-native-server.mjs
 
     - run: yarn install --immutable && yarn compile-page && yarn release-page
 
