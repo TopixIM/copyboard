@@ -1056,7 +1056,7 @@
               :sessions $ {}
               :users $ {}
               :count 0
-              :snippets $ {}
+              :snippets $ []
           :examples $ []
           :schema $ :: 'Dynamic
         |notification $ %{} 'CodeEntry (:doc |)
