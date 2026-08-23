@@ -73,11 +73,11 @@
                     text $ js-await (.!text response)
                     parsed $ parse-cirru-edn text
                     snippets $ if (map? parsed)
-                      get-or parsed :snippets-list $ {}
-                      , {}
-                  reset! *preview-data $ if (map? snippets) snippets ({})
+                      get-or parsed :snippets-list $ []
+                      , []
+                  reset! *preview-data $ if (list? snippets) snippets ([])
                 fn (error) (js/console.warn |Failed-to-load-preview-data error)
-                  reset! *preview-data $ {}
+                  reset! *preview-data $ []
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Dynamic)
@@ -146,7 +146,8 @@
                     .!then promise $ fn (text)
                       respo.controller.client/send-to-component! $ :: :clipboard/read text
                     , JsObject
-                .!catch result $ fn (err) (js/console.error err)
+                .!catch result $ fn (err)
+                  do (js/console.warn |Clipboard-read-skipped err) nil
               js/console.log "|navigator.clipboard not available."
           :examples $ []
           :schema $ :: 'Fn
