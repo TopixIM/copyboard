@@ -881,7 +881,7 @@
                         :color :white
                         :padding "|0 8px"
                       :on-click $ fn (e dispatch!) (dispatch! :user/log-out nil)
-                        .removeItem js/localStorage $ get-or schema/configs :storage-key |workflow-storage
+                        .removeItem js/localStorage $ get-or config/site :storage-key |copyboard
                     <> "|Log out" nil
           :examples $ []
           :schema $ :: 'Dynamic
@@ -889,7 +889,7 @@
         :code $ quote
           ns app.comp.profile $ :require
             respo-ui.core :refer $ hsl
-            app.schema :as schema
+            app.config :as config
             respo-ui.core :as ui
             respo.core :refer $ defcomp list-> <> span div a
             respo.comp.space :refer $ =<
