@@ -30,6 +30,20 @@ jobs:
         calcit calcit.cirru --check-only
         calcit calcit.cirru --entry server --check-only
 
+    - name: Smoke-test native server
+      run: |
+        calcit calcit.cirru --entry server > server.log 2>&1 &
+        server_pid=$!
+        trap 'kill "$server_pid"' EXIT
+        for _ in {1..20}; do
+          if curl --fail --silent http://127.0.0.1:11030/ > /dev/null; then
+            break
+          fi
+          sleep 1
+        done
+        curl --fail --silent --show-error http://127.0.0.1:11030/ > /dev/null
+        kill -0 "$server_pid"
+
     - run: yarn install --immutable && yarn compile-page && yarn release-page
 
     - name: Upload build artifact

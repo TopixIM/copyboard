@@ -1179,9 +1179,10 @@
           :code $ quote
             defn on-request! (req)
               let
-                  db $ option:unwrap-or (get @*reel :db) {}
+                  reel $ unsafe-coerce @*reel 'cumulo-reel.core/ReelState
+                  db $ :db reel
                   snippets $ ->
-                    option:unwrap-or (get db :snippets) {}
+                    get-or db :snippets $ []
                     take-last 12
                     with-cpu-time
                 {} (:code 200)
@@ -1193,10 +1194,9 @@
         |persist-db! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn persist-db! () $ let
+                reel $ unsafe-coerce @*reel 'cumulo-reel.core/ReelState
                 file-content $ format-cirru-edn
-                  assoc
-                    option:unwrap-or (get @*reel :db) {}
-                    , :sessions $ {}
+                  assoc (:db reel) :sessions $ {}
                 storage-path storage-file
                 backup-path $ get-backup-path!
               check-write-file! storage-path file-content
