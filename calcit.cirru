@@ -10,23 +10,23 @@
       :modules $ [] |recollect/ |cumulo-util.calcit/ |cumulo-reel.calcit/ |calcit.std/ |calcit-wss/ |calcit-http/
       :type-slots $ {}
   :files $ {}
-    |app.client $ %{} 'FileEntry
+    'app.client $ %{} 'FileEntry
       :defs $ {}
-        |*preview-data $ %{} 'CodeEntry (:doc |)
+        '*preview-data $ %{} 'CodeEntry (:doc |)
           :code $ quote (defatom *preview-data nil)
           :examples $ []
           :schema $ :: 'Dynamic
-        |*states $ %{} 'CodeEntry (:doc |)
+        '*states $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defatom *states $ {}
           :examples $ []
           :schema $ :: 'Dynamic
-        |*store $ %{} 'CodeEntry (:doc |)
+        '*store $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defatom *store $ :: :initial
           :examples $ []
           :schema $ :: 'Dynamic
-        |connect! $ %{} 'CodeEntry (:doc |)
+        'connect! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn connect! () $ let
                 url-obj $ url-parse js/location.href true
@@ -47,7 +47,7 @@
                   :on-data on-server-data
           :examples $ []
           :schema $ :: 'Dynamic
-        |dispatch! $ %{} 'CodeEntry (:doc |)
+        'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn dispatch! (op)
               when
@@ -62,7 +62,7 @@
                 _ $ ws-send! op
           :examples $ []
           :schema $ :: 'Dynamic
-        |load-preview-data! $ %{} 'CodeEntry (:doc |)
+        'load-preview-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn load-preview-data! ()
               hint-fn $ {} (:async true)
@@ -72,8 +72,9 @@
                       js/fetch $ if config/dev? |http://localhost:11030/ |/apis/query
                     text $ js-await (.!text response)
                     parsed $ parse-cirru-edn text
+                    empty-snippets $ []
                     snippets $ if (map? parsed)
-                      get-or parsed :snippets-list $ []
+                      option:unwrap-or (get parsed :snippets-list) empty-snippets
                       , []
                   reset! *preview-data $ if (list? snippets) snippets ([])
                 fn (error) (js/console.warn |Failed-to-load-preview-data error)
@@ -83,7 +84,7 @@
             {} (:return 'Dynamic)
               :args $ []
               :features $ #{} :js-ffi
-        |main! $ %{} 'CodeEntry (:doc |)
+        'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn main! ()
               println "|Running mode:" $ if config/dev? |dev |release
@@ -108,12 +109,12 @@
             {} (:return 'Dynamic)
               :args $ []
               :features $ #{} :js-ffi
-        |mount-target $ %{} 'CodeEntry (:doc |)
+        'mount-target $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def mount-target $ js/document.querySelector |.app
           :examples $ []
           :schema $ :: 'Dynamic
-        |on-server-data $ %{} 'CodeEntry (:doc |)
+        'on-server-data $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn on-server-data (data)
               tag-match data
@@ -124,7 +125,7 @@
                 (:effect/pong) :ok
           :examples $ []
           :schema $ :: 'Dynamic
-        |on-window-keydown $ %{} 'CodeEntry (:doc |)
+        'on-window-keydown $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn on-window-keydown (event)
               println $ .-tagName (.-activeElement js/document)
@@ -136,7 +137,7 @@
                 .preventDefault event
           :examples $ []
           :schema $ :: 'Dynamic
-        |read-from-clipboard! $ %{} 'CodeEntry (:doc |)
+        'read-from-clipboard! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn read-from-clipboard! () $ if (js-present? js/navigator.clipboard)
               let
@@ -154,7 +155,7 @@
             {} (:return 'Dynamic)
               :args $ []
               :features $ #{} :js-ffi
-        |reload! $ %{} 'CodeEntry (:doc |)
+        'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn reload! () $ if
               or (some? client-errors) (some? server-errors)
@@ -166,21 +167,23 @@
                 hud! |ok~
           :examples $ []
           :schema $ :: 'Dynamic
-        |render-app! $ %{} 'CodeEntry (:doc |)
+        'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn render-app! () $ let
                 all-states @*states
+                empty-states $ {}
                 nested-states $ if (map? all-states)
-                  get-or all-states :states $ {}
+                  option:unwrap-or (get all-states :states) empty-states
                   {}
                 component-states $ if (map? nested-states) nested-states ({})
               render! mount-target (comp-container component-states @*store @*preview-data) dispatch!
           :examples $ []
           :schema $ :: 'Dynamic
-        |simulate-login! $ %{} 'CodeEntry (:doc |)
+        'simulate-login! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn simulate-login! () $ let
-                raw $ js/localStorage.getItem (get-or config/site :storage-key |copyboard)
+                raw $ js/localStorage.getItem
+                  option:unwrap-or (get config/site :storage-key) |copyboard
               if (js-present? raw)
                 do (println "|Found storage.")
                   dispatch! $ :: :user/log-in
@@ -206,9 +209,9 @@
             |bottom-tip :default hud!
             |./calcit.build-errors :default client-errors
             |../js-out/calcit.build-errors :default server-errors
-    |app.comp.container $ %{} 'FileEntry
+    'app.comp.container $ %{} 'FileEntry
       :defs $ {}
-        |comp-container $ %{} 'CodeEntry (:doc |)
+        'comp-container $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-container (states store preview-data)
               if (enum? store)
@@ -257,19 +260,21 @@
                         {} $ :bottom 40
           :examples $ []
           :schema $ :: 'Dynamic
-        |comp-offline $ %{} 'CodeEntry (:doc |)
+        'comp-offline $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-offline (state)
               div
                 {}
                   :class-name $ str-spaced css/expand css/fullscreen css/column-dispersive
                   :style $ {}
-                    :background-color $ get-or config/site :theme |#ECCE32
+                    :background-color $ option:unwrap-or (get config/site :theme) |#ECCE32
                 div $ {}
                   :style $ {} (:height 0)
                 div $ {}
                   :style $ {}
-                    :background-image $ str "|url(" (get-or config/site :icon |) "|)"
+                    :background-image $ str "|url("
+                      option:unwrap-or (get config/site :icon) |
+                      , "|)"
                     :width 128
                     :height 128
                     :background-size :contain
@@ -282,7 +287,7 @@
                     {} (:font-family ui/font-fancy) (:font-size 24)
           :examples $ []
           :schema $ :: 'Dynamic
-        |comp-preview $ %{} 'CodeEntry (:doc |)
+        'comp-preview $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn comp-preview (states preview-data stage)
               div ({})
@@ -295,19 +300,19 @@
                 comp-home states preview-data true nil
           :examples $ []
           :schema $ :: 'Dynamic
-        |comp-status-color $ %{} 'CodeEntry (:doc |)
+        'comp-status-color $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-status-color (color)
               div $ {} (:class-name style-status-buble)
                 :style $ {} (:background-color color)
           :examples $ []
           :schema $ :: 'Dynamic
-        |style-body $ %{} 'CodeEntry (:doc |)
+        'style-body $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def style-body $ {} (:padding "|8px 16px")
           :examples $ []
           :schema $ :: 'Dynamic
-        |style-status-buble $ %{} 'CodeEntry (:doc |)
+        'style-status-buble $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defstyle style-status-buble $ {}
               |& $ {} (:width 16) (:height 16) (:position :absolute) (:bottom 10) (:left 10) (:border-radius |8px) (:opacity 0.8)
@@ -331,9 +336,9 @@
             app.comp.home :refer $ comp-home
             app.config :as config
             respo.css :refer $ defstyle
-    |app.comp.copied $ %{} 'FileEntry
+    'app.comp.copied $ %{} 'FileEntry
       :defs $ {}
-        |comp-copied $ %{} 'CodeEntry (:doc |)
+        'comp-copied $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-copied (states value child)
               let
@@ -351,7 +356,7 @@
                         js/setTimeout
                           \ d! cursor $ {} (:visible? false)
                           , 1200
-                        , nil
+                        , &unit
                   , child $ when
                     option:unwrap-or (get state :visible?) false
                     div
@@ -368,9 +373,9 @@
             respo.core :refer $ defcomp list-> >> <> div button textarea span
             respo.comp.space :refer $ =<
             |copy-text-to-clipboard :default copy!
-    |app.comp.home $ %{} 'FileEntry
+    'app.comp.home $ %{} 'FileEntry
       :defs $ {}
-        |comp-box $ %{} 'CodeEntry (:doc |)
+        'comp-box $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-box (states user)
               let
@@ -380,10 +385,12 @@
                     {} $ :content |
                   content $ option:unwrap-or (get state :content) |
                   send! $ fn (e d!)
-                    when
-                      not $ .blank? content
-                      d! :snippet/create content
-                      d! cursor $ assoc state :content |
+                    do
+                      when
+                        not $ .blank? content
+                        d! :snippet/create content
+                        d! cursor $ assoc state :content |
+                      , &unit
                   confirm-plugin $ use-confirm (>> states :clipboard-confirm)
                     {} $ :text "|Clipboard content detected, would you like to fill it into the input box?"
                   props $ {} (:value content)
@@ -392,8 +399,10 @@
                     :placeholder "|Command Enter to send..."
                     :class-name $ str-spaced css/flex css/textarea schema/box-name
                     :on-input $ fn (e d!)
-                      d! cursor $ assoc state :content
-                        option:unwrap-or (get e :value) |
+                      do
+                        d! cursor $ assoc state :content
+                          option:unwrap-or (get e :value) |
+                        , &unit
                     :on-keydown $ fn (e d!)
                       when
                         and
@@ -416,7 +425,7 @@
                             let
                                 file $ unsafe-coerce (.-0 files) JsObject
                               upload-file! file user d! $ fn (_e)
-                        , nil
+                        , &unit
                 []
                   %{} respo.schema/RespoListener (:name :clipboard-listener)
                     :handler $ fn (event d!)
@@ -436,7 +445,9 @@
                         a
                           {} (:style style/link)
                             :on-click $ fn (e d!)
-                              d! cursor $ assoc state :content |
+                              do
+                                d! cursor $ assoc state :content |
+                                , &unit
                           <> |Clear
                       div
                         {} $ :style ({})
@@ -455,7 +466,7 @@
                                     .!catch result $ fn (err)
                                       do (js/console.error err) nil
                                   js/console.log "|navigator.clipboard not available."
-                                , nil
+                                , &unit
                           <> |Read
                         =< 8 nil
                         button
@@ -468,7 +479,7 @@
             {} (:return 'Dynamic)
               :args $ [] 'Dynamic 'Dynamic
               :features $ #{} :js-ffi
-        |comp-home $ %{} 'CodeEntry (:doc |)
+        'comp-home $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-home (states snippets show-all? user)
               div
@@ -491,13 +502,14 @@
                 if-not show-all? $ div
                   {} $ :class-name css/center
                   span $ {} (:class-name style-all-tag) (:inner-text "|Show all")
-                    :on-click $ fn (e d!) (d! :session/show-all nil)
+                    :on-click $ fn (e d!)
+                      do (d! :session/show-all nil) &unit
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Dynamic)
               :args $ [] 'Dynamic 'Dynamic 'Dynamic 'Dynamic
               :features $ #{} :js-ffi
-        |comp-snippet $ %{} 'CodeEntry (:doc |)
+        'comp-snippet $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-snippet (states k snippet)
               let
@@ -530,7 +542,7 @@
                         :class-name $ str-spaced css/center style-link-mark
                         :style $ {} (:right 104)
                         :on-click $ fn (e d!)
-                          do (download-image! some-img) nil
+                          do (download-image! some-img) &unit
                       comp-i :download 14 $ hsl 200 80 60
                   if (some? some-img)
                     a
@@ -538,7 +550,7 @@
                         :class-name $ str-spaced css/center style-link-mark
                         :style $ {} (:right 72)
                         :on-click $ fn (e d!)
-                          do (copy-to-clipboard some-img) nil
+                          do (copy-to-clipboard some-img) &unit
                       comp-i :copy 14 $ hsl 200 80 60
                   if
                     .starts-with?
@@ -551,19 +563,21 @@
                         :on-click $ fn (e d!)
                           do
                             js/window.open $ option:unwrap-or (get snippet :content) |
-                            , nil
+                            , &unit
                       comp-i :external-link 14 $ hsl 200 80 60
                   div
                     {}
                       :class-name $ str-spaced css/center style-link-mark style-remove
                       :on-click $ fn (e d!)
-                        .show remove-plugin d! $ fn ()
-                          d! :snippet/remove-one $ option:unwrap-or (get snippet :id) |
+                        do
+                          .show remove-plugin d! $ fn ()
+                            d! :snippet/remove-one $ option:unwrap-or (get snippet :id) |
+                          , &unit
                     comp-i :trash-2 14 $ hsl 0 80 50
                   .render remove-plugin
           :examples $ []
           :schema $ :: 'Dynamic
-        |copy-to-clipboard $ %{} 'CodeEntry (:doc |)
+        'copy-to-clipboard $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn copy-to-clipboard (url)
               hint-fn $ {} (:async true)
@@ -583,7 +597,7 @@
             {} (:return 'Dynamic)
               :args $ [] 'String
               :features $ #{} :js-ffi
-        |download-image! $ %{} 'CodeEntry (:doc |)
+        'download-image! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn download-image! (url)
               hint-fn $ {} (:async true)
@@ -605,7 +619,7 @@
             {} (:return 'Dynamic)
               :args $ [] 'String
               :features $ #{} :js-ffi
-        |home-props $ %{} 'CodeEntry (:doc |)
+        'home-props $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn home-props (user)
               {}
@@ -636,13 +650,13 @@
             {} (:return 'Dynamic)
               :args $ [] 'Dynamic
               :features $ #{} :js-ffi
-        |img-url? $ %{} 'CodeEntry (:doc |)
+        'img-url? $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn img-url? (url)
               or (.ends-with? url |.png) (.ends-with? url |.jpg) (.ends-with? url |.jpeg) (.ends-with? url |.webp)
           :examples $ []
           :schema $ :: 'Dynamic
-        |style-all-tag $ %{} 'CodeEntry (:doc |)
+        'style-all-tag $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defstyle style-all-tag $ {}
               |& $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
@@ -650,13 +664,13 @@
                 :cursor :pointer
           :examples $ []
           :schema $ :: 'Dynamic
-        |style-grid-list $ %{} 'CodeEntry (:doc |)
+        'style-grid-list $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defstyle style-grid-list $ {}
               |& $ {} (:display :grid) (:grid-template-columns "|repeat(auto-fit, minmax(360px, 1fr))") (:gap 12)
           :examples $ []
           :schema $ :: 'Dynamic
-        |style-link-mark $ %{} 'CodeEntry (:doc |)
+        'style-link-mark $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defstyle style-link-mark $ {}
               |& $ {} (:position :absolute) (:bottom 8) (:width 28) (:height 28) (:cursor :pointer) (:border-radius |20px) (:transition-duration |230ms) (:line-height 1)
@@ -670,13 +684,13 @@
               "|&:active i" $ {} (:transition-duration |0ms) (:transform "|scale(1.2)")
           :examples $ []
           :schema $ :: 'Dynamic
-        |style-remove $ %{} 'CodeEntry (:doc |)
+        'style-remove $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defstyle style-remove $ {}
               |& $ {} (:right 8)
           :examples $ []
           :schema $ :: 'Dynamic
-        |style-snippet $ %{} 'CodeEntry (:doc |)
+        'style-snippet $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defstyle style-snippet $ {}
               |& $ {} (:margin-bottom 8) (:max-width |100%) (:position :relative) (:background-repeat :no-repeat) (:background-size :contain) (:min-height |160px) (:border-radius |6px) (:background-position :center)
@@ -688,13 +702,13 @@
                 :background-size :cover
           :examples $ []
           :schema $ :: 'Dynamic
-        |style-snippet-content $ %{} 'CodeEntry (:doc |)
+        'style-snippet-content $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defstyle style-snippet-content $ {}
               |& $ {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all) (:padding 16) (:max-height |50vh) (:max-width |100%) (:overflow :auto) (:line-height |21px) (:height |100%)
           :examples $ []
           :schema $ :: 'Dynamic
-        |style-snippet-span $ %{} 'CodeEntry (:doc |)
+        'style-snippet-span $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defstyle style-snippet-span $ {}
               |& $ {} (:opacity 0.5) (:transition-duration |240ms)
@@ -720,9 +734,9 @@
             |axios :default axios
             |mime :default mime
             app.comp.upload :refer $ upload-file!
-    |app.comp.login $ %{} 'FileEntry
+    'app.comp.login $ %{} 'FileEntry
       :defs $ {}
-        |comp-login $ %{} 'CodeEntry (:doc |)
+        'comp-login $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-login (states)
               let
@@ -769,17 +783,18 @@
                           , false
           :examples $ []
           :schema $ :: 'Dynamic
-        |initial-state $ %{} 'CodeEntry (:doc |)
+        'initial-state $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def initial-state $ {} (:username |) (:password |)
           :examples $ []
           :schema $ :: 'Dynamic
-        |on-submit $ %{} 'CodeEntry (:doc |)
+        'on-submit $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn on-submit (username password signup?)
               fn (e dispatch!)
                 dispatch! (if signup? :user/sign-up :user/log-in) ([] username password)
-                js/localStorage.setItem (get-or config/site :storage-key |copyboard)
+                js/localStorage.setItem
+                  option:unwrap-or (get config/site :storage-key) |copyboard
                   format-cirru-edn $ [] username password
           :examples $ []
           :schema $ :: 'Dynamic
@@ -795,9 +810,9 @@
             app.config :as config
             respo.css :refer $ defstyle
             respo-ui.css :as css
-    |app.comp.navigation $ %{} 'FileEntry
+    'app.comp.navigation $ %{} 'FileEntry
       :defs $ {}
-        |comp-navigation $ %{} 'CodeEntry (:doc |)
+        'comp-navigation $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-navigation (states user logged-in? count-members offline?)
               div
@@ -823,11 +838,11 @@
                   <> count-members
           :examples $ []
           :schema $ :: 'Dynamic
-        |style-nav $ %{} 'CodeEntry (:doc |)
+        'style-nav $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defstyle style-nav $ {}
               |& $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
-                :background-color $ get-or config/site :theme |#ECCE32
+                :background-color $ option:unwrap-or (get config/site :theme) |#ECCE32
                 :color :white
                 :z-index 100
           :examples $ []
@@ -843,9 +858,9 @@
             app.config :as config
             app.comp.upload :refer $ comp-file-upload
             respo.css :refer $ defstyle
-    |app.comp.profile $ %{} 'FileEntry
+    'app.comp.profile $ %{} 'FileEntry
       :defs $ {}
-        |comp-profile $ %{} 'CodeEntry (:doc |)
+        'comp-profile $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-profile (user members)
               div
@@ -881,7 +896,7 @@
                         :color :white
                         :padding "|0 8px"
                       :on-click $ fn (e dispatch!) (dispatch! :user/log-out nil)
-                        .removeItem js/localStorage $ get-or config/site :storage-key |copyboard
+                        .removeItem js/localStorage $ option:unwrap-or (get config/site :storage-key) |copyboard
                     <> "|Log out" nil
           :examples $ []
           :schema $ :: 'Dynamic
@@ -893,9 +908,9 @@
             respo-ui.core :as ui
             respo.core :refer $ defcomp list-> <> span div a
             respo.comp.space :refer $ =<
-    |app.comp.upload $ %{} 'FileEntry
+    'app.comp.upload $ %{} 'FileEntry
       :defs $ {}
-        |comp-file-upload $ %{} 'CodeEntry (:doc |)
+        'comp-file-upload $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defcomp comp-file-upload (states user)
               let
@@ -925,7 +940,7 @@
                                 js/console.warn "|File too large"
                               , nil
                           set! (.-value target) nil
-                        , nil
+                        , &unit
                   a
                     {} (:class-name css/link)
                       :style $ {}
@@ -933,7 +948,7 @@
                       :on-click $ fn (e d!)
                         do
                           .!click $ unsafe-coerce (js/document.querySelector |#upload-input) JsObject
-                          , nil
+                          , &unit
                     <> |Upload
                   if uploading? $ span
                     {} (:class-name css/font-fancy)
@@ -947,7 +962,7 @@
             {} (:return 'Dynamic)
               :args $ [] 'Dynamic 'Dynamic
               :features $ #{} :js-ffi
-        |decorate-name $ %{} 'CodeEntry (:doc "|`paste` event uses default name `image.png` as the file name, need to overwrite that.\n\nalso spaces in filekey causes problems of inline CSS, need to replace that.")
+        'decorate-name $ %{} 'CodeEntry (:doc "|`paste` event uses default name `image.png` as the file name, need to overwrite that.\n\nalso spaces in filekey causes problems of inline CSS, need to replace that.")
           :code $ quote
             defn decorate-name (img-name)
               if (= |image.png img-name)
@@ -960,13 +975,13 @@
             {} (:return 'Dynamic)
               :args $ [] 'Dynamic
               :features $ #{} :js-ffi
-        |style-hidden-input $ %{} 'CodeEntry (:doc |)
+        'style-hidden-input $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defstyle style-hidden-input $ {}
               |& $ {} (:display :none)
           :examples $ []
           :schema $ :: 'Dynamic
-        |upload-file! $ %{} 'CodeEntry (:doc |)
+        'upload-file! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn upload-file! (file user d! mutate!)
               hint-fn $ {} (:async true)
@@ -1023,34 +1038,34 @@
             |axios :default axios
             |mime :default mime
             |../lib/md5 :refer $ load-md5
-    |app.config $ %{} 'FileEntry
+    'app.config $ %{} 'FileEntry
       :defs $ {}
-        |dev? $ %{} 'CodeEntry (:doc |)
+        'dev? $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def dev? $ let
                 mode $ option:unwrap-or (get-env |mode) |release
               = mode |dev
           :examples $ []
           :schema $ :: 'Dynamic
-        |site $ %{} 'CodeEntry (:doc |)
+        'site $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def site $ {} (:port 11006) (:http-port 11030) (:title |Copyboard) (:icon |http://cdn.tiye.me/logo/copyboard.png) (:theme |#ECCE32) (:storage-key |copyboard) (:storage-file |storage.cirru)
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote (ns app.config)
-    |app.schema $ %{} 'FileEntry
+    'app.schema $ %{} 'FileEntry
       :defs $ {}
-        |box-name $ %{} 'CodeEntry (:doc |)
+        'box-name $ %{} 'CodeEntry (:doc |)
           :code $ quote (def box-name |submit-box)
           :examples $ []
           :schema $ :: 'Dynamic
-        |configs $ %{} 'CodeEntry (:doc |)
+        'configs $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def configs $ {} (:storage-key |workflow-storage) (:port 11006)
           :examples $ []
           :schema $ :: 'Dynamic
-        |database $ %{} 'CodeEntry (:doc |)
+        'database $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def database $ {}
               :sessions $ {}
@@ -1059,19 +1074,19 @@
               :snippets $ []
           :examples $ []
           :schema $ :: 'Dynamic
-        |notification $ %{} 'CodeEntry (:doc |)
+        'notification $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def notification $ {} (:id nil) (:kind nil) (:text nil)
           :examples $ []
           :schema $ :: 'Dynamic
-        |router $ %{} 'CodeEntry (:doc |)
+        'router $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def router $ {} (:name nil) (:title nil)
               :data $ {}
               :router nil
           :examples $ []
           :schema $ :: 'Dynamic
-        |session $ %{} 'CodeEntry (:doc |)
+        'session $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def session $ {} (:user-id nil) (:id nil) (:nickname nil)
               :router $ {} (:name :home) (:data nil) (:router nil)
@@ -1079,26 +1094,26 @@
               :show-all? false
           :examples $ []
           :schema $ :: 'Dynamic
-        |snippet $ %{} 'CodeEntry (:doc |)
+        'snippet $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def snippet $ {} (:id nil) (:content |) (:time 0) (:author-id nil) (:type :text)
           :examples $ []
           :schema $ :: 'Dynamic
-        |user $ %{} 'CodeEntry (:doc |)
+        'user $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def user $ {} (:name nil) (:id nil) (:nickname nil) (:avatar nil) (:password nil) (:token nil)
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote (ns app.schema)
-    |app.server $ %{} 'FileEntry
+    'app.server $ %{} 'FileEntry
       :defs $ {}
-        |*client-caches $ %{} 'CodeEntry (:doc |)
+        '*client-caches $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defatom *client-caches $ {}
           :examples $ []
           :schema $ :: 'Dynamic
-        |*initial-db $ %{} 'CodeEntry (:doc |)
+        '*initial-db $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defatom *initial-db $ if
               path-exists? $ w-log storage-file
@@ -1107,17 +1122,17 @@
               do (println "|Found no data") schema/database
           :examples $ []
           :schema $ :: 'Dynamic
-        |*reader-reel $ %{} 'CodeEntry (:doc |)
+        '*reader-reel $ %{} 'CodeEntry (:doc |)
           :code $ quote (defatom *reader-reel @*reel)
           :examples $ []
           :schema $ :: 'Dynamic
-        |*reel $ %{} 'CodeEntry (:doc |)
+        '*reel $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defatom *reel $ merge reel-schema
               {} (:base @*initial-db) (:db @*initial-db)
           :examples $ []
           :schema $ :: 'Dynamic
-        |dispatch! $ %{} 'CodeEntry (:doc |)
+        'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn dispatch! (op sid)
               let
@@ -1131,7 +1146,7 @@
                   _ $ reset! *reel (reel-reducer @*reel updater op sid op-id op-time config/dev?)
           :examples $ []
           :schema $ :: 'Dynamic
-        |get-backup-path! $ %{} 'CodeEntry (:doc |)
+        'get-backup-path! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn get-backup-path! () $ let
                 now $ extract-time (get-time!)
@@ -1142,7 +1157,7 @@
                   , |-snapshot.cirru
           :examples $ []
           :schema $ :: 'Dynamic
-        |main! $ %{} 'CodeEntry (:doc |)
+        'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn main! ()
               println "|Running mode:" $ if config/dev? |dev |release
@@ -1159,7 +1174,7 @@
               on-control-c on-exit!
           :examples $ []
           :schema $ :: 'Dynamic
-        |migrate-storage! $ %{} 'CodeEntry (:doc |)
+        'migrate-storage! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn migrate-storage! () $ let
                 data $ parse-cirru-edn (read-file |storage.cirru)
@@ -1170,19 +1185,20 @@
               write-file |storage-new.cirru $ format-cirru-edn new-data
           :examples $ []
           :schema $ :: 'Dynamic
-        |on-exit! $ %{} 'CodeEntry (:doc |)
+        'on-exit! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn on-exit! () (persist-db!) (; println "|exit code is...") (quit! 0)
           :examples $ []
           :schema $ :: 'Dynamic
-        |on-request! $ %{} 'CodeEntry (:doc |)
+        'on-request! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn on-request! (req)
               let
                   reel $ unsafe-coerce @*reel 'cumulo-reel.core/ReelState
                   db $ :db reel
+                  empty-snippets $ []
                   snippets $ ->
-                    get-or db :snippets $ []
+                    option:unwrap-or (get db :snippets) empty-snippets
                     take-last 12
                     with-cpu-time
                 {} (:code 200)
@@ -1191,7 +1207,7 @@
                     {} $ :snippets-list snippets
           :examples $ []
           :schema $ :: 'Dynamic
-        |persist-db! $ %{} 'CodeEntry (:doc |)
+        'persist-db! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn persist-db! () $ let
                 reel $ unsafe-coerce @*reel 'cumulo-reel.core/ReelState
@@ -1203,7 +1219,7 @@
               check-write-file! backup-path file-content
           :examples $ []
           :schema $ :: 'Dynamic
-        |reload! $ %{} 'CodeEntry (:doc |)
+        'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn reload! () (println "|Code updated..")
               if (not config/dev?) (raise "|reloading only happens in dev mode")
@@ -1212,7 +1228,7 @@
               sync-clients! @*reader-reel
           :examples $ []
           :schema $ :: 'Dynamic
-        |render-loop! $ %{} 'CodeEntry (:doc |)
+        'render-loop! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn render-loop! () $ when
               not $ identical? @*reader-reel @*reel
@@ -1220,7 +1236,7 @@
               sync-clients! @*reader-reel
           :examples $ []
           :schema $ :: 'Dynamic
-        |run-server! $ %{} 'CodeEntry (:doc |)
+        'run-server! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn run-server! (port)
               wss-serve! (&{} :port port)
@@ -1245,14 +1261,14 @@
                 fn (req) (on-request! req)
           :examples $ []
           :schema $ :: 'Dynamic
-        |storage-file $ %{} 'CodeEntry (:doc |)
+        'storage-file $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def storage-file $ if (empty? calcit-dirname)
               str calcit-dirname $ option:unwrap-or (get config/site :storage-file) |storage.cirru
               str calcit-dirname |/ $ option:unwrap-or (get config/site :storage-file) |storage.cirru
           :examples $ []
           :schema $ :: 'Dynamic
-        |sync-clients! $ %{} 'CodeEntry (:doc |)
+        'sync-clients! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn sync-clients! (reel)
               wss-each! $ fn (sid)
@@ -1288,15 +1304,15 @@
             calcit.std.time :refer $ set-interval
             calcit.std.date :refer $ get-time! extract-time
             calcit.std.path :refer $ join-path
-    |app.style $ %{} 'FileEntry
+    'app.style $ %{} 'FileEntry
       :defs $ {}
-        |button $ %{} 'CodeEntry (:doc |)
+        'button $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def button $ merge ui/button
               {} $ :background-color :white
           :examples $ []
           :schema $ :: 'Dynamic
-        |link $ %{} 'CodeEntry (:doc |)
+        'link $ %{} 'CodeEntry (:doc |)
           :code $ quote
             def link $ {} (:text-decoration :underline) (:cursor :pointer)
               :color $ hsl 240 80 80
@@ -1308,9 +1324,9 @@
           ns app.style $ :require
             [] respo-ui.core :refer $ [] hsl
             [] respo-ui.core :as ui
-    |app.twig.container $ %{} 'FileEntry
+    'app.twig.container $ %{} 'FileEntry
       :defs $ {}
-        |twig-container $ %{} 'CodeEntry (:doc |)
+        'twig-container $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn twig-container (db session records)
               let
@@ -1348,7 +1364,7 @@
                   {}
           :examples $ []
           :schema $ :: 'Dynamic
-        |twig-members $ %{} 'CodeEntry (:doc |)
+        'twig-members $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn twig-members (sessions users)
               -> sessions $ map-kv
@@ -1365,9 +1381,9 @@
           ns app.twig.container $ :require
             app.twig.user :refer $ twig-user
             calcit.std.rand :refer $ rand-hex-color!
-    |app.twig.user $ %{} 'FileEntry
+    'app.twig.user $ %{} 'FileEntry
       :defs $ {}
-        |twig-user $ %{} 'CodeEntry (:doc |)
+        'twig-user $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn twig-user (user) (dissoc user :password)
           :examples $ []
@@ -1375,9 +1391,9 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns app.twig.user $ :require
-    |app.updater $ %{} 'FileEntry
+    'app.updater $ %{} 'FileEntry
       :defs $ {}
-        |updater $ %{} 'CodeEntry (:doc |)
+        'updater $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn updater (db op sid op-id op-time)
               tag-match op
@@ -1399,9 +1415,9 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns app.updater $ :require ([] app.updater.session :as session) ([] app.updater.user :as user) ([] app.updater.router :as router) ([] app.updater.snippet :as snippet)
-    |app.updater.router $ %{} 'FileEntry
+    'app.updater.router $ %{} 'FileEntry
       :defs $ {}
-        |change $ %{} 'CodeEntry (:doc |)
+        'change $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn change (db op-data session-id op-id op-time)
               assoc-in db ([] :sessions session-id :router) op-data
@@ -1409,22 +1425,22 @@
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote (ns app.updater.router)
-    |app.updater.session $ %{} 'FileEntry
+    'app.updater.session $ %{} 'FileEntry
       :defs $ {}
-        |connect $ %{} 'CodeEntry (:doc |)
+        'connect $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn connect (db session-id op-id op-time)
               assoc-in db ([] :sessions session-id)
                 merge schema/session $ {} (:id session-id)
           :examples $ []
           :schema $ :: 'Dynamic
-        |disconnect $ %{} 'CodeEntry (:doc |)
+        'disconnect $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn disconnect (db session-id op-id op-time)
               update db :sessions $ fn (session) (dissoc session session-id)
           :examples $ []
           :schema $ :: 'Dynamic
-        |remove-message $ %{} 'CodeEntry (:doc |)
+        'remove-message $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn remove-message (db op-data sid op-id op-time)
               update-in db ([] :sessions sid :messages)
@@ -1433,7 +1449,7 @@
                     option:unwrap-or (get op-data :id) op-data
           :examples $ []
           :schema $ :: 'Dynamic
-        |show-all $ %{} 'CodeEntry (:doc |)
+        'show-all $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn show-all (db op-data sid op-id op-time)
               assoc-in db ([] :sessions sid :show-all?) true
@@ -1442,9 +1458,9 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns app.updater.session $ :require ([] app.schema :as schema)
-    |app.updater.snippet $ %{} 'FileEntry
+    'app.updater.snippet $ %{} 'FileEntry
       :defs $ {}
-        |create $ %{} 'CodeEntry (:doc |)
+        'create $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn create (db op-data sid op-id op-time)
               update db :snippets $ fn (ss)
@@ -1452,7 +1468,7 @@
                   {} (:id op-id) (:content op-data) (:time op-time)
           :examples $ []
           :schema $ :: 'Dynamic
-        |create-file $ %{} 'CodeEntry (:doc |)
+        'create-file $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn create-file (db url kind sid op-id op-time)
               update db :snippets $ fn (ss)
@@ -1460,7 +1476,7 @@
                   {} (:id op-id) (:content url) (:time op-time) (:type kind) (:url url)
           :examples $ []
           :schema $ :: 'Dynamic
-        |remove-one $ %{} 'CodeEntry (:doc |)
+        'remove-one $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn remove-one (db snippet-id sid op-id op-time)
               update db :snippets $ fn (snippets)
@@ -1471,9 +1487,9 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote
           ns app.updater.snippet $ :require ([] app.schema :as schema)
-    |app.updater.user $ %{} 'FileEntry
+    'app.updater.user $ %{} 'FileEntry
       :defs $ {}
-        |log-in $ %{} 'CodeEntry (:doc |)
+        'log-in $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn log-in (db op-data sid op-id op-time)
               let-sugar
@@ -1520,13 +1536,13 @@
                           :text $ str "|No user named: " username
           :examples $ []
           :schema $ :: 'Dynamic
-        |log-out $ %{} 'CodeEntry (:doc |)
+        'log-out $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn log-out (db op-data session-id op-id op-time)
               assoc-in db ([] :sessions session-id :user-id) nil
           :examples $ []
           :schema $ :: 'Dynamic
-        |sign-up $ %{} 'CodeEntry (:doc |)
+        'sign-up $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn sign-up (db op-data sid op-id op-time)
               let-sugar
