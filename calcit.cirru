@@ -72,8 +72,9 @@
                       js/fetch $ if config/dev? |http://localhost:11030/ |/apis/query
                     text $ js-await (.!text response)
                     parsed $ parse-cirru-edn text
+                    empty-snippets $ []
                     snippets $ if (map? parsed)
-                      (get parsed :snippets-list) .unwrap-or $ []
+                      option:unwrap-or (get parsed :snippets-list) empty-snippets
                       , []
                   reset! *preview-data $ if (list? snippets) snippets ([])
                 fn (error) (js/console.warn |Failed-to-load-preview-data error)
@@ -170,8 +171,9 @@
           :code $ quote
             defn render-app! () $ let
                 all-states @*states
+                empty-states $ {}
                 nested-states $ if (map? all-states)
-                  (get all-states :states) .unwrap-or $ {}
+                  option:unwrap-or (get all-states :states) empty-states
                   {}
                 component-states $ if (map? nested-states) nested-states ({})
               render! mount-target (comp-container component-states @*store @*preview-data) dispatch!
@@ -181,8 +183,7 @@
           :code $ quote
             defn simulate-login! () $ let
                 raw $ js/localStorage.getItem
-                    get config/site :storage-key
-                    , .unwrap-or |copyboard
+                  option:unwrap-or (get config/site :storage-key) |copyboard
               if (js-present? raw)
                 do (println "|Found storage.")
                   dispatch! $ :: :user/log-in
@@ -266,15 +267,13 @@
                 {}
                   :class-name $ str-spaced css/expand css/fullscreen css/column-dispersive
                   :style $ {}
-                    :background-color $
-                      get config/site :theme
-                      , .unwrap-or |#ECCE32
+                    :background-color $ option:unwrap-or (get config/site :theme) |#ECCE32
                 div $ {}
                   :style $ {} (:height 0)
                 div $ {}
                   :style $ {}
                     :background-image $ str "|url("
-                      (get config/site :icon) .unwrap-or |
+                      option:unwrap-or (get config/site :icon) |
                       , "|)"
                     :width 128
                     :height 128
@@ -795,8 +794,7 @@
               fn (e dispatch!)
                 dispatch! (if signup? :user/sign-up :user/log-in) ([] username password)
                 js/localStorage.setItem
-                    get config/site :storage-key
-                    , .unwrap-or |copyboard
+                  option:unwrap-or (get config/site :storage-key) |copyboard
                   format-cirru-edn $ [] username password
           :examples $ []
           :schema $ :: 'Dynamic
@@ -844,9 +842,7 @@
           :code $ quote
             defstyle style-nav $ {}
               |& $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
-                :background-color $
-                  get config/site :theme
-                  , .unwrap-or |#ECCE32
+                :background-color $ option:unwrap-or (get config/site :theme) |#ECCE32
                 :color :white
                 :z-index 100
           :examples $ []
@@ -900,9 +896,7 @@
                         :color :white
                         :padding "|0 8px"
                       :on-click $ fn (e dispatch!) (dispatch! :user/log-out nil)
-                        .removeItem js/localStorage $
-                          get config/site :storage-key
-                          , .unwrap-or |copyboard
+                        .removeItem js/localStorage $ option:unwrap-or (get config/site :storage-key) |copyboard
                     <> "|Log out" nil
           :examples $ []
           :schema $ :: 'Dynamic
@@ -1202,9 +1196,9 @@
               let
                   reel $ unsafe-coerce @*reel 'cumulo-reel.core/ReelState
                   db $ :db reel
+                  empty-snippets $ []
                   snippets $ ->
-                      get db :snippets
-                      , .unwrap-or $ []
+                    option:unwrap-or (get db :snippets) empty-snippets
                     take-last 12
                     with-cpu-time
                 {} (:code 200)
