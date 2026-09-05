@@ -51,7 +51,9 @@
           :code $ quote
             defn dispatch! (op)
               when
-                and config/dev? $ not= (nth op 0) :states
+                when config/dev? $ tag-match op
+                  (:states) &unit
+                  _ $ js/console.log |Dispatch op
                 js/console.log |Dispatch op
               tag-match op
                 (:states cursor s)
@@ -241,7 +243,7 @@
                       if logged-in?
                         case-default
                           option:unwrap-or (get router :name) nil
-                          <> router
+                          <> $ str router
                           :home $ comp-home (>> states :snippets) snippets show-all? user
                           :profile $ comp-profile user
                             option:unwrap-or (get router :data) ({})
