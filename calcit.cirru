@@ -1130,8 +1130,9 @@
           :schema $ :: 'Dynamic
         '*reel $ %{} 'CodeEntry (:doc |)
           :code $ quote
-            defatom *reel $ merge reel-schema
-              {} (:base @*initial-db) (:db @*initial-db)
+            defatom *reel $ %{} cumulo-reel.core/ReelState (:base @*initial-db) (:db @*initial-db)
+              :records $ []
+              :merged? false
           :examples $ []
           :schema $ :: 'Dynamic
         'dispatch! $ %{} 'CodeEntry (:doc |)
@@ -1342,7 +1343,9 @@
                     option:unwrap-or (get session :show-all?) false
                     option:unwrap-or (get db :snippets) {}
                     ->
-                      option:unwrap-or (get db :snippets) {}
+                      unsafe-coerce
+                        option:unwrap-or (get db :snippets) []
+                        , 'List
                       take-last 12
                       with-cpu-time
                 merge base-data $ if logged-in?
@@ -1498,7 +1501,9 @@
                     [] username password
                     , op-data
                   maybe-user $ ->
-                    option:unwrap-or (get db :users) {}
+                    unsafe-coerce
+                      option:unwrap-or (get db :users) {}
+                      , 'Map
                     vals
                     , &set:to-list
                       find $ fn (user)
@@ -1548,11 +1553,13 @@
           :code $ quote
             defn sign-up (db op-data sid op-id op-time)
               let-sugar
-                  username $ nth op-data 0
-                  password $ nth op-data 1
+                  username $ option:unwrap-or (nth op-data 0) |unknown
+                  password $ option:unwrap-or (nth op-data 1) |unknown
                   maybe-user $ find
                     ->
-                      option:unwrap-or (get db :users) {}
+                      unsafe-coerce
+                        option:unwrap-or (get db :users) {}
+                        , 'Map
                       vals
                       , &set:to-list
                     fn (user)
