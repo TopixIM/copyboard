@@ -50,11 +50,9 @@
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn dispatch! (op)
-              when
-                when config/dev? $ tag-match op
-                  (:states) &unit
-                  _ $ js/console.log |Dispatch op
-                js/console.log |Dispatch op
+              when config/dev? $ tag-match op
+                (:states) &unit
+                _ $ js/console.log |Dispatch op
               tag-match op
                 (:states cursor s)
                   reset! *states $ update-states @*states cursor s
