@@ -50,10 +50,10 @@
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn dispatch! (op)
-              when config/dev? $ tag-match op
+              when config/dev? $ match op
                 (:states) &unit
                 _ $ js/console.log |Dispatch op
-              tag-match op
+              match op
                 (:states cursor s)
                   reset! *states $ update-states @*states cursor s
                 (:effect/connect) (connect!)
@@ -117,7 +117,7 @@
         'on-server-data $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn on-server-data (data)
-              tag-match data
+              match data
                 (:patch changes)
                   do
                     when config/dev? $ js/console.log |Changes changes
@@ -217,7 +217,7 @@
               if (enum? store)
                 if (some? preview-data)
                   comp-preview (>> states :preview) preview-data :connecting
-                  tag-match store
+                  match store
                     (:initial) (comp-offline :initial)
                     (:offline) (comp-offline :offline)
                     _ $ <> |unknown
@@ -387,7 +387,7 @@
                   send! $ fn (e d!)
                     do
                       when
-                        not $ .blank? content
+                        not $ .blank? (unsafe-coerce content String)
                         d! :snippet/create content
                         d! cursor $ assoc state :content |
                       , &unit
@@ -429,10 +429,10 @@
                 []
                   %{} respo.schema/RespoListener (:name :clipboard-listener)
                     :handler $ fn (event d!)
-                      tag-match event $
+                      match event $
                         :clipboard/read text
                         when
-                          not $ .blank? text
+                          not $ .blank? (unsafe-coerce text String)
                           .show-with-text confirm-plugin d! (str "|Clipboard content detected, would you like to fill it into the input box?\n" text)
                             fn () $ d! :snippet/create text
                   div ({})
@@ -653,7 +653,9 @@
         'img-url? $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn img-url? (url)
-              or (.ends-with? url |.png) (.ends-with? url |.jpg) (.ends-with? url |.jpeg) (.ends-with? url |.webp)
+              let
+                  url-text $ unsafe-coerce url String
+                or (.ends-with? url-text |.png) (.ends-with? url-text |.jpg) (.ends-with? url-text |.jpeg) (.ends-with? url-text |.webp)
           :examples $ []
           :schema $ :: 'Dynamic
         'style-all-tag $ %{} 'CodeEntry (:doc |)
@@ -878,7 +880,7 @@
                   =< 8 nil
                   list->
                     {} $ :style ui/row
-                    -> members (.to-list)
+                    -> (unsafe-coerce members Map) (.to-list)
                       .map-pair $ fn (k username)
                         [] k $ div
                           {} $ :style
@@ -969,7 +971,7 @@
                 str |pasted-
                   .!toISOString $ new js/Date
                   , |.png
-                -> img-name (.replace "| " |-) (.replace "|)" |_bo_) (.replace "|(" |_bc_)
+                -> (unsafe-coerce img-name String) (.replace "| " |-) (.replace "|)" |_bo_) (.replace "|(" |_bc_)
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Dynamic)
@@ -1140,7 +1142,7 @@
                   op-id $ generate-id!
                   op-time $ -> (get-time!) (.timestamp)
                 if config/dev? $ println |Dispatch! (str op) sid
-                tag-match op
+                match op
                   (:effect/persist) (persist-db!)
                   (:effect/ping)
                     wss-send! sid $ format-cirru-edn (:: :effect/pong)
@@ -1242,7 +1244,7 @@
             defn run-server! (port)
               wss-serve! (&{} :port port)
                 fn (data)
-                  tag-match data
+                  match data
                     (:connect sid)
                       do
                         dispatch! (:: :session/connect) sid
@@ -1399,7 +1401,7 @@
         'updater $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn updater (db op sid op-id op-time)
-              tag-match op
+              match op
                 (:session/connect) (session/connect db sid op-id op-time)
                 (:session/disconnect) (session/disconnect db sid op-id op-time)
                 (:user/log-in op-data) (user/log-in db op-data sid op-id op-time)
