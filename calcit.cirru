@@ -387,7 +387,7 @@
                   send! $ fn (e d!)
                     do
                       when
-                        not $ .blank? content
+                        not $ .blank? (unsafe-coerce content String)
                         d! :snippet/create content
                         d! cursor $ assoc state :content |
                       , &unit
@@ -432,7 +432,7 @@
                       match event $
                         :clipboard/read text
                         when
-                          not $ .blank? text
+                          not $ .blank? (unsafe-coerce text String)
                           .show-with-text confirm-plugin d! (str "|Clipboard content detected, would you like to fill it into the input box?\n" text)
                             fn () $ d! :snippet/create text
                   div ({})
@@ -606,7 +606,7 @@
                     .!blob $ js-await (js/fetch url)
                   object-url $ js/URL.createObjectURL blob
                   a-el $ unsafe-coerce (js/document.createElement |a) JsObject
-                  name $ last (.split url |/)
+                  name $ last (split url |/)
                 set! (.-href a-el) object-url
                 set! (.-download a-el) name
                 .!setAttribute a-el |download name
@@ -653,7 +653,9 @@
         'img-url? $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn img-url? (url)
-              or (.ends-with? url |.png) (.ends-with? url |.jpg) (.ends-with? url |.jpeg) (.ends-with? url |.webp)
+              let
+                  url-text $ unsafe-coerce url String
+                or (.ends-with? url-text |.png) (.ends-with? url-text |.jpg) (.ends-with? url-text |.jpeg) (.ends-with? url-text |.webp)
           :examples $ []
           :schema $ :: 'Dynamic
         'style-all-tag $ %{} 'CodeEntry (:doc |)
@@ -878,7 +880,7 @@
                   =< 8 nil
                   list->
                     {} $ :style ui/row
-                    -> members (.to-list)
+                    -> (unsafe-coerce members Map) (.to-list)
                       .map-pair $ fn (k username)
                         [] k $ div
                           {} $ :style
@@ -969,7 +971,7 @@
                 str |pasted-
                   .!toISOString $ new js/Date
                   , |.png
-                -> img-name (.replace "| " |-) (.replace "|)" |_bo_) (.replace "|(" |_bc_)
+                -> (unsafe-coerce img-name String) (.replace "| " |-) (.replace "|)" |_bo_) (.replace "|(" |_bc_)
           :examples $ []
           :schema $ :: 'Fn
             {} (:return 'Dynamic)
