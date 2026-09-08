@@ -13,7 +13,8 @@
     'app.client $ %{} 'FileEntry
       :defs $ {}
         '*preview-data $ %{} 'CodeEntry (:doc |)
-          :code $ quote (defatom *preview-data nil)
+          :code $ quote
+            defatom *preview-data $ []
           :examples $ []
           :schema $ :: 'Dynamic
         '*states $ %{} 'CodeEntry (:doc |)
@@ -31,11 +32,10 @@
             defn connect! () $ let
                 url-obj $ url-parse js/location.href true
                 query $ unsafe-coerce (.-query url-obj) JsObject
-                host $ either
-                  unsafe-coerce (.-host query) 'String
-                  , js/location.hostname
-                port $ either
-                  unsafe-coerce (.-port query) 'String
+                raw-host $ .-host query
+                raw-port $ .-port query
+                host $ if (js-present? raw-host) (unsafe-coerce raw-host 'String) js/location.hostname
+                port $ if (js-present? raw-port) (unsafe-coerce raw-port 'String)
                   option:unwrap-or (get config/site :port) 11006
               ws-connect!
                 if config/dev? (str |ws:// host |: port) |wss://cp.topix.im/ws
@@ -50,10 +50,10 @@
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn dispatch! (op)
-              when config/dev? $ tag-match op
+              when config/dev? $ match op
                 (:states) &unit
                 _ $ js/console.log |Dispatch op
-              tag-match op
+              match op
                 (:states cursor s)
                   reset! *states $ update-states @*states cursor s
                 (:effect/connect) (connect!)
@@ -117,7 +117,7 @@
         'on-server-data $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn on-server-data (data)
-              tag-match data
+              match data
                 (:patch changes)
                   do
                     when config/dev? $ js/console.log |Changes changes
@@ -217,7 +217,7 @@
               if (enum? store)
                 if (some? preview-data)
                   comp-preview (>> states :preview) preview-data :connecting
-                  tag-match store
+                  match store
                     (:initial) (comp-offline :initial)
                     (:offline) (comp-offline :offline)
                     _ $ <> |unknown
@@ -429,7 +429,7 @@
                 []
                   %{} respo.schema/RespoListener (:name :clipboard-listener)
                     :handler $ fn (event d!)
-                      tag-match event $
+                      match event $
                         :clipboard/read text
                         when
                           not $ .blank? text
@@ -1133,14 +1133,25 @@
               :merged? false
           :examples $ []
           :schema $ :: 'Dynamic
+        'current-date! $ %{} 'CodeEntry (:doc |)
+          :code $ quote
+            defn current-date! () $ unsafe-coerce
+              %{} Date $ :date
+                &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_std) |now_bang
+              , 'calcit.std.date/Date0
+          :examples $ []
+          :schema $ :: 'Fn
+            {} (:return 'calcit.std.date/Date0)
+              :args $ []
+              :features $ #{} :js-ffi
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn dispatch! (op sid)
               let
                   op-id $ generate-id!
-                  op-time $ -> (get-time!) (.timestamp)
+                  op-time $ -> (current-date!) (.timestamp)
                 if config/dev? $ println |Dispatch! (str op) sid
-                tag-match op
+                match op
                   (:effect/persist) (persist-db!)
                   (:effect/ping)
                     wss-send! sid $ format-cirru-edn (:: :effect/pong)
@@ -1150,7 +1161,7 @@
         'get-backup-path! $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn get-backup-path! () $ let
-                now $ extract-time (get-time!)
+                now $ extract-time (current-date!)
               join-path calcit-dirname |backups
                 str $ option:unwrap-or (get now :month) 0
                 str
@@ -1242,7 +1253,7 @@
             defn run-server! (port)
               wss-serve! (&{} :port port)
                 fn (data)
-                  tag-match data
+                  match data
                     (:connect sid)
                       do
                         dispatch! (:: :session/connect) sid
@@ -1277,7 +1288,9 @@
                     reel-state $ unsafe-coerce reel 'cumulo-reel.core/ReelState
                     db $ :db reel-state
                     records $ :records reel-state
-                    session $ get-in db ([] :sessions sid)
+                    session $ option:unwrap-or
+                      get-in db $ [] :sessions sid
+                      {}
                     old-store $ or (get @*client-caches sid) nil
                     new-store $ twig-container db session records
                     changes $ diff-twig old-store new-store
@@ -1303,8 +1316,9 @@
             app.$meta :refer $ calcit-dirname
             calcit.std.fs :refer $ path-exists? check-write-file!
             calcit.std.time :refer $ set-interval
-            calcit.std.date :refer $ get-time! extract-time
+            calcit.std.date :refer $ extract-time Date
             calcit.std.path :refer $ join-path
+            calcit.std.util :refer $ get-dylib-path
     'app.style $ %{} 'FileEntry
       :defs $ {}
         'button $ %{} 'CodeEntry (:doc |)
@@ -1333,13 +1347,13 @@
               let
                   user-id $ option:unwrap-or (get session :user-id) nil
                   logged-in? $ option:some? (get session :user-id)
-                  router $ option:unwrap-or (get session :router) {}
+                  router $ option:unwrap-or (get session :router) ({})
                   base-data $ {} (:logged-in? logged-in?) (:session session)
                     :count $ option:unwrap-or (get db :count) 0
                     :reel-length $ count records
                   snippets $ if
                     option:unwrap-or (get session :show-all?) false
-                    option:unwrap-or (get db :snippets) {}
+                    option:unwrap-or (get db :snippets) ({})
                     ->
                       unsafe-coerce
                         option:unwrap-or (get db :snippets) []
@@ -1351,16 +1365,16 @@
                     :user $ twig-user
                       option:unwrap-or
                         get-in db $ [] :users user-id
-                        , {}
+                        {}
                     :router $ assoc router :data
                       case-default
                         option:unwrap-or (get router :name) nil
                         {}
                         :profile $ twig-members
-                          option:unwrap-or (get db :sessions) {}
-                          option:unwrap-or (get db :users) {}
+                          option:unwrap-or (get db :sessions) ({})
+                          option:unwrap-or (get db :users) ({})
                     :count $ count
-                      option:unwrap-or (get db :sessions) {}
+                      option:unwrap-or (get db :sessions) ({})
                     :color $ rand-hex-color!
                     :snippets snippets
                     :show-all? $ option:unwrap-or (get session :show-all?) false
@@ -1370,13 +1384,12 @@
         'twig-members $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn twig-members (sessions users)
-              -> sessions $ map-kv
-                fn (k session)
-                  [] k $ option:unwrap-or
-                    get-in users $ []
-                      option:unwrap-or (get session :user-id) nil
-                      , :name
-                    , |unknown
+              filter-map-kv sessions $ fn (k session)
+                %:: MapEntryDecision :keep k $ option:unwrap-or
+                  get-in users $ []
+                    option:unwrap-or (get session :user-id) nil
+                    , :name
+                  , |unknown
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1399,7 +1412,7 @@
         'updater $ %{} 'CodeEntry (:doc |)
           :code $ quote
             defn updater (db op sid op-id op-time)
-              tag-match op
+              match op
                 (:session/connect) (session/connect db sid op-id op-time)
                 (:session/disconnect) (session/disconnect db sid op-id op-time)
                 (:user/log-in op-data) (user/log-in db op-data sid op-id op-time)

@@ -27,10 +27,10 @@ jobs:
         caps --ci
         caps reset
         caps verify
+        test "$(calcit --version)" = "0.14.4"
         calcit calcit.cirru edit format
         git diff --exit-code -- calcit.cirru
-        calcit calcit.cirru --check-only
-        calcit calcit.cirru --entry server --check-only
+        yarn check
 
     - name: Smoke-test native server
       run: node scripts/smoke-native-server.mjs
