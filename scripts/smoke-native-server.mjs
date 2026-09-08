@@ -1,11 +1,28 @@
 import { spawn } from "node:child_process";
 import { once } from "node:events";
-import { readFile } from "node:fs/promises";
+import { readFile, rm, writeFile } from "node:fs/promises";
 
 const httpUrl = "http://127.0.0.1:11030/";
 const websocketUrl = "ws://127.0.0.1:11006";
 const serverOutput = [];
-const storageText = await readFile(new URL("../storage.cirru", import.meta.url), "utf8");
+const storageUrl = new URL("../storage.cirru", import.meta.url);
+const fixtureStorage = `{} (:count 0)
+  :sessions $ {}
+  :snippets $ []
+    {} (:author-id |smoke-user) (:content |ci-smoke-fixture) (:id |smoke-snippet) (:time 0) (:type :text)
+  :users $ {}
+    |smoke-user $ {} (:avatar nil) (:id |smoke-user) (:name |chen) (:nickname |CI) (:password |d41d8cd98f00b204e9800998ecf8427e) (:token |smoke-token)
+`;
+let createdFixture = false;
+let storageText;
+try {
+  storageText = await readFile(storageUrl, "utf8");
+} catch (error) {
+  if (error?.code !== "ENOENT") throw error;
+  storageText = fixtureStorage;
+  await writeFile(storageUrl, storageText);
+  createdFixture = true;
+}
 const snippetsSection = storageText.split("\n  :users")[0];
 const snippetIds = [...snippetsSection.matchAll(/\(:id \|([^\s)]+)/g)].map((match) => match[1]);
 const storageMarker = snippetIds.at(-1);
@@ -108,4 +125,5 @@ try {
   process.exitCode = 1;
 } finally {
   await stopServer();
+  if (createdFixture) await rm(storageUrl, { force: true });
 }
