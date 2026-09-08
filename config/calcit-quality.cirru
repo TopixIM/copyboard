@@ -1,13 +1,13 @@
 {} (:schemaVersion 2)
   :definitions $ {}
     |app.client/*preview-data $ {} (:codeDynamic 0)
-      :codeNil 1
+      :codeNil 0
       :declaredOptional 0
       :deprecatedCalls 0
       :schemaDynamic 1
       :typeNone 0
       :typeNotFull 1
-      :unresolved 2
+      :unresolved 1
       :unsafeCoerce 0
     |app.client/*states $ {} (:codeDynamic 0)
       :codeNil 0
@@ -531,6 +531,15 @@
       :typeNotFull 1
       :unresolved 1
       :unsafeCoerce 0
+    |app.server/current-date! $ {} (:codeDynamic 0)
+      :codeNil 0
+      :declaredOptional 0
+      :deprecatedCalls 0
+      :schemaDynamic 0
+      :typeNone 0
+      :typeNotFull 0
+      :unresolved 0
+      :unsafeCoerce 1
     |app.server/dispatch! $ {} (:codeDynamic 0)
       :codeNil 0
       :declaredOptional 0
@@ -793,14 +802,14 @@
       :unresolved 1
       :unsafeCoerce 0
   :metrics $ {} (:codeDynamic 0)
-    :codeNil 58
+    :codeNil 57
     :declaredOptional 0
     :deprecatedCalls 0
     :schemaDynamic 76
     :typeNone 57
     :typeNotFull 76
-    :unresolved 134
-    :unsafeCoerce 42
+    :unresolved 133
+    :unsafeCoerce 43
   :scope $ {} (:includeDependencies false)
     :namespace nil
     :namespacePrefix nil
