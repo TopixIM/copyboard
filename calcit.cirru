@@ -100,8 +100,11 @@
             on-page-touch $ fn () $ if
               = @*store $ :: :offline
               connect!
-            visibility-heartbeat $ fn () $ if (map? @*store)
-              ws-send! $ :: :effect/ping
+            visibility-heartbeat
+              fn () $ if (map? @*store)
+                ws-send! $ :: :effect/ping
+                , &unit
+              , 3000
             println "|App started!"
             js/setTimeout read-from-clipboard! 500
           :examples $ []
@@ -545,8 +548,10 @@
                           , &unit
                     comp-i :copy 14 $ hsl 200 80 60
                 if
-                  .starts-with?
-                    option:unwrap-or (get snippet :content) |
+                  starts-with?
+                    assert-type
+                      option:unwrap-or (get snippet :content) |
+                      , 'String
                     , |http
                   a
                     {}
@@ -669,9 +674,9 @@
               |& $ {} (:position :absolute) (:bottom 8) (:width 28) (:height 28) (:cursor :pointer) (:border-radius |20px)
                 :transition-duration |230ms
                 :line-height 1
-                :background-color $ hsl 0 0 100 0.9
+                :background-color $ hsl 0 0 100 $ %some 0.9
                 :opacity 0.2
-                :box-shadow $ str "|1px 1px 4px " $ hsl 0 0 0 0.3
+                :box-shadow $ str "|1px 1px 4px " $ hsl 0 0 0 (%some 0.3)
               |&:hover $ {} $ :transform "|scale(1.1)"
               (str |. style-snippet "|:hover &")
                 {} $ :opacity 1
@@ -701,7 +706,7 @@
                 :border $ str "|1px solid " $ hsl 0 0 84
                 :transition-duration |240ms
               |&:hover $ {}
-                :box-shadow $ str "|1px 1px 6px " $ hsl 0 0 0 0.4
+                :box-shadow $ str "|1px 1px 6px " $ hsl 0 0 0 (%some 0.4)
                 :background-size :cover
           :examples $ []
           :schema $ :: 'Dynamic
@@ -717,7 +722,7 @@
                 :transition-duration |240ms
               (str |. style-snippet "|:hover &")
                 {} (:opacity 1)
-                  :background-color $ hsl 0 0 100 0.9
+                  :background-color $ hsl 0 0 100 $ %some 0.9
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1129,7 +1134,7 @@
         'current-date! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn current-date! ()
             unsafe-coerce
-              %{} Date $ :date $ &call-dylib-edn
+              %{} Date0 $ :date $ &call-dylib-edn
                 get-dylib-path |/dylibs/libcalcit_std
                 , |now_bang
               , 'calcit.std.date/Date0
@@ -1142,7 +1147,7 @@
           :code $ quote $ defn dispatch! (op sid)
             let
                 op-id $ generate-id!
-                op-time $ -> (current-date!) (.timestamp)
+                op-time $ get-timestamp $ current-date!
               if config/dev? $ println |Dispatch! (str op) sid
               match op
                 (:effect/persist) (persist-db!)
@@ -1304,7 +1309,7 @@
             app.$meta :refer $ calcit-dirname
             calcit.std.fs :refer $ path-exists? check-write-file!
             calcit.std.time :refer $ set-interval
-            calcit.std.date :refer $ extract-time Date
+            calcit.std.date :refer $ extract-time Date0 get-timestamp
             calcit.std.path :refer $ join-path
             calcit.std.util :refer $ get-dylib-path
     'app.style $ %{} 'FileEntry
