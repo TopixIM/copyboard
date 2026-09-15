@@ -3,17 +3,11 @@
   :about "|Machine-generated snapshot. Do not edit directly — changes will be overwritten. Use `calcit query` to inspect and `calcit edit`/`calcit tree` to modify. Run `calcit docs agents --contract` before mutations; use `--full` for first orientation or changed contract digest. Manual edits must follow format and schema conventions, then run `calcit edit format`."
   :package |app
   :entries $ {}
-    :default $ {} (:description |)
-      :init-fn 'app.client/main!
-      :mode :native
-      :reload-fn 'app.client/reload!
+    :default $ {} (:description |) (:init-fn 'app.client/main!) (:mode :native) (:reload-fn 'app.client/reload!)
       :feature-policy $ {}
       :modules $ [] |respo.calcit/ |recollect/ |respo-ui.calcit/ |ws-edn.calcit/ |cumulo-util.calcit/ |respo-message.calcit/ |cumulo-reel.calcit/ |respo-feather.calcit/ |alerts.calcit/ |js-ffi/
       :type-slots $ {}
-    :server $ {} (:description |)
-      :init-fn 'app.server/main!
-      :mode :native
-      :reload-fn 'app.server/reload!
+    :server $ {} (:description |) (:init-fn 'app.server/main!) (:mode :native) (:reload-fn 'app.server/reload!)
       :feature-policy $ {}
       :modules $ [] |recollect/ |cumulo-util.calcit/ |cumulo-reel.calcit/ |calcit.std/ |calcit-wss/ |calcit-http/
       :type-slots $ {}
@@ -71,8 +65,7 @@
             hint-fn $ {} $ :async true
             try
               let
-                  response $ js-await $ js/fetch
-                    if config/dev? |http://localhost:11030/ |/apis/query
+                  response $ js-await $ js/fetch (if config/dev? |http://localhost:11030/ |/apis/query)
                   text $ js-await $ .!text response
                   parsed $ parse-cirru-edn text
                   empty-snippets $ []
@@ -80,8 +73,7 @@
                     option:unwrap-or (get parsed :snippets-list) empty-snippets
                     , []
                 reset! *preview-data $ if (list? snippets) snippets $ []
-              fn (error)
-                js/console.warn |Failed-to-load-preview-data error
+              fn (error) (js/console.warn |Failed-to-load-preview-data error)
                 reset! *preview-data $ []
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Dynamic)
@@ -112,8 +104,7 @@
             :args $ []
             :features $ #{} :js-ffi
         'mount-target $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ def mount-target
-            js/document.querySelector |.app
+          :code $ quote $ def mount-target (js/document.querySelector |.app)
           :examples $ []
           :schema $ :: 'Dynamic
         'on-server-data $ %{} 'CodeEntry (:doc |)
@@ -139,8 +130,7 @@
           :schema $ :: 'Dynamic
         'read-from-clipboard! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn read-from-clipboard! ()
-            if
-              js-present? js/navigator.clipboard
+            if (js-present? js/navigator.clipboard)
               let
                   clipboard $ unsafe-coerce js/navigator.clipboard JsObject
                   promise $ unsafe-coerce (.!readText clipboard) JsObject
@@ -149,9 +139,7 @@
                       respo.controller.client/send-to-component! $ :: :clipboard/read text
                     , JsObject
                 .!catch result $ fn (err)
-                  do
-                    js/console.warn |Clipboard-read-skipped err
-                    , nil
+                  do (js/console.warn |Clipboard-read-skipped err) nil
               js/console.log "|navigator.clipboard not available."
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Dynamic)
@@ -251,8 +239,7 @@
                     comp-messages
                       option:unwrap-or (get session :messages) ({})
                       {}
-                      fn (info d!)
-                        d! :session/remove-message info
+                      fn (info d!) (d! :session/remove-message info)
                     when dev? $ comp-reel reel-length $ {} (:bottom 40)
           :examples $ []
           :schema $ :: 'Dynamic
@@ -296,8 +283,7 @@
           :schema $ :: 'Dynamic
         'comp-status-color $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-status-color (color)
-            div $ {}
-              :class-name style-status-buble
+            div $ {} (:class-name style-status-buble)
               :style $ {} $ :background-color color
           :examples $ []
           :schema $ :: 'Dynamic
@@ -351,11 +337,7 @@
                 , child $ when
                   option:unwrap-or (get state :visible?) false
                   div
-                    {} $ :style $ {} (:position :absolute) (:top 8) (:left 8)
-                      :background-color :black
-                      :color :white
-                      :padding "|0 8px"
-                      :font-size 12
+                    {} $ :style $ {} (:position :absolute) (:top 8) (:left 8) (:background-color :black) (:color :white) (:padding "|0 8px") (:font-size 12)
                     <> |Copied
           :examples $ []
           :schema $ :: 'Dynamic
@@ -384,8 +366,7 @@
                       d! :snippet/create content
                       d! cursor $ assoc state :content |
                     , &unit
-                confirm-plugin $ use-confirm
-                  >> states :clipboard-confirm
+                confirm-plugin $ use-confirm (>> states :clipboard-confirm)
                   {} $ :text "|Clipboard content detected, would you like to fill it into the input box?"
                 props $ {} (:value content)
                   :style $ {} (:min-height 120) (:font-family ui/font-code) (:overflow :auto) (:width |100%) (:white-space :pre) (:resize :vertical)
@@ -420,8 +401,7 @@
                             upload-file! file user d! $ fn $ _e
                       , &unit
               []
-                %{} respo.schema/RespoListener
-                  :name :clipboard-listener
+                %{} respo.schema/RespoListener (:name :clipboard-listener)
                   :handler $ fn (event d!)
                     match event $
                       :clipboard/read text
@@ -450,8 +430,7 @@
                         {} (:style style/link)
                           :on-click $ fn (e d!)
                             do
-                              if
-                                js-present? js/navigator.clipboard
+                              if (js-present? js/navigator.clipboard)
                                 let
                                     clipboard $ unsafe-coerce js/navigator.clipboard JsObject
                                     promise $ unsafe-coerce (.!readText clipboard) JsObject
@@ -495,9 +474,7 @@
                 {} $ :class-name css/center
                 span $ {} (:class-name style-all-tag) (:inner-text "|Show all")
                   :on-click $ fn (e d!)
-                    do
-                      d! :session/show-all nil
-                      , &unit
+                    do (d! :session/show-all nil) &unit
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Dynamic)
             :args $ [] 'Dynamic 'Dynamic 'Dynamic 'Dynamic
@@ -526,8 +503,7 @@
                       :class-name $ str-spaced css/flex style-snippet-content
                       :style $ if some-img $ {}
                         ; :text-shadow "|1px 1px 1px white, -1px -1px 1px white, -1px 1px 1px white, 1px -1px 1px white"
-                    span $ {}
-                      :class-name style-snippet-span
+                    span $ {} (:class-name style-snippet-span)
                       :inner-text $ option:unwrap-or (get snippet :content) |
                 if (some? some-img)
                   a
@@ -543,9 +519,7 @@
                       :class-name $ str-spaced css/center style-link-mark
                       :style $ {} $ :right 72
                       :on-click $ fn (e d!)
-                        do
-                          copy-to-clipboard some-img
-                          , &unit
+                        do (copy-to-clipboard some-img) &unit
                     comp-i :copy 14 $ hsl 200 80 60
                 if
                   starts-with?
@@ -598,9 +572,7 @@
                 blob $ js-await $ .!blob
                   js-await $ js/fetch url
                 object-url $ js/URL.createObjectURL blob
-                a-el $ unsafe-coerce
-                  js/document.createElement |a
-                  , JsObject
+                a-el $ unsafe-coerce (js/document.createElement |a) JsObject
                 name $ last $ split url |/
               set! (.-href a-el) object-url
               set! (.-download a-el) name
@@ -617,9 +589,7 @@
           :code $ quote $ defn home-props (user)
             {}
               :class-name $ str-spaced css/column css/expand
-              :style $ {}
-                :padding "|12px 16px 240px 16px"
-                :overflow :auto
+              :style $ {} (:padding "|12px 16px 240px 16px") (:overflow :auto)
                 :background-color $ hsl 0 0 97
               :on-dragover $ fn (e d!)
                 do
@@ -653,39 +623,28 @@
           :schema $ :: 'Dynamic
         'style-all-tag $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-all-tag
-            {} $ |& $ {} (:width 120)
-              :background-color :white
-              :font-family ui/font-fancy
-              :text-align :center
+            {} $ |& $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
               :border $ str "|1px solid " $ hsl 0 0 90
               :cursor :pointer
           :examples $ []
           :schema $ :: 'Dynamic
         'style-grid-list $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-grid-list
-            {} $ |& $ {} (:display :grid)
-              :grid-template-columns "|repeat(auto-fit, minmax(360px, 1fr))"
-              :gap 12
+            {} $ |& $ {} (:display :grid) (:grid-template-columns "|repeat(auto-fit, minmax(360px, 1fr))") (:gap 12)
           :examples $ []
           :schema $ :: 'Dynamic
         'style-link-mark $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-link-mark
             {}
-              |& $ {} (:position :absolute) (:bottom 8) (:width 28) (:height 28) (:cursor :pointer) (:border-radius |20px)
-                :transition-duration |230ms
-                :line-height 1
+              |& $ {} (:position :absolute) (:bottom 8) (:width 28) (:height 28) (:cursor :pointer) (:border-radius |20px) (:transition-duration |230ms) (:line-height 1)
                 :background-color $ hsl 0 0 100 $ %some 0.9
                 :opacity 0.2
                 :box-shadow $ str "|1px 1px 4px " $ hsl 0 0 0 (%some 0.3)
               |&:hover $ {} $ :transform "|scale(1.1)"
               (str |. style-snippet "|:hover &")
                 {} $ :opacity 1
-              "|& i" $ {}
-                :transition-duration |300ms
-                :transform "|scale(1)"
-              "|&:active i" $ {}
-                :transition-duration |0ms
-                :transform "|scale(1.2)"
+              "|& i" $ {} (:transition-duration |300ms) (:transform "|scale(1)")
+              "|&:active i" $ {} (:transition-duration |0ms) (:transform "|scale(1.2)")
           :examples $ []
           :schema $ :: 'Dynamic
         'style-remove $ %{} 'CodeEntry (:doc |)
@@ -696,12 +655,7 @@
         'style-snippet $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-snippet
             {}
-              |& $ {} (:margin-bottom 8) (:max-width |100%) (:position :relative)
-                :background-repeat :no-repeat
-                :background-size :contain
-                :min-height |160px
-                :border-radius |6px
-                :background-position :center
+              |& $ {} (:margin-bottom 8) (:max-width |100%) (:position :relative) (:background-repeat :no-repeat) (:background-size :contain) (:min-height |160px) (:border-radius |6px) (:background-position :center)
                 :background-color $ hsl 0 0 100
                 :border $ str "|1px solid " $ hsl 0 0 84
                 :transition-duration |240ms
@@ -718,8 +672,7 @@
         'style-snippet-span $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-snippet-span
             {}
-              |& $ {} (:opacity 0.5)
-                :transition-duration |240ms
+              |& $ {} (:opacity 0.5) (:transition-duration |240ms)
               (str |. style-snippet "|:hover &")
                 {} (:opacity 1)
                   :background-color $ hsl 0 0 100 $ %some 0.9
@@ -917,9 +870,7 @@
                 up $ option:unwrap-or (get state :uploading) 0
               div
                 {} $ :class-name css/row-middle
-                input $ {} (:type |file) (:id |upload-input)
-                  :class-name style-hidden-input
-                  :multiple true
+                input $ {} (:type |file) (:id |upload-input) (:class-name style-hidden-input) (:multiple true)
                   :on-input $ fn (e d!)
                     do
                       let
@@ -943,9 +894,7 @@
                     :style $ {} $ :color (hsl 200 90 70)
                     :on-click $ fn (e d!)
                       do
-                        .!click $ unsafe-coerce
-                          js/document.querySelector |#upload-input
-                          , JsObject
+                        .!click $ unsafe-coerce (js/document.querySelector |#upload-input) JsObject
                         , &unit
                   <> |Upload
                 if uploading? $ span
@@ -1005,9 +954,7 @@
                   js-object $ :headers $ js-object
                     |Content-Type $ .!getType mime file-key
               js/console.log "|Upload result:" ret
-              d! $ :: :snippet/create-file
-                str |https://cos-sh.tiye.me/cos-up/ file-key
-                , :file
+              d! $ :: :snippet/create-file (str |https://cos-sh.tiye.me/cos-up/ file-key) :file
               mutate! $ {} $ :uploading nil
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Dynamic)
@@ -1041,11 +988,7 @@
           :schema $ :: 'Dynamic
         'site $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def site
-            {} (:port 11006) (:http-port 11030) (:title |Copyboard)
-              :icon |http://cdn.tiye.me/logo/copyboard.png
-              :theme |#ECCE32
-              :storage-key |copyboard
-              :storage-file |storage.cirru
+            {} (:port 11006) (:http-port 11030) (:title |Copyboard) (:icon |http://cdn.tiye.me/logo/copyboard.png) (:theme |#ECCE32) (:storage-key |copyboard) (:storage-file |storage.cirru)
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -1058,9 +1001,7 @@
           :schema $ :: 'Dynamic
         'configs $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def configs
-            {}
-              :storage-key |workflow-storage
-              :port 11006
+            {} (:storage-key |workflow-storage) (:port 11006)
           :examples $ []
           :schema $ :: 'Dynamic
         'database $ %{} 'CodeEntry (:doc |)
@@ -1114,8 +1055,7 @@
           :code $ quote $ defatom *initial-db
             if
               path-exists? $ w-log storage-file
-              do
-                println "|Found local EDN data"
+              do (println "|Found local EDN data")
                 merge schema/database $ parse-cirru-edn $ read-file storage-file
               do (println "|Found no data") schema/database
           :examples $ []
@@ -1134,13 +1074,10 @@
         'current-date! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn current-date! ()
             unsafe-coerce
-              %{} Date0 $ :date $ &call-dylib-edn
-                get-dylib-path |/dylibs/libcalcit_std
-                , |now_bang
+              %{} Date0 $ :date $ &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_std) |now_bang
               , 'calcit.std.date/Date0
           :examples $ []
-          :schema $ :: 'Fn $ {}
-            :return 'calcit.std.date/Date0
+          :schema $ :: 'Fn $ {} (:return 'calcit.std.date/Date0)
             :args $ []
             :features $ #{} :js-ffi
         'dispatch! $ %{} 'CodeEntry (:doc |)
@@ -1177,9 +1114,7 @@
                   option:unwrap-or (get config/site :port) 11006
               run-server! port
               println $ str "|Server started on port:" port
-            do
-              ; "|init it before doing multi-threading"
-              identity @*reader-reel
+            do (; "|init it before doing multi-threading") (identity @*reader-reel)
             set-interval 200 $ fn () $ render-loop!
             set-interval 600000 $ fn () $ persist-db!
             on-control-c on-exit!
@@ -1209,8 +1144,7 @@
                   take-last 12
                   with-cpu-time
               {} (:code 200)
-                :headers $ {} (:content-type |text/cirru-edn)
-                  :Access-Control-Allow-Origin |*
+                :headers $ {} (:content-type |text/cirru-edn) (:Access-Control-Allow-Origin |*)
                 :body $ format-cirru-edn $ {} (:snippets-list snippets)
           :examples $ []
           :schema $ :: 'Dynamic
@@ -1227,8 +1161,7 @@
           :schema $ :: 'Dynamic
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! () (println "|Code updated..")
-            if (not config/dev?)
-              raise "|reloading only happens in dev mode"
+            if (not config/dev?) (raise "|reloading only happens in dev mode")
             clear-twig-caches!
             reset! *reel $ refresh-reel @*reel @*initial-db updater
             sync-clients! @*reader-reel
@@ -1257,9 +1190,7 @@
                       if (enum? action) (dispatch! action sid) (eprintln "|invalid action:" action)
                   (:disconnect sid)
                     do (println "|Client closed!")
-                      dispatch!
-                        :: :session/disconnect
-                        , sid
+                      dispatch! (:: :session/disconnect) sid
                   _ $ println "|unknown data:" data
             http.core/serve-http!
               {}
@@ -1398,32 +1329,23 @@
           :code $ quote $ defn updater (db op sid op-id op-time)
             match op
               (:session/connect) (session/connect db sid op-id op-time)
-              (:session/disconnect)
-                session/disconnect db sid op-id op-time
+              (:session/disconnect) (session/disconnect db sid op-id op-time)
               (:user/log-in op-data) (user/log-in db op-data sid op-id op-time)
               (:user/sign-up op-data) (user/sign-up db op-data sid op-id op-time)
               (:user/log-out op-data) (user/log-out db op-data sid op-id op-time)
-              (:session/remove-message op-data)
-                session/remove-message db op-data sid op-id op-time
+              (:session/remove-message op-data) (session/remove-message db op-data sid op-id op-time)
               (:router/change op-data) (router/change db op-data sid op-id op-time)
               (:snippet/create op-data) (snippet/create db op-data sid op-id op-time)
-              (:snippet/create-file url kind)
-                snippet/create-file db url kind sid op-id op-time
-              (:snippet/remove-one op-data)
-                snippet/remove-one db op-data sid op-id op-time
-              (:session/show-all op-data)
-                session/show-all db op-data sid op-id op-time
+              (:snippet/create-file url kind) (snippet/create-file db url kind sid op-id op-time)
+              (:snippet/remove-one op-data) (snippet/remove-one db op-data sid op-id op-time)
+              (:session/show-all op-data) (session/show-all db op-data sid op-id op-time)
               (:preview/load snippets) (:: :preview snippets)
               _ $ do (eprintln "|Unknown op:" op) db
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater
-          :require
-            [] app.updater.session :as session
-            [] app.updater.user :as user
-            [] app.updater.router :as router
-            [] app.updater.snippet :as snippet
+          :require ([] app.updater.session :as session) ([] app.updater.user :as user) ([] app.updater.router :as router) ([] app.updater.snippet :as snippet)
     'app.updater.router $ %{} 'FileEntry
       :defs $ {} $ 'change
         %{} 'CodeEntry (:doc |)

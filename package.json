@@ -23,7 +23,7 @@
   "author": "jiyinyiyong",
   "license": "MIT",
   "dependencies": {
-    "@calcit/procs": "0.14.16",
+    "@calcit/procs": "0.14.17",
     "axios": "^1.18.0",
     "mime": "^4.1.0"
   },
