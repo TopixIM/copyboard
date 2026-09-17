@@ -24,7 +24,9 @@ try {
   createdFixture = true;
 }
 const snippetsSection = storageText.split("\n  :users")[0];
-const snippetIds = [...snippetsSection.matchAll(/\(:id \|([^\s)]+)/g)].map((match) => match[1]);
+const snippetIds = [
+  ...snippetsSection.matchAll(/(?:\(:id\s+\|([^\s)]+)\)|^\s*:id\s+\|([^\s)]+))/gm),
+].map((match) => match[1] ?? match[2]);
 const storageMarker = snippetIds.at(-1);
 if (!storageMarker) throw new Error("storage.cirru contains no snippet ids to verify");
 
