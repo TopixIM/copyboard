@@ -104,9 +104,9 @@
             :args $ []
             :features $ #{} :js-ffi
         'mount-target $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ def mount-target (js/document.querySelector |.app)
+          :code $ quote $ def mount-target (query-selector |.app)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Option 'js-ffi.browser/DomElementHost
         'on-server-data $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-server-data (data)
             match data
@@ -168,7 +168,8 @@
                 component-states $ if (map? nested-states) nested-states $ {}
               render! mount-target (comp-container component-states @*store @*preview-data) dispatch!
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
         'simulate-login! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn simulate-login! ()
             let
@@ -196,6 +197,7 @@
             |bottom-tip :default hud!
             |./calcit.build-errors :default client-errors
             |../js-out/calcit.build-errors :default server-errors
+            js-ffi.browser :refer $ query-selector
     'app.comp.container $ %{} 'FileEntry
       :defs $ {}
         'comp-container $ %{} 'CodeEntry (:doc |)
@@ -280,7 +282,8 @@
                   :margin-top 24
               comp-home states preview-data true nil
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'respo.schema/Element)
+            :args $ [] 'Dynamic 'Dynamic 'Dynamic
         'comp-status-color $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-status-color (color)
             div $ {} (:class-name style-status-buble)
@@ -351,6 +354,37 @@
             |copy-text-to-clipboard :default copy!
     'app.comp.home $ %{} 'FileEntry
       :defs $ {}
+        'DataTransferHost $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait DataTransferHost (:items 'app.comp.home/DataTransferItemListHost)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
+          :schema $ :: 'Trait
+        'DataTransferItemHost $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait DataTransferItemHost
+            .get-as-file $ :: 'Fn $ {}
+              :args $ [] 'app.comp.home/DataTransferItemHost
+              :return $ :: 'JsNullish 'JsObject
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
+            :names $ {} $ :get-as-file |getAsFile
+          :schema $ :: 'Trait
+        'DataTransferItemListHost $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait DataTransferItemListHost (:length 'Number)
+            .item $ :: 'Fn $ {}
+              :args $ [] 'app.comp.home/DataTransferItemListHost 'Number
+              :return $ :: 'JsNullish 'app.comp.home/DataTransferItemHost
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
+          :schema $ :: 'Trait
+        'DragEventHost $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait DragEventHost (:data-transfer 'app.comp.home/DataTransferHost)
+            .prevent-default! $ :: 'Fn $ {}
+              :args $ [] 'app.comp.home/DragEventHost
+              :return 'Unit
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
+            :names $ {} (:data-transfer |dataTransfer) (:prevent-default! |preventDefault)
+          :schema $ :: 'Trait
         'comp-box $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-box (states user)
             let
@@ -592,24 +626,29 @@
               :style $ {} (:padding "|12px 16px 240px 16px") (:overflow :auto)
                 :background-color $ hsl 0 0 97
               :on-dragover $ fn (e d!)
-                do
-                  .!preventDefault $ option:unwrap-or (get e :event) (js-object)
-                  , nil
+                let
+                    event $ unsafe-coerce
+                      option:unwrap-or (get e :event) (js-object)
+                      , 'app.comp.home/DragEventHost
+                  .prevent-default! event
               :on-drop $ fn (e d!)
-                .!preventDefault $ option:unwrap-or (get e :event) (js-object)
-                do
-                  let
-                      event $ unsafe-coerce
-                        option:unwrap-or (get e :event) (js-object)
-                        , JsObject
-                      data-transfer $ unsafe-coerce (.-dataTransfer event) JsObject
-                      items $ unsafe-coerce (.-items data-transfer) JsObject
-                      items-array $ unsafe-coerce (js/Array.from items) JsObject
-                    .!forEach items-array $ fn (item & _a)
-                      do
-                        upload-file! (.!getAsFile item) user d! $ fn $ _e
-                        , nil
-                  , nil
+                let
+                    event $ unsafe-coerce
+                      option:unwrap-or (get e :event) (js-object)
+                      , 'app.comp.home/DragEventHost
+                    data-transfer $ .-data-transfer event
+                    items $ .-items data-transfer
+                  .prevent-default! event
+                  each
+                    range $ .-length items
+                    fn (idx)
+                      let
+                          item? $ .item items idx
+                        when (js-present? item?)
+                          let
+                              file? $ .get-as-file item?
+                            when (js-present? file?)
+                              upload-file! file? user d! $ fn (_e) &unit
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Dynamic)
             :args $ [] 'Dynamic
@@ -913,13 +952,14 @@
           :code $ quote $ defn decorate-name (img-name)
             if (= |image.png img-name)
               str |pasted-
-                .!toISOString $ new js/Date
+                :iso $ date-now-snapshot
                 , |.png
-              -> (unsafe-coerce img-name String) (.replace "| " |-) (.replace "|)" |_bo_) (.replace "|(" |_bc_)
+              &str:replace
+                &str:replace (&str:replace img-name "| " |-) "|)" |_bo_
+                , "|(" |_bc_
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Dynamic)
-            :args $ [] 'Dynamic
-            :features $ #{} :js-ffi
+          :schema $ :: 'Fn $ {} (:return 'String)
+            :args $ [] 'String
         'style-hidden-input $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-hidden-input
             {} $ |& $ {} (:display :none)
@@ -927,7 +967,8 @@
           :schema $ :: 'Dynamic
         'upload-file! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn upload-file! (file user d! mutate!)
-            hint-fn $ {} $ :async true
+            hint-fn $ {} (:async true)
+              :features $ #{} :js-ffi
             let
                 hash $ js-await $ load-md5 file
                 file-key $ str hash |/ $ decorate-name
@@ -977,6 +1018,7 @@
             |axios :default axios
             |mime :default mime
             |../lib/md5 :refer $ load-md5
+            js-ffi.shared :refer $ date-now-snapshot
     'app.config $ %{} 'FileEntry
       :defs $ {}
         'dev? $ %{} 'CodeEntry (:doc |)
@@ -1056,10 +1098,12 @@
             if
               path-exists? $ w-log storage-file
               do (println "|Found local EDN data")
-                merge schema/database $ parse-cirru-edn $ read-file storage-file
+                merge schema/database $ assert-type
+                  parse-cirru-edn $ read-file storage-file
+                  :: 'Map 'Tag 'Dynamic
               do (println "|Found no data") schema/database
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Ref $ :: 'Map 'Tag 'Dynamic
         '*reader-reel $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defatom *reader-reel @*reel
           :examples $ []
@@ -1092,7 +1136,8 @@
                   wss-send! sid $ format-cirru-edn $ :: :effect/pong
                 _ $ reset! *reel $ reel-reducer @*reel updater op sid op-id op-time config/dev?
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] 'Dynamic 'Number
         'get-backup-path! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn get-backup-path! ()
             let
@@ -1103,7 +1148,8 @@
                   option:unwrap-or (get now :day) 0
                   , |-snapshot.cirru
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'String)
+            :args $ []
         'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn main! ()
             println "|Running mode:" $ if config/dev? |dev |release
@@ -1119,7 +1165,8 @@
             set-interval 600000 $ fn () $ persist-db!
             on-control-c on-exit!
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'FfiTask)
+            :args $ []
         'migrate-storage! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn migrate-storage! ()
             let
@@ -1158,7 +1205,9 @@
               check-write-file! storage-path file-content
               check-write-file! backup-path file-content
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ []
+            :features $ #{} :js-ffi
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! () (println "|Code updated..")
             if (not config/dev?) (raise "|reloading only happens in dev mode")
@@ -1198,7 +1247,8 @@
                 :host |0.0.0.0
               fn (req) (on-request! req)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'FfiTask)
+            :args $ [] 'Number
         'storage-file $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def storage-file
             if (empty? calcit-dirname)
