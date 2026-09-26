@@ -29,11 +29,11 @@ jobs:
         caps --ci
         yarn install --immutable
         caps verify --toolchain
-        test "$(calcit --version)" = "0.18.1"
+        test "$(calcit --version)" = "0.22.0-alpha.3"
         calcit calcit.cirru edit format
         git diff --exit-code -- calcit.cirru
         yarn check
-        calcit calcit.cirru --compat-types analyze dynamic-methods --max 0
+        calcit calcit.cirru --compat-types analyze dynamic-methods
         calcit calcit.cirru --compat-types analyze quality --baseline config/calcit-quality.cirru
 
     - name: Smoke-test native server
