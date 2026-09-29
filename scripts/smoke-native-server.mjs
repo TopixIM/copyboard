@@ -30,7 +30,7 @@ const snippetIds = [
 const storageMarker = snippetIds.at(-1);
 if (!storageMarker) throw new Error("storage.cirru contains no snippet ids to verify");
 
-const server = spawn("calcit", ["calcit.cirru", "--entry", "server", "--compat-types"]);
+const server = spawn("calcit", ["calcit.cirru", "--entry", "server"]);
 
 for (const stream of [server.stdout, server.stderr]) {
   stream.on("data", (chunk) => serverOutput.push(chunk.toString()));
@@ -90,7 +90,8 @@ async function verifyWebSocketLogin() {
     });
     websocket.addEventListener("message", (event) => {
       const message = String(event.data);
-      if (loginSent && message.includes("(:logged-in? true)") && message.includes(storageMarker)) {
+      serverOutput.push(`WebSocket message: ${message}\n`);
+      if (loginSent && message.includes(":logged-in? true") && message.includes(storageMarker)) {
         clearTimeout(timeout);
         websocket.close();
         resolve();
