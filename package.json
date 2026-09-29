@@ -3,18 +3,18 @@
   "version": "0.1.1",
   "description": "Cumulo Workflow",
   "main": "index.js",
-  "packageManager": "yarn@4.12.0",
+  "packageManager": "yarn@4.18.0",
   "engines": {
     "node": ">=24"
   },
   "scripts": {
-    "check": "calcit calcit.cirru --compat-types --check-only && calcit calcit.cirru --entry server --compat-types --check-only && calcit analyze deprecated",
-    "compile-page": "calcit calcit.cirru --compat-types js",
+    "check": "calcit calcit.cirru --check-only && calcit calcit.cirru --entry server --check-only && calcit calcit.cirru analyze deprecated --summary-only && calcit calcit.cirru --entry server analyze deprecated --summary-only",
+    "compile-page": "calcit calcit.cirru js",
     "dev": "vite",
-    "release-page": "vite build --base=./",
-    "server": "calcit calcit.cirru --entry server --compat-types",
+    "release-page": "vite build --base=${VITE_BASE_URL:-./}",
+    "server": "calcit calcit.cirru --entry server",
     "smoke-server": "node scripts/smoke-native-server.mjs",
-    "watch-page": "calcit -w calcit.cirru --compat-types js"
+    "watch-page": "calcit -w calcit.cirru js"
   },
   "repository": {
     "type": "git",
@@ -23,7 +23,7 @@
   "author": "jiyinyiyong",
   "license": "MIT",
   "dependencies": {
-    "@calcit/procs": "0.18.1",
+    "@calcit/procs": "0.27.0",
     "axios": "^1.18.0",
     "mime": "^4.1.0"
   },

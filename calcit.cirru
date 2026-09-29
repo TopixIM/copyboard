@@ -3,11 +3,11 @@
   :about "|Machine-generated snapshot. Do not edit directly — changes will be overwritten. Use `calcit query` to inspect and `calcit edit`/`calcit tree` to modify. Run `calcit docs agents --contract` before mutations; use `--full` for first orientation or changed contract digest. Manual edits must follow format and schema conventions, then run `calcit edit format`."
   :package |app
   :entries $ {}
-    :default $ {} (:description |) (:init-fn 'app.client/main!) (:mode :native) (:reload-fn 'app.client/reload!)
+    :default $ {} (:description |) (:init-fn 'app.client/main!) (:mode :js) (:reload-fn 'app.client/reload!) (:target :browser)
       :feature-policy $ {}
       :modules $ [] |respo.calcit/ |recollect/ |respo-ui.calcit/ |ws-edn.calcit/ |cumulo-util.calcit/ |respo-message.calcit/ |cumulo-reel.calcit/ |respo-feather.calcit/ |alerts.calcit/ |js-ffi/
       :type-slots $ {}
-    :server $ {} (:description |) (:init-fn 'app.server/main!) (:mode :native) (:reload-fn 'app.server/reload!)
+    :server $ {} (:description |) (:init-fn 'app.server/main!) (:mode :native) (:reload-fn 'app.server/reload!) (:target :native)
       :feature-policy $ {}
       :modules $ [] |recollect/ |cumulo-util.calcit/ |cumulo-reel.calcit/ |calcit.std/ |calcit-wss/ |calcit-http/
       :type-slots $ {}
@@ -21,16 +21,47 @@
         '*states $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defatom *states ({})
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Ref 'Dynamic
         '*store $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defatom *store (:: :initial)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Ref 'Dynamic
+        'Clipboard $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait Clipboard
+            :readText $ :: 'Fn $ {}
+              :args $ []
+              :return 'Dynamic
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'ClipboardPromise $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait ClipboardPromise
+            :then $ :: 'Fn $ {}
+              :args $ [] 'Dynamic
+              :return 'Dynamic
+            :catch $ :: 'Fn $ {}
+              :args $ [] 'Dynamic
+              :return 'Dynamic
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'UrlHost $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait UrlHost (:query 'app.client/UrlQueryHost)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'UrlQueryHost $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait UrlQueryHost
+            :host $ :: 'JsNullish 'String
+            :port $ :: 'JsNullish 'String
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
         'connect! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn connect! ()
             let
-                url-obj $ url-parse js/location.href true
-                query $ unsafe-coerce (.-query url-obj) JsObject
+                url-obj $ unsafe-coerce (url-parse js/location.href true) 'app.client/UrlHost
+                query $ unsafe-coerce (.-query url-obj) ('app.client/UrlQueryHost)
                 raw-host $ .-host query
                 raw-port $ .-port query
                 host $ if (js-present? raw-host) (unsafe-coerce raw-host 'String) js/location.hostname
@@ -45,7 +76,9 @@
                     js/console.error "|Lost connection!"
                   :on-data on-server-data
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+            :args $ []
+            :features $ #{} :js-ffi
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op)
             when config/dev? $ match op
@@ -59,7 +92,9 @@
                 reset! *store $ :: :preview snippets
               _ $ ws-send! op
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
         'load-preview-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn load-preview-data! ()
             hint-fn $ {} $ :async true
@@ -113,33 +148,26 @@
               (:patch changes)
                 do
                   when config/dev? $ js/console.log |Changes changes
-                  reset! *store $ patch-twig @*store changes
+                  reset! *store $ unsafe-coerce
+                    patch-twig (deref *store)
+                      unsafe-coerce changes $ :: 'List 'recollect.schema/change-op
+                    :: 'Map 'Tag 'Dynamic
               (:effect/pong) :ok
           :examples $ []
-          :schema $ :: 'Dynamic
-        'on-window-keydown $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn on-window-keydown (event)
-            println $ .-tagName $ .-activeElement js/document
-            when
-              and
-                = |Slash $ .-code event
-                not= schema/box-name $ .-className $ .-activeElement js/document
-              .select $ .querySelector js/document $ str |. schema/box-name
-              .preventDefault event
-          :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
         'read-from-clipboard! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn read-from-clipboard! ()
             if (js-present? js/navigator.clipboard)
               let
-                  clipboard $ unsafe-coerce js/navigator.clipboard JsObject
-                  promise $ unsafe-coerce (.!readText clipboard) JsObject
+                  clipboard $ unsafe-coerce js/navigator.clipboard $ 'app.client/Clipboard
+                  promise $ unsafe-coerce (.!readText clipboard) ('app.client/ClipboardPromise)
                   result $ unsafe-coerce
                     .!then promise $ fn (text)
                       respo.controller.client/send-to-component! $ :: :clipboard/read text
-                    , JsObject
-                .!catch result $ fn (err)
-                  do (js/console.warn |Clipboard-read-skipped err) nil
+                    'app.client/ClipboardPromise
+                .!catch result $ fn (err) (js/console.warn |Clipboard-read-skipped err) nil
               js/console.log "|navigator.clipboard not available."
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Dynamic)
@@ -156,7 +184,8 @@
                 println "|Code updated."
                 hud! |ok~
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+            :args $ []
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
             let
@@ -177,7 +206,7 @@
               if (js-present? raw)
                 do (println "|Found storage.")
                   dispatch! $ :: :user/log-in $ parse-cirru-edn (unsafe-coerce raw 'String)
-                do $ println "|Found no storage."
+                println "|Found no storage."
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Dynamic)
             :args $ []
@@ -244,7 +273,8 @@
                       fn (info d!) (d! :session/remove-message info)
                     when dev? $ comp-reel reel-length $ {} (:bottom 40)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
+            :args $ [] 'Dynamic 'Dynamic 'Dynamic
         'comp-offline $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-offline (state)
             div
@@ -270,7 +300,8 @@
                   if (= state :offline) "|Socket broken, click to retry." |Loading
                   {} (:font-family ui/font-fancy) (:font-size 24)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
+            :args $ [] 'Dynamic
         'comp-preview $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn comp-preview (states preview-data stage)
             div ({})
@@ -289,7 +320,8 @@
             div $ {} (:class-name style-status-buble)
               :style $ {} $ :background-color color
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
+            :args $ [] 'Dynamic
         'style-body $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def style-body
             {} $ :padding "|8px 16px"
@@ -332,18 +364,19 @@
                   :style $ merge ui/flex $ {} (:position :relative) (:cursor :pointer) (:max-width |100%)
                   :on-click $ fn (e d!) (copy! value)
                     d! cursor $ {} $ :visible? true
-                    do
-                      js/setTimeout
-                        \ d! cursor $ {} $ :visible? false
-                        , 1200
-                      , &unit
+                    js/setTimeout
+                      \ d! cursor $ {} $ :visible? false
+                      , 1200
+                    , &unit
                 , child $ when
                   option:unwrap-or (get state :visible?) false
                   div
                     {} $ :style $ {} (:position :absolute) (:top 8) (:left 8) (:background-color :black) (:color :white) (:padding "|0 8px") (:font-size 12)
                     <> |Copied
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
+            :args $ [] 'Dynamic 'Dynamic 'Dynamic
+            :features $ #{} :js-ffi
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.copied
           :require
@@ -354,6 +387,30 @@
             |copy-text-to-clipboard :default copy!
     'app.comp.home $ %{} 'FileEntry
       :defs $ {}
+        'AnchorElement $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait AnchorElement (:href 'String) (:download 'String)
+            :setAttribute $ :: 'Fn $ {}
+              :args $ [] 'String 'String
+              :return 'Dynamic
+            :click $ :: 'Fn $ {}
+              :args $ []
+              :return 'Dynamic
+            :remove $ :: 'Fn $ {}
+              :args $ []
+              :return 'Dynamic
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'ClipboardData $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait ClipboardData (:files 'app.comp.home/FileList)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'ClipboardEvent $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait ClipboardEvent (:clipboardData 'app.comp.home/ClipboardData)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
         'DataTransferHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait DataTransferHost (:items 'app.comp.home/DataTransferItemListHost)
           :examples $ []
@@ -385,6 +442,24 @@
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} (:data-transfer |dataTransfer) (:prevent-default! |preventDefault)
           :schema $ :: 'Trait
+        'FileItem $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait FileItem (:name 'String) (:size 'Number)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'FileList $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait FileList (:length 'Number) (:0 'app.comp.home/FileItem)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'as-snippets $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn as-snippets (value)
+            unsafe-coerce value $ :: 'List $ :: 'Map 'Tag 'Dynamic
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
+            :return $ :: 'List $ :: 'Map 'Tag 'Dynamic
         'comp-box $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-box (states user)
             let
@@ -394,12 +469,11 @@
                   {} $ :content |
                 content $ option:unwrap-or (get state :content) |
                 send! $ fn (e d!)
-                  do
-                    when
-                      not $ .blank? $ unsafe-coerce content String
-                      d! :snippet/create content
-                      d! cursor $ assoc state :content |
-                    , &unit
+                  when
+                    not $ .blank? $ unsafe-coerce content String
+                    d! :snippet/create content
+                    d! cursor $ assoc state :content |
+                  , &unit
                 confirm-plugin $ use-confirm (>> states :clipboard-confirm)
                   {} $ :text "|Clipboard content detected, would you like to fill it into the input box?"
                 props $ {} (:value content)
@@ -408,9 +482,8 @@
                   :placeholder "|Command Enter to send..."
                   :class-name $ str-spaced css/flex css/textarea schema/box-name
                   :on-input $ fn (e d!)
-                    do
-                      d! cursor $ assoc state :content $ option:unwrap-or (get e :value) |
-                      , &unit
+                    d! cursor $ assoc state :content $ option:unwrap-or (get e :value) |
+                    , &unit
                   :on-keydown $ fn (e d!)
                     when
                       and
@@ -419,21 +492,20 @@
                       .!preventDefault $ option:unwrap-or (get e :event) (js-object)
                       send! e d!
                   :on-paste $ fn (e d!)
-                    do
-                      let
-                          event $ unsafe-coerce
-                            option:unwrap-or (get e :event) (js-object)
-                            , JsObject
-                          clipboard-data $ unsafe-coerce (.-clipboardData event) JsObject
-                          files $ unsafe-coerce (.-files clipboard-data) JsObject
-                        if
-                          >
-                            unsafe-coerce (.-length files) 'Number
-                            , 0
-                          let
-                              file $ unsafe-coerce (.-0 files) JsObject
-                            upload-file! file user d! $ fn $ _e
-                      , &unit
+                    let
+                        event $ unsafe-coerce
+                          option:unwrap-or (get e :event) (js-object)
+                          'app.comp.home/ClipboardEvent
+                        clipboard-data $ unsafe-coerce (.-clipboardData event) ('app.comp.home/ClipboardData)
+                        files $ unsafe-coerce (.-files clipboard-data) ('app.comp.home/FileList)
+                      if
+                        >
+                          unsafe-coerce (.-length files) 'Number
+                          , 0
+                        let
+                            file $ unsafe-coerce (.-0 files) ('app.comp.home/FileItem)
+                          upload-file! file user d! $ fn $ _e
+                    , &unit
               []
                 %{} respo.schema/RespoListener (:name :clipboard-listener)
                   :handler $ fn (event d!)
@@ -454,28 +526,25 @@
                       a
                         {} (:style style/link)
                           :on-click $ fn (e d!)
-                            do
-                              d! cursor $ assoc state :content |
-                              , &unit
+                            d! cursor $ assoc state :content |
+                            , &unit
                         <> |Clear
                     div
                       {} $ :style $ {}
                       a
                         {} (:style style/link)
                           :on-click $ fn (e d!)
-                            do
-                              if (js-present? js/navigator.clipboard)
-                                let
-                                    clipboard $ unsafe-coerce js/navigator.clipboard JsObject
-                                    promise $ unsafe-coerce (.!readText clipboard) JsObject
-                                    result $ unsafe-coerce
-                                      .!then promise $ fn (text)
-                                        d! cursor $ assoc state :content text
-                                      , JsObject
-                                  .!catch result $ fn (err)
-                                    do (js/console.error err) nil
-                                js/console.log "|navigator.clipboard not available."
-                              , &unit
+                            if (js-present? js/navigator.clipboard)
+                              let
+                                  clipboard $ unsafe-coerce js/navigator.clipboard $ 'app.client/Clipboard
+                                  promise $ unsafe-coerce (.!readText clipboard) ('app.client/ClipboardPromise)
+                                  result $ unsafe-coerce
+                                    .!then promise $ fn (text)
+                                      d! cursor $ assoc state :content text
+                                    'app.client/ClipboardPromise
+                                .!catch result $ fn (err) (js/console.error err) nil
+                              js/console.log "|navigator.clipboard not available."
+                            , &unit
                         <> |Read
                       =< 8 nil
                       button
@@ -500,15 +569,14 @@
                 {}
                   :class-name $ str-spaced style-grid-list
                   :style $ {} $ :width |100%
-                -> snippets reverse $ .map $ fn (snippet)
+                -> (as-snippets snippets) reverse $ .map $ fn (snippet)
                   let
                       k $ option:unwrap-or (get snippet :id) |
                     [] k $ comp-snippet (>> states k) k snippet
               if-not show-all? $ div
                 {} $ :class-name css/center
                 span $ {} (:class-name style-all-tag) (:inner-text "|Show all")
-                  :on-click $ fn (e d!)
-                    do (d! :session/show-all nil) &unit
+                  :on-click $ fn (e d!) (d! :session/show-all nil) &unit
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Dynamic)
             :args $ [] 'Dynamic 'Dynamic 'Dynamic 'Dynamic
@@ -544,16 +612,14 @@
                     {}
                       :class-name $ str-spaced css/center style-link-mark
                       :style $ {} $ :right 104
-                      :on-click $ fn (e d!)
-                        do (download-image! some-img) &unit
+                      :on-click $ fn (e d!) (download-image! some-img) &unit
                     comp-i :download 14 $ hsl 200 80 60
                 if (some? some-img)
                   a
                     {}
                       :class-name $ str-spaced css/center style-link-mark
                       :style $ {} $ :right 72
-                      :on-click $ fn (e d!)
-                        do (copy-to-clipboard some-img) &unit
+                      :on-click $ fn (e d!) (copy-to-clipboard some-img) &unit
                     comp-i :copy 14 $ hsl 200 80 60
                 if
                   starts-with?
@@ -566,22 +632,22 @@
                       :class-name $ str-spaced css/center style-link-mark
                       :style $ {} $ :right 40
                       :on-click $ fn (e d!)
-                        do
-                          js/window.open $ option:unwrap-or (get snippet :content) |
-                          , &unit
+                        js/window.open $ option:unwrap-or (get snippet :content) |
+                        , &unit
                     comp-i :external-link 14 $ hsl 200 80 60
                 div
                   {}
                     :class-name $ str-spaced css/center style-link-mark style-remove
                     :on-click $ fn (e d!)
-                      do
-                        .show remove-plugin d! $ fn () $ d! :snippet/remove-one
-                          option:unwrap-or (get snippet :id) |
-                        , &unit
+                      .show remove-plugin d! $ fn () $ d! :snippet/remove-one
+                        option:unwrap-or (get snippet :id) |
+                      , &unit
                   comp-i :trash-2 14 $ hsl 0 80 50
                 .render remove-plugin
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
+            :args $ [] 'Dynamic 'Dynamic 'Dynamic
+            :features $ #{} :js-ffi
         'copy-to-clipboard $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn copy-to-clipboard (url)
             hint-fn $ {} $ :async true
@@ -606,7 +672,7 @@
                 blob $ js-await $ .!blob
                   js-await $ js/fetch url
                 object-url $ js/URL.createObjectURL blob
-                a-el $ unsafe-coerce (js/document.createElement |a) JsObject
+                a-el $ unsafe-coerce (js/document.createElement |a) ('app.comp.home/AnchorElement)
                 name $ last $ split url |/
               set! (.-href a-el) object-url
               set! (.-download a-el) name
@@ -659,7 +725,9 @@
                 url-text $ unsafe-coerce url String
               or (.ends-with? url-text |.png) (.ends-with? url-text |.jpg) (.ends-with? url-text |.jpeg) (.ends-with? url-text |.webp)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Bool)
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
         'style-all-tag $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-all-tag
             {} $ |& $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
@@ -676,9 +744,9 @@
           :code $ quote $ defstyle style-link-mark
             {}
               |& $ {} (:position :absolute) (:bottom 8) (:width 28) (:height 28) (:cursor :pointer) (:border-radius |20px) (:transition-duration |230ms) (:line-height 1)
-                :background-color $ hsl 0 0 100 $ %some 0.9
+                :background-color $ hsl 0 0 100 $ Option :some 0.9
                 :opacity 0.2
-                :box-shadow $ str "|1px 1px 4px " $ hsl 0 0 0 (%some 0.3)
+                :box-shadow $ str "|1px 1px 4px " $ hsl 0 0 0 (Option :some 0.3)
               |&:hover $ {} $ :transform "|scale(1.1)"
               (str |. style-snippet "|:hover &")
                 {} $ :opacity 1
@@ -699,7 +767,7 @@
                 :border $ str "|1px solid " $ hsl 0 0 84
                 :transition-duration |240ms
               |&:hover $ {}
-                :box-shadow $ str "|1px 1px 6px " $ hsl 0 0 0 (%some 0.4)
+                :box-shadow $ str "|1px 1px 6px " $ hsl 0 0 0 (Option :some 0.4)
                 :background-size :cover
           :examples $ []
           :schema $ :: 'Dynamic
@@ -714,7 +782,7 @@
               |& $ {} (:opacity 0.5) (:transition-duration |240ms)
               (str |. style-snippet "|:hover &")
                 {} (:opacity 1)
-                  :background-color $ hsl 0 0 100 $ %some 0.9
+                  :background-color $ hsl 0 0 100 $ Option :some 0.9
           :examples $ []
           :schema $ :: 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
@@ -778,7 +846,8 @@
                         option:unwrap-or (get state :password) |
                         , false
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
+            :args $ [] 'Dynamic
         'initial-state $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def initial-state
             {} (:username |) (:password |)
@@ -792,7 +861,9 @@
                 option:unwrap-or (get config/site :storage-key) |copyboard
                 format-cirru-edn $ [] username password
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+            :args $ [] 'String 'String 'Bool
+            :features $ #{} :js-ffi
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.login
           :require
@@ -828,9 +899,10 @@
                     d! :router/change $ {} $ :name :profile
                 <> $ if logged-in? |Me |Guest
                 =< 8 nil
-                <> count-members
+                <> $ str count-members
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
+            :args $ [] 'Dynamic 'Dynamic 'Bool 'Number 'Bool
         'style-nav $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-nav
             {} $ |& $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
@@ -887,7 +959,9 @@
                       .removeItem js/localStorage $ option:unwrap-or (get config/site :storage-key) |copyboard
                   <> "|Log out" nil
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
+            :args $ [] 'Dynamic 'Dynamic
+            :features $ #{} :js-ffi
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.profile
           :require
@@ -898,6 +972,66 @@
             respo.comp.space :refer $ =<
     'app.comp.upload $ %{} 'FileEntry
       :defs $ {}
+        'AxiosClient $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait AxiosClient
+            :post $ :: 'Fn $ {}
+              :args $ [] 'String 'String 'Dynamic
+              :return 'Dynamic
+            :put $ :: 'Fn $ {}
+              :args $ [] 'String 'Dynamic 'Dynamic
+              :return 'Dynamic
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'AxiosResponse $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait AxiosResponse (:data 'String)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'FileArray $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait FileArray
+            :forEach $ :: 'Fn $ {}
+              :args $ [] 'Dynamic
+              :return 'Dynamic
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'FileItem $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait FileItem (:name 'String) (:size 'Number)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'FileList $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait FileList (:length 'Number)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'InputElement $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait InputElement (:files 'app.comp.upload/FileList) (:value 'Dynamic)
+            :click $ :: 'Fn $ {}
+              :args $ []
+              :return 'Dynamic
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'InputEvent $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait InputEvent (:target 'app.comp.upload/InputElement)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'MimeClient $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait MimeClient
+            :getType $ :: 'Fn $ {}
+              :args $ [] 'String
+              :return 'String
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
+        'UploadProgress $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ deftrait UploadProgress (:loaded 'Number) (:total 'Number)
+          :examples $ []
+          :ffi $ {} (:backend :js) (:kind :external-object)
+          :schema $ :: 'Trait
         'comp-file-upload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-file-upload (states user)
             let
@@ -911,30 +1045,29 @@
                 {} $ :class-name css/row-middle
                 input $ {} (:type |file) (:id |upload-input) (:class-name style-hidden-input) (:multiple true)
                   :on-input $ fn (e d!)
-                    do
-                      let
-                          event $ option:unwrap-or (get e :event) (js-object)
-                          target $ unsafe-coerce (.-target event) JsObject
-                          files $ unsafe-coerce (.-files target) JsObject
-                          files-array $ unsafe-coerce (js/Array.from files) JsObject
-                        .!forEach files-array $ fn (file & _a)
-                          do
-                            if
-                              <
-                                unsafe-coerce (.-size file) 'Number
-                                , 100000000
-                              upload-file! file user d! $ fn (next) (d! cursor next)
-                              js/console.warn "|File too large"
-                            , nil
-                        set! (.-value target) nil
-                      , &unit
+                    let
+                        event $ unsafe-coerce
+                          option:unwrap-or (get e :event) (js-object)
+                          , 'app.comp.upload/InputEvent
+                        target $ unsafe-coerce (.-target event) ('app.comp.upload/InputElement)
+                        files $ unsafe-coerce (.-files target) ('app.comp.upload/FileList)
+                        files-array $ unsafe-coerce (js/Array.from files) ('app.comp.upload/FileArray)
+                      .!forEach files-array $ fn (file & _a)
+                        if
+                          <
+                            unsafe-coerce (.-size file) 'Number
+                            , 100000000
+                          upload-file! file user d! $ fn (next) (d! cursor next)
+                          js/console.warn "|File too large"
+                        , nil
+                      set! (.-value target) nil
+                    , &unit
                 a
                   {} (:class-name css/link)
                     :style $ {} $ :color (hsl 200 90 70)
                     :on-click $ fn (e d!)
-                      do
-                        .!click $ unsafe-coerce (js/document.querySelector |#upload-input) JsObject
-                        , &unit
+                      .!click $ unsafe-coerce (js/document.querySelector |#upload-input) ('app.comp.upload/InputElement)
+                      , &unit
                   <> |Upload
                 if uploading? $ span
                   {} (:class-name css/font-fancy)
@@ -975,7 +1108,7 @@
                   either
                     unsafe-coerce (.-name file) 'String
                     , |clipboard.jpg
-                res $ js-await $ .!post axios |https://cp.topix.im/token
+                res $ js-await $ .!post (unsafe-coerce axios 'app.comp.upload/AxiosClient) |https://cp.topix.im/token
                   format-cirru-edn $ {}
                     :user $ option:unwrap-or (get user :name) |
                     :pass $ option:unwrap-or (get user :token) |
@@ -991,9 +1124,9 @@
                     parse-cirru-edn $ unsafe-coerce (.-data res) 'String
                     , :url
                   , |
-                ret $ js-await $ .!put axios presigned-url file
+                ret $ js-await $ .!put (unsafe-coerce axios 'app.comp.upload/AxiosClient) presigned-url file
                   js-object $ :headers $ js-object
-                    |Content-Type $ .!getType mime file-key
+                    |Content-Type $ .!getType (unsafe-coerce mime 'app.comp.upload/MimeClient) file-key
               js/console.log "|Upload result:" ret
               d! $ :: :snippet/create-file (str |https://cos-sh.tiye.me/cos-up/ file-key) :file
               mutate! $ {} $ :uploading nil
@@ -1107,14 +1240,30 @@
         '*reader-reel $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defatom *reader-reel @*reel
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Ref 'cumulo-reel.core/ReelState
         '*reel $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defatom *reel
             %{} cumulo-reel.core/ReelState (:base @*initial-db) (:db @*initial-db)
               :records $ []
               :merged? false
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Ref 'cumulo-reel.core/ReelState
+        'as-change-list $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn as-change-list (value)
+            unsafe-coerce value $ :: 'List 'recollect.schema/change-op
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
+            :return $ :: 'List 'recollect.schema/change-op
+        'as-list $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn as-list (value)
+            unsafe-coerce value $ :: 'List 'Dynamic
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
+            :return $ :: 'List 'Dynamic
         'current-date! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn current-date! ()
             unsafe-coerce
@@ -1136,8 +1285,8 @@
                   wss-send! sid $ format-cirru-edn $ :: :effect/pong
                 _ $ reset! *reel $ reel-reducer @*reel updater op sid op-id op-time config/dev?
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Unit)
-            :args $ [] 'Dynamic 'Number
+          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+            :args $ [] 'Enum 'Number
         'get-backup-path! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn get-backup-path! ()
             let
@@ -1160,26 +1309,19 @@
                   option:unwrap-or (get config/site :port) 11006
               run-server! port
               println $ str "|Server started on port:" port
-            do (; "|init it before doing multi-threading") (identity @*reader-reel)
+            ; "|init it before doing multi-threading"
+            identity @*reader-reel
             set-interval 200 $ fn () $ render-loop!
             set-interval 600000 $ fn () $ persist-db!
             on-control-c on-exit!
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'FfiTask)
             :args $ []
-        'migrate-storage! $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn migrate-storage! ()
-            let
-                data $ parse-cirru-edn $ read-file |storage.cirru
-                new-data $ update data :snippets $ fn (ss)
-                  -> (vals ss) .to-list $ .sort-by $ fn (s) (:time s)
-              write-file |storage-new.cirru $ format-cirru-edn new-data
-          :examples $ []
-          :schema $ :: 'Dynamic
         'on-exit! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-exit! () (persist-db!) (; println "|exit code is...") (quit! 0)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+            :args $ []
         'on-request! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-request! (req)
             let
@@ -1187,14 +1329,17 @@
                 db $ :db reel
                 empty-snippets $ []
                 snippets $ ->
-                  option:unwrap-or (get db :snippets) empty-snippets
+                  as-list $ option:unwrap-or (get db :snippets) empty-snippets
                   take-last 12
-                  with-cpu-time
+                  , with-cpu-time
               {} (:code 200)
                 :headers $ {} (:content-type |text/cirru-edn) (:Access-Control-Allow-Origin |*)
                 :body $ format-cirru-edn $ {} (:snippets-list snippets)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
+            :return $ :: 'Map 'Tag 'Dynamic
         'persist-db! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn persist-db! ()
             let
@@ -1209,13 +1354,14 @@
             :args $ []
             :features $ #{} :js-ffi
         'reload! $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn reload! () (println "|Code updated..")
-            if (not config/dev?) (raise "|reloading only happens in dev mode")
+          :code $ quote $ defn reload! () (println |Code_updated)
+            if (not config/dev?) (raise |reloading_only_happens_in_dev_mode)
             clear-twig-caches!
-            reset! *reel $ refresh-reel @*reel @*initial-db updater
-            sync-clients! @*reader-reel
+            reset! *reader-reel $ deref *reel
+            sync-clients! $ deref *reader-reel
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+            :args $ []
         'render-loop! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-loop! ()
             when
@@ -1223,7 +1369,8 @@
               reset! *reader-reel @*reel
               sync-clients! @*reader-reel
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+            :args $ []
         'run-server! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn run-server! (port)
             wss-serve! (&{} :port port)
@@ -1266,17 +1413,22 @@
                   session $ option:unwrap-or
                     get-in db $ [] :sessions sid
                     {}
-                  old-store $ or (get @*client-caches sid) nil
+                  old-store $ option:unwrap-or
+                    get (deref *client-caches) sid
+                    , nil
                   new-store $ twig-container db session records
-                  changes $ diff-twig old-store new-store $ {} (:key :id)
+                  changes $ as-change-list $ diff-twig old-store new-store
+                    {} $ :key :id
                 ; when config/dev? $ println "|Changes for" sid |: changes $ count records
                 if
-                  not= changes $ []
+                  not $ empty? changes
                   do
                     wss-send! sid $ format-cirru-edn $ :: :patch changes
                     swap! *client-caches assoc sid new-store
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+            :args $ [] 'cumulo-reel.core/ReelState
+            :features $ #{} :js-ffi
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.server
           :require (app.schema :as schema)
@@ -1314,11 +1466,19 @@
             [] respo-ui.core :as ui
     'app.twig.container $ %{} 'FileEntry
       :defs $ {}
+        'as-tag-map $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn as-tag-map (value)
+            unsafe-coerce value $ :: 'Map 'Tag 'Dynamic
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
+            :return $ :: 'Map 'Tag 'Dynamic
         'twig-container $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn twig-container (db session records)
             let
                 user-id $ option:unwrap-or (get session :user-id) nil
-                logged-in? $ option:some? $ get session :user-id
+                logged-in? $ not $ nil? user-id
                 router $ option:unwrap-or (get session :router) ({})
                 base-data $ {} (:logged-in? logged-in?) (:session session)
                   :count $ option:unwrap-or (get db :count) 0
@@ -1332,7 +1492,7 @@
                       , 'List
                     take-last 12
                     with-cpu-time
-              merge base-data $ if logged-in?
+              merge base-data $ as-tag-map $ if logged-in?
                 {}
                   :user $ twig-user $ option:unwrap-or
                     get-in db $ [] :users user-id
@@ -1349,7 +1509,10 @@
                   :show-all? $ option:unwrap-or (get session :show-all?) false
                 {}
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'Map 'Tag 'Dynamic) (:: 'List 'Dynamic)
+            :features $ #{} :js-ffi
+            :return $ :: 'Map 'Tag 'Dynamic
         'twig-members $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn twig-members (sessions users)
             filter-map-kv sessions $ fn (k session)
@@ -1359,7 +1522,11 @@
                   , :name
                 , |unknown
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ []
+              :: 'Map 'Dynamic $ :: 'Map 'Tag 'Dynamic
+              :: 'Map 'Dynamic $ :: 'Map 'Tag 'Dynamic
+            :return $ :: 'Map 'Dynamic 'String
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.twig.container
           :require
@@ -1370,7 +1537,9 @@
         %{} 'CodeEntry (:doc |)
           :code $ quote $ defn twig-user (user) (dissoc user :password)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] $ :: 'Map 'Tag 'Dynamic
+            :return $ :: 'Map 'Tag 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.twig.user (:require)
     'app.updater $ %{} 'FileEntry
@@ -1392,7 +1561,10 @@
               (:preview/load snippets) (:: :preview snippets)
               _ $ do (eprintln "|Unknown op:" op) db
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Enum 'Number 'String 'Number
+            :features $ #{} :js-ffi
+            :return $ :: 'Map 'Tag 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater
           :require ([] app.updater.session :as session) ([] app.updater.user :as user) ([] app.updater.router :as router) ([] app.updater.snippet :as snippet)
@@ -1402,113 +1574,172 @@
           :code $ quote $ defn change (db op-data session-id op-id op-time)
             assoc-in db ([] :sessions session-id :router) op-data
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.router
     'app.updater.session $ %{} 'FileEntry
       :defs $ {}
+        'as-map $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn as-map (value)
+            unsafe-coerce value $ :: 'Map 'Tag 'Dynamic
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
+            :return $ :: 'Map 'Tag 'Dynamic
         'connect $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn connect (db session-id op-id op-time)
             assoc-in db ([] :sessions session-id)
               merge schema/session $ {} $ :id session-id
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
         'disconnect $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn disconnect (db session-id op-id op-time)
             update db :sessions $ fn (session) (dissoc session session-id)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
         'remove-message $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn remove-message (db op-data sid op-id op-time)
             update-in db ([] :sessions sid :messages)
               fn (messages?)
-                dissoc (option:unwrap-or messages? {})
-                  option:unwrap-or (get op-data :id) op-data
+                as-map $ dissoc (option:unwrap-or messages? {})
+                  option:unwrap-or
+                    get (as-map op-data) :id
+                    , op-data
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
         'show-all $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn show-all (db op-data sid op-id op-time)
             assoc-in db ([] :sessions sid :show-all?) true
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.session
           :require $ [] app.schema :as schema
     'app.updater.snippet $ %{} 'FileEntry
       :defs $ {}
+        'as-snippets $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn as-snippets (value)
+            unsafe-coerce value $ :: 'List $ :: 'Map 'Tag 'Dynamic
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
+            :return $ :: 'List $ :: 'Map 'Tag 'Dynamic
         'create $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn create (db op-data sid op-id op-time)
             update db :snippets $ fn (ss)
-              conj ss $ merge schema/snippet $ {} (:id op-id) (:content op-data) (:time op-time)
+              conj (as-snippets ss)
+                merge schema/snippet $ {} (:id op-id) (:content op-data) (:time op-time)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
         'create-file $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn create-file (db url kind sid op-id op-time)
             update db :snippets $ fn (ss)
-              conj ss $ merge schema/snippet $ {} (:id op-id) (:content url) (:time op-time) (:type kind) (:url url)
+              conj (as-snippets ss)
+                merge schema/snippet $ {} (:id op-id) (:content url) (:time op-time) (:type kind) (:url url)
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Dynamic 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
         'remove-one $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn remove-one (db snippet-id sid op-id op-time)
             update db :snippets $ fn (snippets)
-              filter-not snippets $ fn (s)
-                = snippet-id $ &map:get s :id
+              filter-not (as-snippets snippets)
+                fn (s)
+                  = snippet-id $ &map:get s :id
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.snippet
           :require $ [] app.schema :as schema
     'app.updater.user $ %{} 'FileEntry
       :defs $ {}
+        'as-map $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn as-map (value)
+            unsafe-coerce value $ :: 'Map 'Tag 'Dynamic
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
+            :return $ :: 'Map 'Tag 'Dynamic
+        'as-users $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn as-users (value)
+            unsafe-coerce value $ :: 'Map 'Dynamic $ :: 'Map 'Tag 'Dynamic
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] 'Dynamic
+            :features $ #{} :js-ffi
+            :return $ :: 'Map 'Dynamic $ :: 'Map 'Tag 'Dynamic
         'log-in $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn log-in (db op-data sid op-id op-time)
             let-sugar
                   [] username password
                   , op-data
                 maybe-user $ ->
-                  unsafe-coerce
-                    option:unwrap-or (get db :users) {}
-                    , 'Map
+                  as-users $ option:unwrap-or (get db :users) ({})
                   vals
                   , &set:to-list $ find
                     fn (user)
                       and $ = username $ option:unwrap-or (get user :name) |unknown
               update-in db ([] :sessions sid)
                 fn (session?)
-                  if (option:some? maybe-user)
+                  as-map $ if (option:some? maybe-user)
                     if
                       = (md5 password)
                         option:unwrap-or
-                          get (option:unwrap-or maybe-user {}) :password
+                          get (unwrap-user maybe-user) :password
                           , |unknown
-                      assoc (option:unwrap-or session? {}) :user-id $ option:unwrap-or
-                        get (option:unwrap-or maybe-user {}) :id
-                        , |unknown
-                      assoc (option:unwrap-or session? {}) :messages $ assoc
+                      assoc
+                        as-map $ option:unwrap-or session? {}
+                        , :user-id $ option:unwrap-or
+                          get (unwrap-user maybe-user) :id
+                          , |unknown
+                      assoc
+                        as-map $ option:unwrap-or session? {}
+                        , :messages $ assoc
+                          option:unwrap-or
+                            get
+                              as-map $ option:unwrap-or session? {}
+                              , :messages
+                            , {}
+                          , op-id $ {} (:id op-id)
+                            :text $ str "|Wrong password for " username
+                    assoc
+                      as-map $ option:unwrap-or session? {}
+                      , :messages $ assoc
                         option:unwrap-or
-                          get (option:unwrap-or session? {}) :messages
+                          get
+                            as-map $ option:unwrap-or session? {}
+                            , :messages
                           , {}
                         , op-id $ {} (:id op-id)
-                          :text $ str "|Wrong password for " username
-                    assoc (option:unwrap-or session? {}) :messages $ assoc
-                      option:unwrap-or
-                        get (option:unwrap-or session? {}) :messages
-                        , {}
-                      , op-id $ {} (:id op-id)
-                        :text $ str "|Wrong password for " username
-                  assoc (option:unwrap-or session? {}) :messages $ assoc
-                    option:unwrap-or
-                      get (option:unwrap-or session? {}) :messages
-                      , {}
-                    , op-id $ {} (:id op-id)
-                      :text $ str "|No user named: " username
+                          :text $ str "|No user named: " username
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
         'log-out $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn log-out (db op-data session-id op-id op-time)
             assoc-in db ([] :sessions session-id :user-id) nil
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
         'sign-up $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn sign-up (db op-data sid op-id op-time)
             let-sugar
@@ -1516,9 +1747,7 @@
                 password $ option:unwrap-or (nth op-data 1) |unknown
                 maybe-user $ find
                   ->
-                    unsafe-coerce
-                      option:unwrap-or (get db :users) {}
-                      , 'Map
+                    as-users $ option:unwrap-or (get db :users) ({})
                     vals
                     , &set:to-list
                   fn (user)
@@ -1526,7 +1755,7 @@
               if (option:some? maybe-user)
                 update-in db ([] :sessions sid :messages)
                   fn (messages?)
-                    assoc (option:unwrap-or messages? {}) op-id $ {} (:id op-id)
+                    as-map $ assoc (option:unwrap-or messages? {}) op-id $ {} (:id op-id)
                       :text $ str "|Name is taken: " username
                 -> db
                   assoc-in ([] :sessions sid :user-id) op-id
@@ -1535,7 +1764,16 @@
                       :password $ md5 password
                       :avatar nil
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Fn $ {}
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :return $ :: 'Map 'Tag 'Dynamic
+        'unwrap-user $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn unwrap-user (value)
+            option:unwrap-or value $ assert-type ({}) (:: 'Map 'Tag 'Dynamic)
+          :examples $ []
+          :schema $ :: 'Fn $ {}
+            :args $ [] $ :: 'Option (:: 'Map 'Tag 'Dynamic)
+            :return $ :: 'Map 'Tag 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.user
           :require $ calcit.std.hash :refer $ md5
