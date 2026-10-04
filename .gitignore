@@ -5,6 +5,8 @@
 js-out/
 node_modules/
 dist/
+dist-server/
+.calcit/
 
 storage*.cirru
 backups/
@@ -14,4 +16,3 @@ yarn-error.log
 .DS_Store
 
 .yarn/*.gz
-
