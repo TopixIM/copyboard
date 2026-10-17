@@ -26,25 +26,6 @@
           :code $ quote $ defref *store (:: :initial)
           :examples $ []
           :schema $ :: 'Ref 'Dynamic
-        'Clipboard $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ deftrait Clipboard
-            :readText $ :: 'Fn $ {}
-              :args $ []
-              :return 'Dynamic
-          :examples $ []
-          :ffi $ {} (:backend :js) (:kind :external-object)
-          :schema $ :: 'Trait
-        'ClipboardPromise $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ deftrait ClipboardPromise
-            :then $ :: 'Fn $ {}
-              :args $ [] 'Dynamic
-              :return 'Dynamic
-            :catch $ :: 'Fn $ {}
-              :args $ [] 'Dynamic
-              :return 'Dynamic
-          :examples $ []
-          :ffi $ {} (:backend :js) (:kind :external-object)
-          :schema $ :: 'Trait
         'UrlHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait UrlHost (:query 'app.client/UrlQueryHost)
           :examples $ []
@@ -60,12 +41,12 @@
         'connect! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn connect! ()
             let
-                url-obj $ unsafe-coerce (url-parse js/location.href true) 'app.client/UrlHost
-                query $ unsafe-coerce (.-query url-obj) ('app.client/UrlQueryHost)
+                url-obj $ js-cast (url-parse js/location.href true) 'app.client/UrlHost
+                query $ .-query url-obj
                 raw-host $ .-host query
                 raw-port $ .-port query
-                host $ if (js-present? raw-host) (unsafe-coerce raw-host 'String) js/location.hostname
-                port $ if (js-present? raw-port) (unsafe-coerce raw-port 'String)
+                host $ if (js-present? raw-host) (decode-map-as raw-host 'String) js/location.hostname
+                port $ if (js-present? raw-port) (decode-map-as raw-port 'String)
                   option:unwrap-or (get config/site :port) 11006
               ws-connect!
                 if config/dev? (str |ws:// host |: port) |wss://cp.topix.im/ws
@@ -206,7 +187,10 @@
                   option:unwrap-or (get all-states :states) empty-states
                   {}
                 component-states $ if (map? nested-states) nested-states $ {}
-              render! mount-target (comp-container component-states @*store @*preview-data) dispatch!
+              render! mount-target (comp-container component-states @*store @*preview-data)
+                fn (op)
+                  if (enum? op) (dispatch! op) (raise "|Expected Copyboard operation Enum")
+                  , &unit
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
             :args $ []
@@ -519,6 +503,14 @@
                   :: 'Map 'Tag 'String
                 content $ option:unwrap-or (get state :content) |
                 send! $ fn (e d!)
+                  hint-fn $ {}
+                    :args $ [] (:: 'Map 'Tag 'Dynamic)
+                      :: 'Fn $ {}
+                        :args $ [] 'Dynamic
+                        :return 'Unit
+                        :rest 'Dynamic
+                    :return 'Unit
+                    :features $ #{} :js-ffi
                   when
                     not $ .blank? content
                     d! $ :: :snippet/create content
@@ -532,12 +524,28 @@
                   :placeholder "|Command Enter to send..."
                   :class-name $ str-spaced css/flex css/textarea schema/box-name
                   :on-input $ fn (e d!)
+                    hint-fn $ {}
+                      :args $ [] (:: 'Map 'Tag 'Dynamic)
+                        :: 'Fn $ {}
+                          :args $ [] 'Dynamic
+                          :return 'Unit
+                          :rest 'Dynamic
+                      :return 'Unit
+                      :features $ #{} :js-ffi
                     d! $ :: :states cursor $ assoc state :content
                       decode-map-as
                         option:unwrap-or (get e :value) |
                         , 'String
                     , &unit
                   :on-keydown $ fn (e d!)
+                    hint-fn $ {}
+                      :args $ [] (:: 'Map 'Tag 'Dynamic)
+                        :: 'Fn $ {}
+                          :args $ [] 'Dynamic
+                          :return 'Unit
+                          :rest 'Dynamic
+                      :return 'Unit
+                      :features $ #{} :js-ffi
                     when
                       and
                         = 13 $ option:unwrap-or (get e :keycode) 0
@@ -546,26 +554,34 @@
                       send! e d!
                     , &unit
                   :on-paste $ fn (e d!)
+                    hint-fn $ {}
+                      :args $ [] (:: 'Map 'Tag 'Dynamic)
+                        :: 'Fn $ {}
+                          :args $ [] 'Dynamic
+                          :return 'Unit
+                          :rest 'Dynamic
+                      :return 'Unit
+                      :features $ #{} :js-ffi
                     let
-                        event $ unsafe-coerce
+                        event $ js-cast
                           option:unwrap-or (get e :event) (js-object)
-                          'app.comp.home/ClipboardEvent
-                        clipboard-data $ unsafe-coerce (.-clipboardData event) ('app.comp.home/ClipboardData)
-                        files $ unsafe-coerce (.-files clipboard-data) ('app.comp.home/FileList)
+                          , 'app.comp.home/ClipboardEvent
+                        clipboard-data $ js-cast (.-clipboardData event) 'app.comp.home/ClipboardData
+                        files $ js-cast (.-files clipboard-data) 'app.comp.home/FileList
                       if
                         >
-                          unsafe-coerce (.-length files) 'Number
+                          decode-map-as (.-length files) 'Number
                           , 0
                         let
-                            file $ unsafe-coerce (.-0 files) ('app.comp.home/FileItem)
-                          upload-file! file user d! $ fn $ _e
+                            file $ js-cast (.-0 files) 'app.comp.home/FileItem
+                          upload-file! file user d! $ fn (_e) &unit
                     , &unit
               []
                 respo.schema/RespoListener :name :clipboard-listener :handler $ fn (event d!)
                   match event $
                     :clipboard/read text
                     when
-                      not $ .blank? $ unsafe-coerce text String
+                      not $ .blank? $ decode-map-as text 'String
                       .show-with-text confirm-plugin d!
                         str "|Clipboard content detected, would you like to fill it into the input box?\n" text
                         fn () $ d! $ :: :snippet/create text
@@ -578,6 +594,14 @@
                       a
                         {} (:style style/link)
                           :on-click $ fn (e d!)
+                            hint-fn $ {}
+                              :args $ [] (:: 'Map 'Tag 'Dynamic)
+                                :: 'Fn $ {}
+                                  :args $ [] 'Dynamic
+                                  :return 'Unit
+                                  :rest 'Dynamic
+                              :return 'Unit
+                              :features $ #{} :js-ffi
                             d! $ :: :states cursor $ assoc state :content |
                             , &unit
                         <> |Clear
@@ -586,22 +610,34 @@
                       a
                         {} (:style style/link)
                           :on-click $ fn (e d!)
-                            if (js-present? js/navigator.clipboard)
-                              let
-                                  clipboard $ unsafe-coerce js/navigator.clipboard $ 'app.client/Clipboard
-                                  promise $ unsafe-coerce (.!readText clipboard) ('app.client/ClipboardPromise)
-                                  result $ unsafe-coerce
-                                    .!then promise $ fn (text)
-                                      d! $ :: :states cursor $ assoc state :content text
-                                    'app.client/ClipboardPromise
-                                .!catch result $ fn (err) (js/console.error err) nil
-                              js/console.log "|navigator.clipboard not available."
+                            hint-fn $ {} (:async true) (:return 'Unit)
+                              :features $ #{} :js-ffi
+                              :args $ [] (:: 'Map 'Tag 'Dynamic)
+                                :: 'Fn $ {}
+                                  :args $ [] 'Dynamic
+                                  :return 'Unit
+                                  :rest 'Dynamic
+                            match
+                              js-await $ clipboard-read-text!
+                              (:ok text)
+                                d! $ :: :states cursor $ assoc state :content text
+                              (:err error) (js/console.warn |Clipboard-read-skipped error)
                             , &unit
                         <> |Read
                       =< 8 nil
                       button
                         {} (:style style/button)
-                          :on-click $ fn (e d!) (send! e d!) &unit
+                          :on-click $ fn (e d!)
+                            hint-fn $ {}
+                              :args $ [] (:: 'Map 'Tag 'Dynamic)
+                                :: 'Fn $ {}
+                                  :args $ [] 'Dynamic
+                                  :return 'Unit
+                                  :rest 'Dynamic
+                              :return 'Unit
+                              :features $ #{} :js-ffi
+                            send! e d!
+                            , &unit
                         <> |Send
                   .render confirm-plugin
           :examples $ []
@@ -717,11 +753,14 @@
           :code $ quote $ defn download-image! (url)
             hint-fn $ {} $ :async true
             let
+                url $ decode-map-as url 'String
                 blob $ js-await $ .!blob
                   js-await $ js/fetch url
                 object-url $ js/URL.createObjectURL blob
-                a-el $ unsafe-coerce (js/document.createElement |a) ('app.comp.home/AnchorElement)
-                name $ last $ split url |/
+                a-el $ js-cast (js/document.createElement |a) 'app.comp.home/AnchorElement
+                name $ option:unwrap-or
+                  last $ split url |/
+                  , |download
               set! (.-href a-el) object-url
               set! (.-download a-el) name
               .!setAttribute a-el |download name
@@ -729,8 +768,9 @@
               js/document.body.appendChild a-el
               .!click a-el
               .!remove a-el
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+          :schema $ :: 'Fn $ {} (:async true) (:return 'Unit)
             :args $ [] 'String
             :features $ #{} :js-ffi
         'home-props $ %{} 'CodeEntry (:doc |)
@@ -740,15 +780,31 @@
               :style $ {} (:padding "|12px 16px 240px 16px") (:overflow :auto)
                 :background-color $ hsl 0 0 97
               :on-dragover $ fn (e d!)
+                hint-fn $ {}
+                  :args $ [] (:: 'Map 'Tag 'Dynamic)
+                    :: 'Fn $ {}
+                      :args $ [] 'Dynamic
+                      :return 'Unit
+                      :rest 'Dynamic
+                  :return 'Unit
+                  :features $ #{} :js-ffi
                 let
-                    event $ unsafe-coerce
+                    event $ js-cast
                       option:unwrap-or (get e :event) (js-object)
                       , 'app.comp.home/DragEventHost
                   .prevent-default! event
                 , &unit
               :on-drop $ fn (e d!)
+                hint-fn $ {}
+                  :args $ [] (:: 'Map 'Tag 'Dynamic)
+                    :: 'Fn $ {}
+                      :args $ [] 'Dynamic
+                      :return 'Unit
+                      :rest 'Dynamic
+                  :return 'Unit
+                  :features $ #{} :js-ffi
                 let
-                    event $ unsafe-coerce
+                    event $ js-cast
                       option:unwrap-or (get e :event) (js-object)
                       , 'app.comp.home/DragEventHost
                     data-transfer $ .-data-transfer event
@@ -849,9 +905,8 @@
             app.style :as style
             respo-alerts.core :refer $ use-confirm
             feather.core :refer $ comp-i
-            |axios :default axios
-            |mime :default mime
             app.comp.upload :refer $ upload-file!
+            js-ffi.browser :refer $ clipboard-read-text!
     'app.comp.login $ %{} 'FileEntry
       :defs $ {}
         'comp-login $ %{} 'CodeEntry (:doc |)
@@ -1049,11 +1104,6 @@
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object)
           :schema $ :: 'Trait
-        'AxiosResponse $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ deftrait AxiosResponse (:data 'String)
-          :examples $ []
-          :ffi $ {} (:backend :js) (:kind :external-object)
-          :schema $ :: 'Trait
         'FileArray $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait FileArray
             :forEach $ :: 'Fn $ {}
@@ -1093,11 +1143,6 @@
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object)
           :schema $ :: 'Trait
-        'UploadProgress $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ deftrait UploadProgress (:loaded 'Number) (:total 'Number)
-          :examples $ []
-          :ffi $ {} (:backend :js) (:kind :external-object)
-          :schema $ :: 'Trait
         'comp-file-upload $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-file-upload (states user)
             let
@@ -1116,29 +1161,46 @@
                 {} $ :class-name css/row-middle
                 input $ {} (:type |file) (:id |upload-input) (:class-name style-hidden-input) (:multiple true)
                   :on-input $ fn (e d!)
+                    hint-fn $ {}
+                      :args $ [] (:: 'Map 'Tag 'Dynamic)
+                        :: 'Fn $ {}
+                          :args $ [] 'Dynamic
+                          :return 'Unit
+                          :rest 'Dynamic
+                      :return 'Unit
+                      :features $ #{} :js-ffi
                     let
-                        event $ unsafe-coerce
+                        event $ js-cast
                           option:unwrap-or (get e :event) (js-object)
                           , 'app.comp.upload/InputEvent
-                        target $ unsafe-coerce (.-target event) ('app.comp.upload/InputElement)
-                        files $ unsafe-coerce (.-files target) ('app.comp.upload/FileList)
-                        files-array $ unsafe-coerce (js/Array.from files) ('app.comp.upload/FileArray)
+                        target $ js-cast (.-target event) 'app.comp.upload/InputElement
+                        files $ js-cast (.-files target) 'app.comp.upload/FileList
+                        files-array $ js-cast (js/Array.from files) 'app.comp.upload/FileArray
                       .!forEach files-array $ fn (file & _a)
                         if
                           <
-                            unsafe-coerce (.-size file) 'Number
+                            decode-map-as (.-size file) 'Number
                             , 100000000
                           upload-file! file user d! $ fn (next)
                             d! $ :: :states cursor next
+                            , &unit
                           js/console.warn "|File too large"
                         , nil
-                      set! (.-value target) nil
+                      set! (.-value target) |
                     , &unit
                 a
                   {} (:class-name css/link)
                     :style $ {} $ :color (hsl 200 90 70)
                     :on-click $ fn (e d!)
-                      .!click $ unsafe-coerce (js/document.querySelector |#upload-input) ('app.comp.upload/InputElement)
+                      hint-fn $ {}
+                        :args $ [] (:: 'Map 'Tag 'Dynamic)
+                          :: 'Fn $ {}
+                            :args $ [] 'Dynamic
+                            :return 'Unit
+                            :rest 'Dynamic
+                        :return 'Unit
+                        :features $ #{} :js-ffi
+                      .!click $ js-cast (js/document.querySelector |#upload-input) 'app.comp.upload/InputElement
                       , &unit
                   <> |Upload
                 if uploading? $ span
@@ -1172,39 +1234,50 @@
           :schema $ :: 'Dynamic
         'upload-file! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn upload-file! (file user d! mutate!)
-            hint-fn $ {} (:async true)
-              :features $ #{} :js-ffi
             let
+                client $ js-cast upload-client 'app.comp.upload/AxiosClient
+                file $ js-cast file 'app.comp.upload/FileItem
+                user $ decode-map-as user $ :: 'Map 'Tag 'Dynamic
                 hash $ js-await $ load-md5 file
                 file-key $ str hash |/ $ decorate-name
                   either
-                    unsafe-coerce (.-name file) 'String
+                    decode-map-as (.-name file) 'String
                     , |clipboard.jpg
-                res $ js-await $ .!post (unsafe-coerce axios 'app.comp.upload/AxiosClient) |https://cp.topix.im/token
+                res $ js-await $ .!post client |https://cp.topix.im/token
                   format-cirru-edn $ {}
                     :user $ option:unwrap-or (get user :name) |
                     :pass $ option:unwrap-or (get user :token) |
                     :file-key file-key
                   js-object $ :onUploadProgress $ fn (event)
                     let
-                        percent $ /
-                          unsafe-coerce (.-loaded event) 'Number
-                          unsafe-coerce (.-total event) 'Number
-                      mutate! $ {} $ :uploading percent
+                        loaded $ decode-map-as (.-loaded event) 'Number
+                        raw-total $ .-total event
+                      when (js-present? raw-total)
+                        let
+                            total $ decode-map-as raw-total 'Number
+                          when (> total 0)
+                            mutate! $ {} $ :uploading (/ loaded total)
+                    , &unit
                 presigned-url $ option:unwrap-or
                   get
-                    parse-cirru-edn $ unsafe-coerce (.-data res) 'String
+                    parse-cirru-edn $ decode-map-as (.-data res) 'String
                     , :url
                   , |
-                ret $ js-await $ .!put (unsafe-coerce axios 'app.comp.upload/AxiosClient) presigned-url file
+                ret $ js-await $ .!put client presigned-url file
                   js-object $ :headers $ js-object
-                    |Content-Type $ .!getType (unsafe-coerce mime 'app.comp.upload/MimeClient) file-key
+                    |Content-Type $ .!getType (js-cast mime 'app.comp.upload/MimeClient) file-key
               js/console.log "|Upload result:" ret
               d! $ :: :snippet/create-file (str |https://cos-sh.tiye.me/cos-up/ file-key) :file
               mutate! $ {} $ :uploading nil
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Dynamic)
-            :args $ [] 'Dynamic 'Dynamic 'Dynamic 'Dynamic
+          :schema $ :: 'Fn $ {} (:async true) (:return 'Unit)
+            :args $ [] 'Dynamic 'Dynamic
+              :: 'Fn $ {} (:rest 'Dynamic) (:return 'Unit)
+                :args $ [] 'Dynamic
+              :: 'Fn $ {} (:return 'Unit)
+                :args $ [] $ :: 'Map 'Tag 'Dynamic
+                :features $ #{} :js-ffi
             :features $ #{} :js-ffi
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.upload
@@ -1220,10 +1293,10 @@
             app.style :as style
             respo-alerts.core :refer $ use-confirm
             feather.core :refer $ comp-i
-            |axios :default axios
             |mime :default mime
-            |../lib/md5 :refer $ load-md5
             js-ffi.shared :refer $ date-now-snapshot
+            |../lib/md5.mjs :refer $ load-md5
+            |../lib/upload-client.mjs :default upload-client
     'app.config $ %{} 'FileEntry
       :defs $ {}
         'dev? $ %{} 'CodeEntry (:doc |)
@@ -1356,9 +1429,11 @@
             println "|Running mode:" $ if config/dev? |dev |release
             let
                 p? $ get-env |port
-                port $ if (option:some? p?)
-                  parse-float $ option:unwrap-or p? |0
-                  option:unwrap-or (get config/site :port) 11006
+                port $ decode-map-as
+                  if (option:some? p?)
+                    parse-float $ option:unwrap-or p? |0
+                    option:unwrap-or (get config/site :port) 11006
+                  , 'Number
               run-server! port
               println $ str "|Server started on port:" port
             ; "|init it before doing multi-threading"
@@ -1366,8 +1441,9 @@
             set-interval 200 $ fn () $ render-loop!
             set-interval 600000 $ fn () $ persist-db!
             on-control-c on-exit!
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'FfiTask)
+          :schema $ :: 'Fn $ {} (:return 'Unit)
             :args $ []
         'on-exit! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-exit! () (persist-db!) (; println "|exit code is...") (quit! 0)
@@ -1419,8 +1495,9 @@
               not $ identical? @*reader-reel @*reel
               reset! *reader-reel @*reel
               sync-clients! @*reader-reel
+            , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Dynamic)
+          :schema $ :: 'Fn $ {} (:return 'Unit)
             :args $ []
         'run-server! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn run-server! (port)
@@ -1439,6 +1516,7 @@
                     do (println "|Client closed!")
                       dispatch! (:: :session/disconnect) sid
                   _ $ println "|unknown data:" data
+                , &unit
             http.core/serve-http!
               {}
                 :port $ option:unwrap-or (get config/site :http-port) 11030
