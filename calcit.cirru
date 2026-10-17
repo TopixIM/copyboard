@@ -479,7 +479,10 @@
           :ffi $ {} (:backend :js) (:kind :external-object)
           :schema $ :: 'Trait
         'FileList $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ deftrait FileList (:length 'Number) (:0 'app.comp.home/FileItem)
+          :code $ quote $ deftrait FileList (:length 'Number)
+            .item $ :: 'Fn $ {}
+              :args $ [] 'app.comp.home/FileList 'Number
+              :return $ :: 'JsNullish 'app.comp.home/FileItem
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object)
           :schema $ :: 'Trait
@@ -568,12 +571,9 @@
                           , 'app.comp.home/ClipboardEvent
                         clipboard-data $ js-cast (.-clipboardData event) 'app.comp.home/ClipboardData
                         files $ js-cast (.-files clipboard-data) 'app.comp.home/FileList
-                      if
-                        >
-                          decode-map-as (.-length files) 'Number
-                          , 0
-                        let
-                            file $ js-cast (.-0 files) 'app.comp.home/FileItem
+                      let
+                          file $ .item files 0
+                        when (js-present? file)
                           upload-file! file user d! $ fn (_e) &unit
                     , &unit
               []
@@ -743,7 +743,7 @@
                 new js/ClipboardItem $ let
                     obj $ js-object
                   aset obj (.-type blob) blob
-                  w-js-log obj
+                  , obj
               println "|copied blob"
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Dynamic)
@@ -974,8 +974,10 @@
           :code $ quote $ defn on-submit (username password signup?)
             fn (e dispatch!)
               dispatch! $ :: (if signup? :user/sign-up :user/log-in) ([] username password)
-              js/localStorage.setItem
-                option:unwrap-or (get config/site :storage-key) |copyboard
+              storage-set!
+                decode-map-as
+                  option:unwrap-or (get config/site :storage-key) |copyboard
+                  , 'String
                 format-cirru-edn $ [] username password
               , &unit
           :examples $ []
@@ -994,6 +996,7 @@
             app.config :as config
             respo.css :refer $ defstyle
             respo-ui.css :as css
+            js-ffi.browser :refer $ storage-set!
     'app.comp.navigation $ %{} 'FileEntry
       :defs $ {}
         'comp-navigation $ %{} 'CodeEntry (:doc |)
@@ -1076,7 +1079,9 @@
                       :padding "|0 8px"
                     :on-click $ fn (e dispatch!)
                       dispatch! $ :: :user/log-out nil
-                      .removeItem js/localStorage $ option:unwrap-or (get config/site :storage-key) |copyboard
+                      storage-remove! $ decode-map-as
+                        option:unwrap-or (get config/site :storage-key) |copyboard
+                        , 'String
                       , &unit
                   <> "|Log out" nil
           :examples $ []
@@ -1091,6 +1096,7 @@
             respo-ui.core :as ui
             respo.core :refer $ defcomp list-> <> span div a
             respo.comp.space :refer $ =<
+            js-ffi.browser :refer $ storage-remove!
     'app.comp.upload $ %{} 'FileEntry
       :defs $ {}
         'AxiosClient $ %{} 'CodeEntry (:doc |)
@@ -1438,8 +1444,8 @@
               println $ str "|Server started on port:" port
             ; "|init it before doing multi-threading"
             identity @*reader-reel
-            set-interval 200 $ fn () $ render-loop!
-            set-interval 600000 $ fn () $ persist-db!
+            set-interval! 200 $ fn () $ render-loop!
+            set-interval! 600000 $ fn () $ persist-db!
             on-control-c on-exit!
             , &unit
           :examples $ []
@@ -1572,7 +1578,7 @@
             wss.core :refer $ wss-serve! wss-send! wss-each!
             app.$meta :refer $ calcit-dirname
             calcit.std.fs :refer $ path-exists? check-write-file!
-            calcit.std.time :refer $ set-interval
+            calcit.std.time :refer $ set-interval!
             calcit.std.date :refer $ extract-time get-timestamp get-time!
             calcit.std.path :refer $ join-path
     'app.style $ %{} 'FileEntry
@@ -1839,7 +1845,7 @@
                 password $ .unwrap $ nth op-data 1
                 maybe-user $ ->
                   as-users $ option:unwrap-or (get db :users) ({})
-                  vals
+                  distinct-values
                   , &set:to-list $ find
                     fn (user)
                       and $ = username $ option:unwrap-or (get user :name) |unknown
@@ -1895,7 +1901,7 @@
                 maybe-user $ find
                   ->
                     as-users $ option:unwrap-or (get db :users) ({})
-                    vals
+                    distinct-values
                     , &set:to-list
                   fn (user)
                     = username $ option:unwrap-or (get user :name) |unknown

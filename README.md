@@ -9,14 +9,15 @@ Copyboard
 Requires the published Calcit/procs 0.30.1-alpha.4 pair (prerelease, not
 stable 0.30.1), Node.js 24+, and Yarn 4.18.0.
 
-迁移分支目前通过客户端入口 326 个可达定义、服务端入口 70 个可达定义的类型检查（均含依赖），
-客户端 JS 生成和生产构建通过。服务端前一阶段的 47 个公开定义、原 HTTP/WebSocket smoke 已通过，
-本阶段重新运行的删除片段回归也通过。主要组件已迁移为单 Enum 回调，复用正式剪贴板和存储接口。
-完整 strict 现已通过；上传 SDK、粘贴事件、下载参数和服务端回调边界已迁移，原 HTTP/WebSocket
-smoke 再次通过。人工文件配合 Axios mock 验证了总量缺失/零值/有效进度、token/PUT/CDN 原路径，
-不调用生产上传接口。四个不再使用的旧 FFI 声明已退役。浏览器及前后端联调仍未完成，不能据此部署
-或认定整个项目迁移通过。Axios callable 导出与受检宿主转换的限制记录于 Calcit #2153；
-当前通过很小的 JS 委托对象保留 Axios 已绑定方法及既有配置，不使用 unsafe 绕过。
+主要组件已迁移为单 Enum 回调，并复用正式剪贴板和存储接口。完整 strict、客户端 75 个公开定义、
+服务端 47 个公开定义、原 HTTP/WebSocket smoke 和删除片段回归通过。人工数据的真实浏览器联调
+覆盖登录、创建、删除确认、Profile、退出及刷新后保持退出；同时修复空 FileList 粘贴和残留登录凭据。
+上传/下载函数通过人工文件及 Axios mock 验证，不调用生产上传接口。四个闲置 FFI 声明已退役。
+Axios callable 导出限制记录于 Calcit #2153；小型 JS 委托对象保留其已绑定方法和既有配置，不用 unsafe 绕过。
+
+这是前后端工具链配套迁移，部署前须准备匹配的 Calcit、正式 native 模块及 Node 环境；本地验收
+不能替代 CI/COS 或生产验收。存储键、协议地址、上传地址和既有服务器路径不变，不自动重写旧存储。
+开放数据库 Map、混合 UI 游标等 Dynamic 边界仍保留，strict 通过不代表全部数据已变为闭合类型。
 
 ```bash
 caps --ci
