@@ -1223,47 +1223,36 @@
     'app.server $ %{} 'FileEntry
       :defs $ {}
         '*client-caches $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *client-caches ({})
+          :code $ quote $ defref *client-caches ({})
           :examples $ []
-          :schema $ :: 'Dynamic
+          :schema $ :: 'Ref $ :: 'Map 'Number (:: 'Map 'Tag 'Dynamic)
         '*initial-db $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *initial-db
+          :code $ quote $ defref *initial-db
             if
-              path-exists? $ w-log storage-file
+              path-exists? $ dbg storage-file
               do (println "|Found local EDN data")
-                merge schema/database $ assert-type
+                merge schema/database $ decode-map-as
                   parse-cirru-edn $ read-file storage-file
                   :: 'Map 'Tag 'Dynamic
               do (println "|Found no data") schema/database
           :examples $ []
           :schema $ :: 'Ref $ :: 'Map 'Tag 'Dynamic
         '*reader-reel $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *reader-reel @*reel
+          :code $ quote $ defref *reader-reel @*reel
           :examples $ []
-          :schema $ :: 'Ref 'cumulo-reel.core/ReelState
+          :schema $ :: 'Ref $ :: 'cumulo-reel.core/ReelState (:: 'Map 'Tag 'Dynamic)
         '*reel $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defatom *reel
-            %{} cumulo-reel.core/ReelState (:base @*initial-db) (:db @*initial-db)
-              :records $ []
-              :merged? false
+          :code $ quote $ defref *reel
+            cumulo-reel.core/ReelState :base @*initial-db :db @*initial-db :records ([]) :merged? false
           :examples $ []
-          :schema $ :: 'Ref 'cumulo-reel.core/ReelState
-        'as-change-list $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn as-change-list (value)
-            unsafe-coerce value $ :: 'List 'recollect.schema/change-op
-          :examples $ []
-          :schema $ :: 'Fn $ {}
-            :args $ [] 'Dynamic
-            :features $ #{} :js-ffi
-            :return $ :: 'List 'recollect.schema/change-op
+          :schema $ :: 'Ref $ :: 'cumulo-reel.core/ReelState (:: 'Map 'Tag 'Dynamic)
         'as-list $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-list (value)
-            unsafe-coerce value $ :: 'List 'Dynamic
+            decode-map-as value $ :: 'List $ :: 'Map 'Tag 'Dynamic
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] 'Dynamic
-            :features $ #{} :js-ffi
-            :return $ :: 'List 'Dynamic
+            :return $ :: 'List $ :: 'Map 'Tag 'Dynamic
         'current-date! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn current-date! ()
             unsafe-coerce
@@ -1325,7 +1314,7 @@
         'on-request! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-request! (req)
             let
-                reel $ unsafe-coerce @*reel 'cumulo-reel.core/ReelState
+                reel @*reel
                 db $ :db reel
                 empty-snippets $ []
                 snippets $ ->
@@ -1338,21 +1327,20 @@
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] 'Dynamic
-            :features $ #{} :js-ffi
             :return $ :: 'Map 'Tag 'Dynamic
         'persist-db! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn persist-db! ()
             let
-                reel $ unsafe-coerce @*reel 'cumulo-reel.core/ReelState
+                reel @*reel
                 file-content $ format-cirru-edn $ assoc (:db reel) :sessions ({})
                 storage-path storage-file
                 backup-path $ get-backup-path!
               check-write-file! storage-path file-content
               check-write-file! backup-path file-content
+            , &unit
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'Unit)
             :args $ []
-            :features $ #{} :js-ffi
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! () (println |Code_updated)
             if (not config/dev?) (raise |reloading_only_happens_in_dev_mode)
@@ -1407,28 +1395,30 @@
           :code $ quote $ defn sync-clients! (reel)
             wss-each! $ fn (sid)
               let
-                  reel-state $ unsafe-coerce reel 'cumulo-reel.core/ReelState
+                  reel-state reel
                   db $ :db reel-state
                   records $ :records reel-state
                   session $ option:unwrap-or
                     get-in db $ [] :sessions sid
                     {}
-                  old-store $ option:unwrap-or
+                  old-store $ match
                     get (deref *client-caches) sid
-                    , nil
-                  new-store $ twig-container db session records
-                  changes $ as-change-list $ diff-twig old-store new-store
-                    {} $ :key :id
+                    (:none) nil
+                    (:some previous) previous
+                  new-store $ twig-container db
+                    decode-map-as session $ :: 'Map 'Tag 'Dynamic
+                    , records
+                  changes $ diff-twig old-store new-store $ {} (:key :id)
                 ; when config/dev? $ println "|Changes for" sid |: changes $ count records
                 if
                   not $ empty? changes
                   do
                     wss-send! sid $ format-cirru-edn $ :: :patch changes
                     swap! *client-caches assoc sid new-store
+              , &unit
           :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'Dynamic)
-            :args $ [] 'cumulo-reel.core/ReelState
-            :features $ #{} :js-ffi
+          :schema $ :: 'Fn $ {} (:return 'Unit)
+            :args $ [] $ :: 'cumulo-reel.core/ReelState (:: 'Map 'Tag 'Dynamic)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.server
           :require (app.schema :as schema)
@@ -1462,51 +1452,52 @@
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.style
           :require
-            [] respo-ui.core :refer $ [] hsl
-            [] respo-ui.core :as ui
+            respo-ui.core :refer $ hsl
+            respo-ui.core :as ui
     'app.twig.container $ %{} 'FileEntry
       :defs $ {}
         'as-tag-map $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-tag-map (value)
-            unsafe-coerce value $ :: 'Map 'Tag 'Dynamic
+            decode-map-as value $ :: 'Map 'Tag 'Dynamic
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] 'Dynamic
-            :features $ #{} :js-ffi
             :return $ :: 'Map 'Tag 'Dynamic
         'twig-container $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn twig-container (db session records)
             let
-                user-id $ option:unwrap-or (get session :user-id) nil
+                user-id $ .unwrap-or (get session :user-id) nil
                 logged-in? $ not $ nil? user-id
-                router $ option:unwrap-or (get session :router) ({})
+                router $ as-tag-map $ .unwrap-or (get session :router) ({})
+                sessions $ decode-map-as
+                  .unwrap-or (get db :sessions) ({})
+                  :: 'Map 'Dynamic $ :: 'Map 'Tag 'Dynamic
+                users $ decode-map-as
+                  .unwrap-or (get db :users) ({})
+                  :: 'Map 'Dynamic $ :: 'Map 'Tag 'Dynamic
+                show-all? $ decode-map-as
+                  .unwrap-or (get session :show-all?) false
+                  , 'Bool
+                all-snippets $ decode-map-as
+                  .unwrap-or (get db :snippets) ([])
+                  :: 'List $ :: 'Map 'Tag 'Dynamic
                 base-data $ {} (:logged-in? logged-in?) (:session session)
-                  :count $ option:unwrap-or (get db :count) 0
+                  :count $ decode-map-as
+                    .unwrap-or (get db :count) 0
+                    , 'Number
                   :reel-length $ count records
-                snippets $ if
-                  option:unwrap-or (get session :show-all?) false
-                  option:unwrap-or (get db :snippets) ({})
-                  ->
-                    unsafe-coerce
-                      option:unwrap-or (get db :snippets) []
-                      , 'List
-                    take-last 12
-                    with-cpu-time
-              merge base-data $ as-tag-map $ if logged-in?
+                snippets $ if show-all? all-snippets $ with-cpu-time (take-last all-snippets 12)
+              merge base-data $ if logged-in?
                 {}
-                  :user $ twig-user $ option:unwrap-or
-                    get-in db $ [] :users user-id
-                    {}
-                  :router $ assoc router :data $ case-default
-                    option:unwrap-or (get router :name) nil
-                    {}
-                    :profile $ twig-members
-                      option:unwrap-or (get db :sessions) ({})
-                      option:unwrap-or (get db :users) ({})
-                  :count $ count $ option:unwrap-or (get db :sessions) ({})
+                  :user $ twig-user $ .unwrap-or (get users user-id) ({})
+                  :router $ assoc router :data $ match
+                    .unwrap-or (get router :name) nil
+                    :profile $ twig-members sessions users
+                    _ $ {}
+                  :count $ count sessions
                   :color $ rand-hex-color!
                   :snippets snippets
-                  :show-all? $ option:unwrap-or (get session :show-all?) false
+                  :show-all? show-all?
                 {}
           :examples $ []
           :schema $ :: 'Fn $ {}
@@ -1516,11 +1507,13 @@
         'twig-members $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn twig-members (sessions users)
             filter-map-kv sessions $ fn (k session)
-              %:: MapEntryDecision :keep k $ option:unwrap-or
-                get-in users $ []
-                  option:unwrap-or (get session :user-id) nil
-                  , :name
-                , |unknown
+              MapEntryDecision :keep k $ decode-map-as
+                .unwrap-or
+                  get-in users $ []
+                    .unwrap-or (get session :user-id) nil
+                    , :name
+                  , |unknown
+                , 'String
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ []
@@ -1549,25 +1542,32 @@
             match op
               (:session/connect) (session/connect db sid op-id op-time)
               (:session/disconnect) (session/disconnect db sid op-id op-time)
-              (:user/log-in op-data) (user/log-in db op-data sid op-id op-time)
-              (:user/sign-up op-data) (user/sign-up db op-data sid op-id op-time)
+              (:user/log-in op-data)
+                user/log-in db
+                  decode-map-as op-data $ :: 'List 'String
+                  , sid op-id op-time
+              (:user/sign-up op-data)
+                user/sign-up db
+                  decode-map-as op-data $ :: 'List 'String
+                  , sid op-id op-time
               (:user/log-out op-data) (user/log-out db op-data sid op-id op-time)
               (:session/remove-message op-data) (session/remove-message db op-data sid op-id op-time)
               (:router/change op-data) (router/change db op-data sid op-id op-time)
-              (:snippet/create op-data) (snippet/create db op-data sid op-id op-time)
-              (:snippet/create-file url kind) (snippet/create-file db url kind sid op-id op-time)
-              (:snippet/remove-one op-data) (snippet/remove-one db op-data sid op-id op-time)
+              (:snippet/create op-data)
+                snippet/create db (decode-map-as op-data 'String) sid op-id op-time
+              (:snippet/create-file url kind)
+                snippet/create-file db (decode-map-as url 'String) (decode-map-as kind 'Tag) sid op-id op-time
+              (:snippet/remove-one op-data)
+                snippet/remove-one db (decode-map-as op-data 'String) sid op-id op-time
               (:session/show-all op-data) (session/show-all db op-data sid op-id op-time)
-              (:preview/load snippets) (:: :preview snippets)
               _ $ do (eprintln "|Unknown op:" op) db
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] (:: 'Map 'Tag 'Dynamic) 'Enum 'Number 'String 'Number
-            :features $ #{} :js-ffi
             :return $ :: 'Map 'Tag 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater
-          :require ([] app.updater.session :as session) ([] app.updater.user :as user) ([] app.updater.router :as router) ([] app.updater.snippet :as snippet)
+          :require (app.updater.session :as session) (app.updater.user :as user) (app.updater.router :as router) (app.updater.snippet :as snippet)
     'app.updater.router $ %{} 'FileEntry
       :defs $ {} $ 'change
         %{} 'CodeEntry (:doc |)
@@ -1583,11 +1583,10 @@
       :defs $ {}
         'as-map $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-map (value)
-            unsafe-coerce value $ :: 'Map 'Tag 'Dynamic
+            decode-map-as value $ :: 'Map 'Tag 'Dynamic
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] 'Dynamic
-            :features $ #{} :js-ffi
             :return $ :: 'Map 'Tag 'Dynamic
         'connect $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn connect (db session-id op-id op-time)
@@ -1625,16 +1624,15 @@
             :return $ :: 'Map 'Tag 'Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.session
-          :require $ [] app.schema :as schema
+          :require $ app.schema :as schema
     'app.updater.snippet $ %{} 'FileEntry
       :defs $ {}
         'as-snippets $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-snippets (value)
-            unsafe-coerce value $ :: 'List $ :: 'Map 'Tag 'Dynamic
+            decode-map-as value $ :: 'List $ :: 'Map 'Tag 'Dynamic
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] 'Dynamic
-            :features $ #{} :js-ffi
             :return $ :: 'List $ :: 'Map 'Tag 'Dynamic
         'create $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn create (db op-data sid op-id op-time)
@@ -1643,7 +1641,7 @@
                 merge schema/snippet $ {} (:id op-id) (:content op-data) (:time op-time)
           :examples $ []
           :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'String 'Number 'String 'Number
             :return $ :: 'Map 'Tag 'Dynamic
         'create-file $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn create-file (db url kind sid op-id op-time)
@@ -1652,44 +1650,53 @@
                 merge schema/snippet $ {} (:id op-id) (:content url) (:time op-time) (:type kind) (:url url)
           :examples $ []
           :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Dynamic 'Number 'String 'Number
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'String 'Tag 'Number 'String 'Number
             :return $ :: 'Map 'Tag 'Dynamic
         'remove-one $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn remove-one (db snippet-id sid op-id op-time)
             update db :snippets $ fn (snippets)
               filter-not (as-snippets snippets)
                 fn (s)
-                  = snippet-id $ &map:get s :id
+                  = snippet-id $ .unwrap-or (get s :id) nil
           :examples $ []
           :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :args $ [] (:: 'Map 'Tag 'Dynamic) 'String 'Number 'String 'Number
             :return $ :: 'Map 'Tag 'Dynamic
+          :tests $ [] $ %{} 'TestEntry (:name |remove-matching-id)
+            :code $ quote $ =
+              [] $ {} $ :id |keep
+              .unwrap $ get
+                remove-one
+                  {} $ :snippets $ []
+                    {} $ :id |drop
+                    {} $ :id |keep
+                  , |drop 1 |op 0
+                , :snippets
+            :tags $ #{} :unit
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.snippet
-          :require $ [] app.schema :as schema
+          :require $ app.schema :as schema
     'app.updater.user $ %{} 'FileEntry
       :defs $ {}
         'as-map $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-map (value)
-            unsafe-coerce value $ :: 'Map 'Tag 'Dynamic
+            decode-map-as value $ :: 'Map 'Tag 'Dynamic
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] 'Dynamic
-            :features $ #{} :js-ffi
             :return $ :: 'Map 'Tag 'Dynamic
         'as-users $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-users (value)
-            unsafe-coerce value $ :: 'Map 'Dynamic $ :: 'Map 'Tag 'Dynamic
+            decode-map-as value $ :: 'Map 'Dynamic $ :: 'Map 'Tag 'Dynamic
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] 'Dynamic
-            :features $ #{} :js-ffi
             :return $ :: 'Map 'Dynamic $ :: 'Map 'Tag 'Dynamic
         'log-in $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn log-in (db op-data sid op-id op-time)
-            let-sugar
-                  [] username password
-                  , op-data
+            let
+                username $ .unwrap $ nth op-data 0
+                password $ .unwrap $ nth op-data 1
                 maybe-user $ ->
                   as-users $ option:unwrap-or (get db :users) ({})
                   vals
@@ -1731,7 +1738,7 @@
                           :text $ str "|No user named: " username
           :examples $ []
           :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'List 'String) 'Number 'String 'Number
             :return $ :: 'Map 'Tag 'Dynamic
         'log-out $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn log-out (db op-data session-id op-id op-time)
@@ -1742,7 +1749,7 @@
             :return $ :: 'Map 'Tag 'Dynamic
         'sign-up $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn sign-up (db op-data sid op-id op-time)
-            let-sugar
+            let
                 username $ option:unwrap-or (nth op-data 0) |unknown
                 password $ option:unwrap-or (nth op-data 1) |unknown
                 maybe-user $ find
@@ -1765,7 +1772,7 @@
                       :avatar nil
           :examples $ []
           :schema $ :: 'Fn $ {}
-            :args $ [] (:: 'Map 'Tag 'Dynamic) 'Dynamic 'Number 'String 'Number
+            :args $ [] (:: 'Map 'Tag 'Dynamic) (:: 'List 'String) 'Number 'String 'Number
             :return $ :: 'Map 'Tag 'Dynamic
         'unwrap-user $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn unwrap-user (value)
