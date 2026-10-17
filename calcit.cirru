@@ -1253,20 +1253,11 @@
           :schema $ :: 'Fn $ {}
             :args $ [] 'Dynamic
             :return $ :: 'List $ :: 'Map 'Tag 'Dynamic
-        'current-date! $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn current-date! ()
-            unsafe-coerce
-              %{} Date0 $ :date $ &call-dylib-edn (get-dylib-path |/dylibs/libcalcit_std) |now_bang
-              , 'calcit.std.date/Date0
-          :examples $ []
-          :schema $ :: 'Fn $ {} (:return 'calcit.std.date/Date0)
-            :args $ []
-            :features $ #{} :js-ffi
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op sid)
             let
                 op-id $ generate-id!
-                op-time $ get-timestamp $ current-date!
+                op-time $ get-timestamp $ get-time!
               if config/dev? $ println |Dispatch! (str op) sid
               match op
                 (:effect/persist) (persist-db!)
@@ -1279,7 +1270,7 @@
         'get-backup-path! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn get-backup-path! ()
             let
-                now $ extract-time $ current-date!
+                now $ extract-time $ get-time!
               join-path calcit-dirname |backups
                 str $ option:unwrap-or (get now :month) 0
                 str
@@ -1423,18 +1414,17 @@
         :code $ quote $ ns app.server
           :require (app.schema :as schema)
             app.updater :refer $ updater
-            cumulo-reel.core :refer $ reel-reducer refresh-reel reel-schema
+            cumulo-reel.core :refer $ reel-reducer
             app.config :as config
             app.twig.container :refer $ twig-container
             recollect.diff :refer $ diff-twig
-            recollect.twig :refer $ render-twig clear-twig-caches!
+            recollect.twig :refer $ clear-twig-caches!
             wss.core :refer $ wss-serve! wss-send! wss-each!
             app.$meta :refer $ calcit-dirname
             calcit.std.fs :refer $ path-exists? check-write-file!
             calcit.std.time :refer $ set-interval
-            calcit.std.date :refer $ extract-time Date0 get-timestamp
+            calcit.std.date :refer $ extract-time get-timestamp get-time!
             calcit.std.path :refer $ join-path
-            calcit.std.util :refer $ get-dylib-path
     'app.style $ %{} 'FileEntry
       :defs $ {}
         'button $ %{} 'CodeEntry (:doc |)

@@ -9,7 +9,7 @@ Copyboard
 Requires the published Calcit/procs 0.30.1-alpha.4 pair (prerelease, not
 stable 0.30.1), Node.js 24+, and Yarn 4.18.0.
 
-迁移分支目前仅完成服务端阶段：入口 70 个定义、48 个公开定义、原 HTTP/WebSocket
+迁移分支目前仅完成服务端阶段检查：入口可达 70 个定义（含依赖）、47 个公开定义、原 HTTP/WebSocket
 smoke 和一个删除片段的直接回归通过。客户端类型/单 Enum 回调与完整 strict、构建、
 联调仍待完成；不能据此部署或认定整个项目迁移通过。
 
