@@ -8,7 +8,7 @@
     "node": ">=24"
   },
   "scripts": {
-    "check": "calcit calcit.cirru --check-only && calcit calcit.cirru --entry server --check-only && calcit calcit.cirru analyze deprecated --summary-only && calcit calcit.cirru --entry server analyze deprecated --summary-only",
+    "check": "calcit calcit.cirru fix --workflow strict --verify && calcit calcit.cirru --check-only --ns app.client --ns app.comp.container --ns app.comp.copied --ns app.comp.home --ns app.comp.login --ns app.comp.navigation --ns app.comp.profile --ns app.comp.upload --ns app.config --ns app.schema --ns app.style && calcit calcit.cirru --entry server --check-only --ns app.server --ns app.config --ns app.schema --ns app.twig.container --ns app.twig.user --ns app.updater --ns app.updater.router --ns app.updater.session --ns app.updater.snippet --ns app.updater.user && calcit calcit.cirru analyze weak-types --only deprecated-call --summary-only && calcit calcit.cirru --entry server analyze weak-types --only deprecated-call --summary-only",
     "compile-page": "calcit calcit.cirru js",
     "dev": "vite",
     "release-page": "vite build --base=${VITE_BASE_URL:-./}",
@@ -23,7 +23,7 @@
   "author": "jiyinyiyong",
   "license": "MIT",
   "dependencies": {
-    "@calcit/procs": "0.27.0",
+    "@calcit/procs": "0.30.1-alpha.4",
     "axios": "^1.20.0",
     "mime": "^4.1.0"
   },
