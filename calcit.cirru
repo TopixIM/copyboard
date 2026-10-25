@@ -1647,7 +1647,7 @@
                   :count $ decode-map-as
                     .unwrap-or (get db :count) 0
                     , 'Number
-                  :reel-length $ count records
+                  :reel-length $ .len records
                 snippets $ if show-all? all-snippets $ with-cpu-time (take-last all-snippets 12)
               merge base-data $ if logged-in?
                 {}
@@ -1656,7 +1656,7 @@
                     .unwrap-or (get router :name) nil
                     :profile $ twig-members sessions users
                     _ $ {}
-                  :count $ count sessions
+                  :count $ .len sessions
                   :color $ rand-hex-color!
                   :snippets snippets
                   :show-all? show-all?
@@ -1825,7 +1825,7 @@
             :args $ [] (:: 'Map 'Tag 'Dynamic) 'String 'Number 'String 'Number
             :return $ :: 'Map 'Tag 'Dynamic
           :tests $ [] $ %{} 'TestEntry (:name |remove-matching-id)
-            :code $ quote $ =
+            :code $ quote $ assert=
               [] $ {} $ :id |keep
               .unwrap $ get
                 remove-one
