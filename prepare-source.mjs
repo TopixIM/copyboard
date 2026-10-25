@@ -29,12 +29,23 @@ function migrate(node,path,id){
 }
 for(const d of after.defs){assert.notEqual(d.code[0],'defmacro');migrate(d.code,[],d.id);}
 assert.equal(sites.filter(s=>s.before==='option:unwrap-or').length,83);assert.equal(sites.filter(s=>s.before==='option:some?').length,3);
+const dispatch=['::',"'Fn",['{}',[':args',['[]',"'Enum"]],[':return',"'Unit"]]];
+const hintSites=[
+ ['app.comp.home/comp-box',[3,2,1,4],['event','d!'],"'Enum"],
+ ['app.comp.home/comp-snippet',[3,2,6,1,2,1],['e','d!'],['::',"'Map","'Tag","'Dynamic"]]
+];
+for(const[id,path,args,eventType]of hintSites){
+ const fn=path.reduce((n,i)=>n[i],after.defs.find(d=>d.id===id).code);
+ assert.equal(fn[0],'fn');assert.deepEqual(fn[1],args);assert.notEqual(fn[2]?.[0],'hint-fn');assert.equal(fn.at(-1),'&unit');
+ fn.splice(2,0,['hint-fn',['{}',[':args',['[]',eventType,dispatch]],[':return',"'Unit"]]]);
+}
 
 const blob=()=>run('git',['hash-object','calcit.cirru']).trim();mkdirSync('acceptance',{recursive:true});
 if(process.argv[2]==='apply'){
  assert.equal(blob(),p.blob);assert.deepEqual(views(),norm(p.before));
  const ops=sites.map(s=>['tree','replace',s.id,'--path','@'+[...s.path,0].join('.'),'--input-format','json-ast','--code',JSON.stringify(s.after)]);
  assert.equal(ops.length,86);
+ for(const[id,path]of hintSites)ops.push(['tree','replace',id,'--path','@'+path.join('.'),'--input-format','json-ast','--code',JSON.stringify(path.reduce((n,i)=>n[i],after.defs.find(d=>d.id===id).code))]);
  writeFileSync('acceptance/expected-source.json',JSON.stringify(after));writeFileSync('acceptance/operations.json',JSON.stringify(ops));
  const args=['calcit.cirru','edit','transaction','--file','acceptance/operations.json','--format','json'];
  const preview=JSON.parse(run('calcit',[...args,'--dry-run']));assert.ok(preview.scoped_revision);
@@ -50,4 +61,4 @@ const pkg=JSON.parse(p.manifests['package.json']);pkg.dependencies['@calcit/proc
 assert.equal(p.manifests['.yarnrc.yml'],'nodeLinker: node-modules\n\nnpmPreapprovedPackages:\n  - "@calcit/procs@0.27.0"\n');assert.equal(readFileSync('.yarnrc.yml','utf8'),'nodeLinker: node-modules\n');
 const lock=s=>s.split('\n\n').map(b=>b.startsWith('"@calcit/procs@npm:')?b.replace(/^  checksum:.*$/m,'  checksum: runtime-checksum'):b).join('\n\n');
 assert.equal(lock(readFileSync('yarn.lock','utf8').replaceAll('0.30.1','0.30.1-alpha.4')),lock(p.manifests['yarn.lock']));
-writeFileSync('acceptance/source-evidence.json',JSON.stringify({beforeBlob:p.blob,afterBlob:blob(),sites,fullSourceViewsMatch:true,definitions:after.defs.length,attachedTests:after.defs.reduce((n,d)=>n+d.tests.length,0),moduleChanges:modules.length,protocolChanges:0,baselineChanged:false}));
+writeFileSync('acceptance/source-evidence.json',JSON.stringify({beforeBlob:p.blob,afterBlob:blob(),sites,ownedCallbackHints:hintSites.length,fullSourceViewsMatch:true,definitions:after.defs.length,attachedTests:after.defs.reduce((n,d)=>n+d.tests.length,0),moduleChanges:modules.length,protocolChanges:0,baselineChanged:false}));

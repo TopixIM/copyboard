@@ -40,10 +40,12 @@ jobs:
           calcit calcit.cirru analyze weak-types --only dynamic-method --summary-only --format json | jq -e '.data.summary.findings == 0'
           calcit calcit.cirru --entry server analyze weak-types --only dynamic-method --summary-only --format json | jq -e '.data.summary.findings == 0'
       - name: Original native HTTP and WebSocket business smoke with synthetic storage
+        env:
+          port: "11006"
         run: |
           set -euo pipefail
           test ! -e storage.cirru
-          node scripts/smoke-native-server.mjs
+          node scripts/smoke-native-server.mjs 2>&1 | tee acceptance/smoke.log
       - uses: actions/checkout@v7.0.1
         with:
           repository: calcit-lang/calcit
