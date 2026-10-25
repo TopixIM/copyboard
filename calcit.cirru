@@ -47,7 +47,7 @@
                 raw-port $ .-port query
                 host $ if (js-present? raw-host) (decode-map-as raw-host 'String) js/location.hostname
                 port $ if (js-present? raw-port) (decode-map-as raw-port 'String)
-                  option:unwrap-or (get config/site :port) 11006
+                  .unwrap-or (get config/site :port) 11006
               ws-connect!
                 if config/dev? (str |ws:// host |: port) |wss://cp.topix.im/ws
                 {}
@@ -92,7 +92,7 @@
                   parsed $ parse-cirru-edn text
                   empty-snippets $ []
                   snippets $ if (map? parsed)
-                    option:unwrap-or (get parsed :snippets-list) empty-snippets
+                    .unwrap-or (get parsed :snippets-list) empty-snippets
                     []
                 reset! *preview-data $ if (list? snippets)
                   decode-map-as snippets $ :: 'List $ :: 'Map 'Tag 'Dynamic
@@ -184,7 +184,7 @@
                 all-states @*states
                 empty-states $ {}
                 nested-states $ if (map? all-states)
-                  option:unwrap-or (get all-states :states) empty-states
+                  .unwrap-or (get all-states :states) empty-states
                   {}
                 component-states $ if (map? nested-states) nested-states $ {}
               render! mount-target (comp-container component-states @*store @*preview-data)
@@ -198,7 +198,7 @@
           :code $ quote $ defn simulate-login! ()
             match
               storage-get $ decode-map-as
-                option:unwrap-or (get config/site :storage-key) |copyboard
+                .unwrap-or (get config/site :storage-key) |copyboard
                 , 'String
               (:some raw)
                 do (println "|Found storage.")
@@ -241,31 +241,31 @@
               let
                   store $ decode-map-as store $ :: 'Map 'Tag 'Dynamic
                   session $ decode-map-as
-                    option:unwrap-or (get store :session) ({})
+                    .unwrap-or (get store :session) ({})
                     :: 'Map 'Tag 'Dynamic
                   router $ decode-map-as
-                    option:unwrap-or (get store :router) ({})
+                    .unwrap-or (get store :router) ({})
                     :: 'Map 'Tag 'Dynamic
                   user $ decode-map-as
-                    option:unwrap-or (get store :user) ({})
+                    .unwrap-or (get store :user) ({})
                     :: 'Map 'Tag 'Dynamic
                   logged-in? $ decode-map-as
-                    option:unwrap-or (get store :logged-in?) false
+                    .unwrap-or (get store :logged-in?) false
                     , 'Bool
                   count-members $ decode-map-as
-                    option:unwrap-or (get store :count) 0
+                    .unwrap-or (get store :count) 0
                     , 'Number
                   snippets $ decode-map-as
-                    option:unwrap-or (get store :snippets) ([])
+                    .unwrap-or (get store :snippets) ([])
                     :: 'List $ :: 'Map 'Tag 'Dynamic
                   show-all? $ decode-map-as
-                    option:unwrap-or (get store :show-all?) false
+                    .unwrap-or (get store :show-all?) false
                     , 'Bool
                   color $ decode-map-as
-                    option:unwrap-or (get store :color) |white
+                    .unwrap-or (get store :color) |white
                     , 'String
                   reel-length $ decode-map-as
-                    option:unwrap-or (get store :reel-length) 0
+                    .unwrap-or (get store :reel-length) 0
                     , 'Number
                 div
                   {} $ :class-name $ str-spaced css/global css/fullscreen css/column
@@ -274,10 +274,10 @@
                     {} $ :class-name $ str-spaced css/expand css/column
                     if logged-in?
                       match
-                        option:unwrap-or (get router :name) nil
+                        .unwrap-or (get router :name) nil
                         :home $ comp-home (>> states :snippets) snippets show-all? user
                         :profile $ comp-profile user $ decode-map-as
-                          option:unwrap-or (get router :data) ({})
+                          .unwrap-or (get router :data) ({})
                           :: 'Map 'Dynamic 'String
                         _ $ <> $ str router
                       div ({})
@@ -288,7 +288,7 @@
                     when dev? $ comp-inspect |Store store $ {} (:bottom 40) (:left 0) (:max-width |100%)
                     comp-messages
                       decode-map-as
-                        option:unwrap-or (get session :messages) ({})
+                        .unwrap-or (get session :messages) ({})
                         :: 'Map 'String 'Dynamic
                       {}
                       fn (info d!)
@@ -304,13 +304,13 @@
               {}
                 :class-name $ str-spaced css/expand css/fullscreen css/column-dispersive
                 :style $ {} $ :background-color
-                  option:unwrap-or (get config/site :theme) |#ECCE32
+                  .unwrap-or (get config/site :theme) |#ECCE32
               div $ {} $ :style
                 {} $ :height 0
               div $ {} $ :style
                 {}
                   :background-image $ str "|url("
-                    option:unwrap-or (get config/site :icon) |
+                    .unwrap-or (get config/site :icon) |
                     , "|)"
                   :width 128
                   :height 128
@@ -385,7 +385,7 @@
                   :: 'List 'Dynamic
                 state $ decode-map-as
                   or
-                    option:unwrap-or (get states :data) nil
+                    .unwrap-or (get states :data) nil
                     {} $ :visible? false
                   :: 'Map 'Tag 'Bool
               div
@@ -400,7 +400,7 @@
                       , 1200
                     , &unit
                 , child $ when
-                  option:unwrap-or (get state :visible?) false
+                  .unwrap-or (get state :visible?) false
                   div
                     {} $ :style $ {} (:position :absolute) (:top 8) (:left 8) (:background-color :black) (:color :white) (:padding "|0 8px") (:font-size 12)
                     <> |Copied
@@ -501,10 +501,10 @@
                   :: 'List 'Dynamic
                 state $ decode-map-as
                   or
-                    option:unwrap-or (get states :data) nil
+                    .unwrap-or (get states :data) nil
                     {} $ :content |
                   :: 'Map 'Tag 'String
-                content $ option:unwrap-or (get state :content) |
+                content $ .unwrap-or (get state :content) |
                 send! $ fn (e d!)
                   hint-fn $ {}
                     :args $ [] (:: 'Map 'Tag 'Dynamic)
@@ -537,7 +537,7 @@
                       :features $ #{} :js-ffi
                     d! $ :: :states cursor $ assoc state :content
                       decode-map-as
-                        option:unwrap-or (get e :value) |
+                        .unwrap-or (get e :value) |
                         , 'String
                     , &unit
                   :on-keydown $ fn (e d!)
@@ -551,9 +551,9 @@
                       :features $ #{} :js-ffi
                     when
                       and
-                        = 13 $ option:unwrap-or (get e :keycode) 0
-                        not $ option:unwrap-or (get e :shift?) false
-                      .!preventDefault $ option:unwrap-or (get e :event) (js-object)
+                        = 13 $ .unwrap-or (get e :keycode) 0
+                        not $ .unwrap-or (get e :shift?) false
+                      .!preventDefault $ .unwrap-or (get e :event) (js-object)
                       send! e d!
                     , &unit
                   :on-paste $ fn (e d!)
@@ -567,7 +567,7 @@
                       :features $ #{} :js-ffi
                     let
                         event $ js-cast
-                          option:unwrap-or (get e :event) (js-object)
+                          .unwrap-or (get e :event) (js-object)
                           , 'app.comp.home/ClipboardEvent
                         clipboard-data $ js-cast (.-clipboardData event) 'app.comp.home/ClipboardData
                         files $ js-cast (.-files clipboard-data) 'app.comp.home/FileList
@@ -578,6 +578,12 @@
                     , &unit
               []
                 respo.schema/RespoListener :name :clipboard-listener :handler $ fn (event d!)
+                  hint-fn $ {}
+                    :args $ [] 'Enum $ :: 'Fn
+                      {}
+                        :args $ [] 'Enum
+                        :return 'Unit
+                    :return 'Unit
                   match event $
                     :clipboard/read text
                     when
@@ -658,7 +664,7 @@
                   :style $ {} $ :width |100%
                 -> (as-snippets snippets) reverse $ .map $ fn (snippet)
                   let
-                      k $ option:unwrap-or (get snippet :id) |
+                      k $ .unwrap-or (get snippet :id) |
                     [] k $ comp-snippet (>> states k) k snippet
               if-not show-all? $ div
                 {} $ :class-name css/center
@@ -676,16 +682,16 @@
           :code $ quote $ defcomp comp-snippet (states k snippet)
             let
                 content $ decode-map-as
-                  option:unwrap-or (get snippet :content) |
+                  .unwrap-or (get snippet :content) |
                   , 'String
                 remove-plugin $ use-confirm (>> states :remove)
                   {} $ :text "|Sure to remove?"
                 some-img $ if
                   and
-                    = :file $ option:unwrap-or (get snippet :type) :text
-                    img-url? $ option:unwrap-or (get snippet :url) |
+                    = :file $ .unwrap-or (get snippet :type) :text
+                    img-url? $ .unwrap-or (get snippet :url) |
                   decode-map-as
-                    option:unwrap-or (get snippet :url) |
+                    .unwrap-or (get snippet :url) |
                     , 'String
               div
                 {}
@@ -723,8 +729,14 @@
                   {}
                     :class-name $ str-spaced css/center style-link-mark style-remove
                     :on-click $ fn (e d!)
+                      hint-fn $ {}
+                        :args $ [] (:: 'Map 'Tag 'Dynamic)
+                          :: 'Fn $ {}
+                            :args $ [] 'Enum
+                            :return 'Unit
+                        :return 'Unit
                       .show remove-plugin d! $ fn () $ d!
-                        :: :snippet/remove-one $ option:unwrap-or (get snippet :id) |
+                        :: :snippet/remove-one $ .unwrap-or (get snippet :id) |
                       , &unit
                   comp-i :trash-2 14 $ hsl 0 80 50
                 .render remove-plugin
@@ -758,7 +770,7 @@
                   js-await $ js/fetch url
                 object-url $ js/URL.createObjectURL blob
                 a-el $ js-cast (js/document.createElement |a) 'app.comp.home/AnchorElement
-                name $ option:unwrap-or
+                name $ .unwrap-or
                   last $ split url |/
                   , |download
               set! (.-href a-el) object-url
@@ -790,7 +802,7 @@
                   :features $ #{} :js-ffi
                 let
                     event $ js-cast
-                      option:unwrap-or (get e :event) (js-object)
+                      .unwrap-or (get e :event) (js-object)
                       , 'app.comp.home/DragEventHost
                   .prevent-default! event
                 , &unit
@@ -805,7 +817,7 @@
                   :features $ #{} :js-ffi
                 let
                     event $ js-cast
-                      option:unwrap-or (get e :event) (js-object)
+                      .unwrap-or (get e :event) (js-object)
                       , 'app.comp.home/DragEventHost
                     data-transfer $ .-data-transfer event
                     items $ .-items data-transfer
@@ -917,7 +929,7 @@
                   :: 'List 'Dynamic
                 state $ decode-map-as
                   or
-                    option:unwrap-or (get states :data) nil
+                    .unwrap-or (get states :data) nil
                     , initial-state
                   :: 'Map 'Tag 'String
               div
@@ -929,23 +941,23 @@
                     {} $ :style $ {}
                     div ({})
                       input $ {} (:placeholder |Username)
-                        :value $ option:unwrap-or (get state :username) |
+                        :value $ .unwrap-or (get state :username) |
                         :class-name css/input
                         :on-input $ fn (e d!)
                           d! $ :: :states cursor $ assoc state :username
                             decode-map-as
-                              option:unwrap-or (get e :value) |
+                              .unwrap-or (get e :value) |
                               , 'String
                           , &unit
                     =< nil 8
                     div ({})
                       input $ {} (:placeholder |Password)
-                        :value $ option:unwrap-or (get state :password) |
+                        :value $ .unwrap-or (get state :password) |
                         :class-name css/input
                         :on-input $ fn (e d!)
                           d! $ :: :states cursor $ assoc state :password
                             decode-map-as
-                              option:unwrap-or (get e :value) |
+                              .unwrap-or (get e :value) |
                               , 'String
                           , &unit
                   =< nil 8
@@ -953,14 +965,14 @@
                     {} $ :style $ {} (:text-align :right)
                     span $ {} (:inner-text "|Sign up") (:class-name css/link)
                       :on-click $ on-submit
-                        option:unwrap-or (get state :username) |
-                        option:unwrap-or (get state :password) |
+                        .unwrap-or (get state :username) |
+                        .unwrap-or (get state :password) |
                         , true
                     =< 8 nil
                     span $ {} (:inner-text "|Log in") (:class-name css/link)
                       :on-click $ on-submit
-                        option:unwrap-or (get state :username) |
-                        option:unwrap-or (get state :password) |
+                        .unwrap-or (get state :username) |
+                        .unwrap-or (get state :password) |
                         , false
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'respo.schema/Component)
@@ -976,7 +988,7 @@
               dispatch! $ :: (if signup? :user/sign-up :user/log-in) ([] username password)
               storage-set!
                 decode-map-as
-                  option:unwrap-or (get config/site :storage-key) |copyboard
+                  .unwrap-or (get config/site :storage-key) |copyboard
                   , 'String
                 format-cirru-edn $ [] username password
               , &unit
@@ -1029,7 +1041,7 @@
         'style-nav $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-nav
             {} $ |& $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
-              :background-color $ option:unwrap-or (get config/site :theme) |#ECCE32
+              :background-color $ .unwrap-or (get config/site :theme) |#ECCE32
               :color :white
               :z-index 100
           :examples $ []
@@ -1054,7 +1066,7 @@
                 {} $ :padding 16
               div
                 {} $ :style $ {} (:font-family ui/font-fancy) (:font-size 32) (:font-weight 100)
-                <> $ str "|Hello! " $ option:unwrap-or (get user :name) |
+                <> $ str "|Hello! " $ .unwrap-or (get user :name) |
               =< nil 16
               div
                 {} $ :style ui/row
@@ -1080,7 +1092,7 @@
                     :on-click $ fn (e dispatch!)
                       dispatch! $ :: :user/log-out nil
                       storage-remove! $ decode-map-as
-                        option:unwrap-or (get config/site :storage-key) |copyboard
+                        .unwrap-or (get config/site :storage-key) |copyboard
                         , 'String
                       , &unit
                   <> "|Log out" nil
@@ -1157,7 +1169,7 @@
                   :: 'List 'Dynamic
                 state $ decode-map-as
                   either
-                    option:unwrap-or (get states :data) nil
+                    .unwrap-or (get states :data) nil
                     {} $ :uploading nil
                   :: 'Map 'Tag 'Dynamic
                 progress $ .unwrap-or (get state :uploading) nil
@@ -1177,7 +1189,7 @@
                       :features $ #{} :js-ffi
                     let
                         event $ js-cast
-                          option:unwrap-or (get e :event) (js-object)
+                          .unwrap-or (get e :event) (js-object)
                           , 'app.comp.upload/InputEvent
                         target $ js-cast (.-target event) 'app.comp.upload/InputElement
                         files $ js-cast (.-files target) 'app.comp.upload/FileList
@@ -1251,8 +1263,8 @@
                     , |clipboard.jpg
                 res $ js-await $ .!post client |https://cp.topix.im/token
                   format-cirru-edn $ {}
-                    :user $ option:unwrap-or (get user :name) |
-                    :pass $ option:unwrap-or (get user :token) |
+                    :user $ .unwrap-or (get user :name) |
+                    :pass $ .unwrap-or (get user :token) |
                     :file-key file-key
                   js-object $ :onUploadProgress $ fn (event)
                     let
@@ -1264,7 +1276,7 @@
                           when (> total 0)
                             mutate! $ {} $ :uploading (/ loaded total)
                     , &unit
-                presigned-url $ option:unwrap-or
+                presigned-url $ .unwrap-or
                   get
                     parse-cirru-edn $ decode-map-as (.-data res) 'String
                     , :url
@@ -1308,7 +1320,7 @@
         'dev? $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def dev?
             let
-                mode $ option:unwrap-or (get-env |mode) |release
+                mode $ .unwrap-or (get-env |mode) |release
               = mode |dev
           :examples $ []
           :schema $ :: 'Dynamic
@@ -1423,9 +1435,9 @@
             let
                 now $ extract-time $ get-time!
               join-path calcit-dirname |backups
-                str $ option:unwrap-or (get now :month) 0
+                str $ .unwrap-or (get now :month) 0
                 str
-                  option:unwrap-or (get now :day) 0
+                  .unwrap-or (get now :day) 0
                   , |-snapshot.cirru
           :examples $ []
           :schema $ :: 'Fn $ {} (:return 'String)
@@ -1436,9 +1448,13 @@
             let
                 p? $ get-env |port
                 port $ decode-map-as
-                  if (option:some? p?)
-                    parse-float $ option:unwrap-or p? |0
-                    option:unwrap-or (get config/site :port) 11006
+                  if (.some? p?)
+                    match
+                      parse-float $ .unwrap-or p? |0
+                      (:ok value) value
+                      (:err source)
+                        raise $ str "|Invalid port: " source
+                    .unwrap-or (get config/site :port) 11006
                   , 'Number
               run-server! port
               println $ str "|Server started on port:" port
@@ -1463,7 +1479,7 @@
                 db $ :db reel
                 empty-snippets $ []
                 snippets $ ->
-                  as-list $ option:unwrap-or (get db :snippets) empty-snippets
+                  as-list $ .unwrap-or (get db :snippets) empty-snippets
                   take-last 12
                   , with-cpu-time
               {} (:code 200)
@@ -1525,7 +1541,7 @@
                 , &unit
             http.core/serve-http!
               {}
-                :port $ option:unwrap-or (get config/site :http-port) 11030
+                :port $ .unwrap-or (get config/site :http-port) 11030
                 :host |0.0.0.0
               fn (req) (on-request! req)
           :examples $ []
@@ -1534,8 +1550,8 @@
         'storage-file $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def storage-file
             if (empty? calcit-dirname)
-              str calcit-dirname $ option:unwrap-or (get config/site :storage-file) |storage.cirru
-              str calcit-dirname |/ $ option:unwrap-or (get config/site :storage-file) |storage.cirru
+              str calcit-dirname $ .unwrap-or (get config/site :storage-file) |storage.cirru
+              str calcit-dirname |/ $ .unwrap-or (get config/site :storage-file) |storage.cirru
           :examples $ []
           :schema $ :: 'Dynamic
         'sync-clients! $ %{} 'CodeEntry (:doc |)
@@ -1545,7 +1561,7 @@
                   reel-state reel
                   db $ :db reel-state
                   records $ :records reel-state
-                  session $ option:unwrap-or
+                  session $ .unwrap-or
                     get-in db $ [] :sessions sid
                     {}
                   old-store $ match
@@ -1753,8 +1769,8 @@
           :code $ quote $ defn remove-message (db op-data sid op-id op-time)
             update-in db ([] :sessions sid :messages)
               fn (messages?)
-                as-map $ dissoc (option:unwrap-or messages? {})
-                  option:unwrap-or
+                as-map $ dissoc (.unwrap-or messages? {})
+                  .unwrap-or
                     get (as-map op-data) :id
                     , op-data
           :examples $ []
@@ -1844,40 +1860,40 @@
                 username $ .unwrap $ nth op-data 0
                 password $ .unwrap $ nth op-data 1
                 maybe-user $ ->
-                  as-users $ option:unwrap-or (get db :users) ({})
+                  as-users $ .unwrap-or (get db :users) ({})
                   distinct-values
                   , &set:to-list $ find
                     fn (user)
-                      and $ = username $ option:unwrap-or (get user :name) |unknown
+                      and $ = username $ .unwrap-or (get user :name) |unknown
               update-in db ([] :sessions sid)
                 fn (session?)
-                  as-map $ if (option:some? maybe-user)
+                  as-map $ if (.some? maybe-user)
                     if
                       = (md5 password)
-                        option:unwrap-or
+                        .unwrap-or
                           get (unwrap-user maybe-user) :password
                           , |unknown
                       assoc
-                        as-map $ option:unwrap-or session? {}
-                        , :user-id $ option:unwrap-or
+                        as-map $ .unwrap-or session? {}
+                        , :user-id $ .unwrap-or
                           get (unwrap-user maybe-user) :id
                           , |unknown
                       assoc
-                        as-map $ option:unwrap-or session? {}
+                        as-map $ .unwrap-or session? {}
                         , :messages $ assoc
-                          option:unwrap-or
+                          .unwrap-or
                             get
-                              as-map $ option:unwrap-or session? {}
+                              as-map $ .unwrap-or session? {}
                               , :messages
                             , {}
                           , op-id $ {} (:id op-id)
                             :text $ str "|Wrong password for " username
                     assoc
-                      as-map $ option:unwrap-or session? {}
+                      as-map $ .unwrap-or session? {}
                       , :messages $ assoc
-                        option:unwrap-or
+                        .unwrap-or
                           get
-                            as-map $ option:unwrap-or session? {}
+                            as-map $ .unwrap-or session? {}
                             , :messages
                           , {}
                         , op-id $ {} (:id op-id)
@@ -1896,19 +1912,19 @@
         'sign-up $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn sign-up (db op-data sid op-id op-time)
             let
-                username $ option:unwrap-or (nth op-data 0) |unknown
-                password $ option:unwrap-or (nth op-data 1) |unknown
+                username $ .unwrap-or (nth op-data 0) |unknown
+                password $ .unwrap-or (nth op-data 1) |unknown
                 maybe-user $ find
                   ->
-                    as-users $ option:unwrap-or (get db :users) ({})
+                    as-users $ .unwrap-or (get db :users) ({})
                     distinct-values
                     , &set:to-list
                   fn (user)
-                    = username $ option:unwrap-or (get user :name) |unknown
-              if (option:some? maybe-user)
+                    = username $ .unwrap-or (get user :name) |unknown
+              if (.some? maybe-user)
                 update-in db ([] :sessions sid :messages)
                   fn (messages?)
-                    as-map $ assoc (option:unwrap-or messages? {}) op-id $ {} (:id op-id)
+                    as-map $ assoc (.unwrap-or messages? {}) op-id $ {} (:id op-id)
                       :text $ str "|Name is taken: " username
                 -> db
                   assoc-in ([] :sessions sid :user-id) op-id
@@ -1922,7 +1938,7 @@
             :return $ :: 'Map 'Tag 'Dynamic
         'unwrap-user $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn unwrap-user (value)
-            option:unwrap-or value $ assert-type ({}) (:: 'Map 'Tag 'Dynamic)
+            .unwrap-or value $ assert-type ({}) (:: 'Map 'Tag 'Dynamic)
           :examples $ []
           :schema $ :: 'Fn $ {}
             :args $ [] $ :: 'Option (:: 'Map 'Tag 'Dynamic)

@@ -2,7 +2,7 @@
 
 ## 工具链与源码
 
-- 以 `deps.cirru` 和 `package.json` 的配对版本为准。当前迁移目标是已发布的 Calcit/procs `0.30.1-alpha.4`（预发布），不是稳定 0.30.1。
+- 以 `deps.cirru` 和 `package.json` 的配对版本为准。当前迁移目标是精确配对的正式 Calcit/procs `0.30.1`。
 - 开始时读取本文件、README，运行固定 CLI 的 `-v`、`docs agents --contract` 和 `query config`。具体 API/参数查当前 CLI `--help` 及已安装正式模块的 `query def/type`，不要维护另一份历史命令大全。
 - `calcit.cirru` 是唯一源码 Snapshot。禁止文本、正则或普通 formatter 读写；用官方 query/tree 视图读取，以 edit/tree/config 修改。普通文件使用普通补丁。
 - 修改前查询真实定义/子树；多步修改先 transaction dry-run，再用其顶层 scoped_revision 执行相同事务。只按实际语义改写，不按符号同名机械替换。
