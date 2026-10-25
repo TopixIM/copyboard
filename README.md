@@ -6,8 +6,23 @@ Copyboard
 
 ### Script
 
-Requires the published Calcit/procs 0.30.1-alpha.4 pair (prerelease, not
-stable 0.30.1), Node.js 24+, and Yarn 4.18.0.
+Requires the exact formal Calcit/procs 0.30.1 pair, Node.js 24+, and Yarn 4.18.0.
+
+本次正式版迁移将 83 处 Option 默认值调用、3 处 Option 存在判断改为当前方法，保留
+Some nil/None、默认值及求值顺序；两处自有 Confirm 回调补明真实事件/Enum dispatch 合同，
+不增加强转、Unit 占位或放宽基线。显式设置 `port` 曾因直接把 `parse-float` 的 Result 当作
+Number 而在监听前失败，现按 `:ok`/`:err` 分支取成功值；非法文本仍报错，不静默回退默认端口。
+十一模块配对兼容的精确正式 tag，原 HTTP/WSS/std 不变；移除过期 procs 0.27.0 npm 豁免，
+不降低默认隔离。原 workflow、原 smoke 脚本、上传/下载合同、HUD 和部署路径不变。
+
+官方 Linux 正式图已通过完整 strict（0 诊断）、原两目标 namespace/deprecated/dynamic-method
+门禁、原生删除回归 1/1、同一原测试 native/JS 各 1/1（无排除）、immutable 和完整构建。
+临时 CI 用原 HTTP/WebSocket smoke 的合成存档及显式 `port=11006` 实际验证修复，未读取真实存档。
+114 定义/20 namespace 的完整前后视图和成功产物 SHA256/blob 已核验；临时 CI、事务、回放
+脚本和库存文件均不进入最终 PR。最终原 workflow 仍保留默认端口的原 smoke。
+
+本次未重验浏览器账户/localStorage、真实剪贴板、上传/下载或冷启动；下述 alpha 阶段运行/SDK
+证据不能冒充本次正式图验收。后端准备、存档备份/回滚和前后端协同上线限制继续保留。
 
 主要组件已迁移为单 Enum 回调，并复用正式剪贴板和存储接口。完整 strict、客户端 75 个公开定义、
 服务端 47 个公开定义、原 HTTP/WebSocket smoke 和删除片段回归通过。人工数据的真实浏览器联调
