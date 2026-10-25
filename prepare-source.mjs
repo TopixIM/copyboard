@@ -32,7 +32,7 @@ assert.equal(sites.filter(s=>s.before==='option:unwrap-or').length,83);assert.eq
 const portPath=[4,1,1,1,1,2],main=after.defs.find(d=>d.id==='app.server/main!');
 const portParent=portPath.slice(0,-1).reduce((n,i)=>n[i],main.code);
 assert.deepEqual(portParent[portPath.at(-1)],['parse-float',['.unwrap-or','p?','|0']]);
-portParent[portPath.at(-1)]=['.unwrap',portParent[portPath.at(-1)]];
+portParent[portPath.at(-1)]=['match',portParent[portPath.at(-1)],[[":ok",'value'],'value'],[[":err",'source'],['raise',['str','|Invalid port: ','source']]]];
 const dispatch=['::',"'Fn",['{}',[':args',['[]',"'Enum"]],[':return',"'Unit"]]];
 const hintSites=[
  ['app.comp.home/comp-box',[3,2,1,4],['event','d!'],"'Enum"],
@@ -66,4 +66,4 @@ const pkg=JSON.parse(p.manifests['package.json']);pkg.dependencies['@calcit/proc
 assert.equal(p.manifests['.yarnrc.yml'],'nodeLinker: node-modules\n\nnpmPreapprovedPackages:\n  - "@calcit/procs@0.27.0"\n');assert.equal(readFileSync('.yarnrc.yml','utf8'),'nodeLinker: node-modules\n');
 const lock=s=>s.split('\n\n').map(b=>b.startsWith('"@calcit/procs@npm:')?b.replace(/^  checksum:.*$/m,'  checksum: runtime-checksum'):b).join('\n\n');
 assert.equal(lock(readFileSync('yarn.lock','utf8').replaceAll('0.30.1','0.30.1-alpha.4')),lock(p.manifests['yarn.lock']));
-writeFileSync('acceptance/source-evidence.json',JSON.stringify({beforeBlob:p.blob,afterBlob:blob(),sites,ownedCallbackHints:hintSites.length,explicitPortResultUnwrap:true,fullSourceViewsMatch:true,definitions:after.defs.length,attachedTests:after.defs.reduce((n,d)=>n+d.tests.length,0),moduleChanges:modules.length,protocolChanges:0,baselineChanged:false}));
+writeFileSync('acceptance/source-evidence.json',JSON.stringify({beforeBlob:p.blob,afterBlob:blob(),sites,ownedCallbackHints:hintSites.length,explicitPortResultMatch:true,fullSourceViewsMatch:true,definitions:after.defs.length,attachedTests:after.defs.reduce((n,d)=>n+d.tests.length,0),moduleChanges:modules.length,protocolChanges:0,baselineChanged:false}));
