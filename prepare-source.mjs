@@ -29,6 +29,10 @@ function migrate(node,path,id){
 }
 for(const d of after.defs){assert.notEqual(d.code[0],'defmacro');migrate(d.code,[],d.id);}
 assert.equal(sites.filter(s=>s.before==='option:unwrap-or').length,83);assert.equal(sites.filter(s=>s.before==='option:some?').length,3);
+const portPath=[4,1,1,1,1,2],main=after.defs.find(d=>d.id==='app.server/main!');
+const portParent=portPath.slice(0,-1).reduce((n,i)=>n[i],main.code);
+assert.deepEqual(portParent[portPath.at(-1)],['parse-float',['.unwrap-or','p?','|0']]);
+portParent[portPath.at(-1)]=['.unwrap',portParent[portPath.at(-1)]];
 const dispatch=['::',"'Fn",['{}',[':args',['[]',"'Enum"]],[':return',"'Unit"]]];
 const hintSites=[
  ['app.comp.home/comp-box',[3,2,1,4],['event','d!'],"'Enum"],
@@ -45,6 +49,7 @@ if(process.argv[2]==='apply'){
  assert.equal(blob(),p.blob);assert.deepEqual(views(),norm(p.before));
  const ops=sites.map(s=>['tree','replace',s.id,'--path','@'+[...s.path,0].join('.'),'--input-format','json-ast','--code',JSON.stringify(s.after)]);
  assert.equal(ops.length,86);
+ ops.push(['tree','replace','app.server/main!','--path','@'+portPath.join('.'),'--input-format','json-ast','--code',JSON.stringify(portPath.reduce((n,i)=>n[i],main.code))]);
  for(const[id,path]of hintSites)ops.push(['tree','replace',id,'--path','@'+path.join('.'),'--input-format','json-ast','--code',JSON.stringify(path.reduce((n,i)=>n[i],after.defs.find(d=>d.id===id).code))]);
  writeFileSync('acceptance/expected-source.json',JSON.stringify(after));writeFileSync('acceptance/operations.json',JSON.stringify(ops));
  const args=['calcit.cirru','edit','transaction','--file','acceptance/operations.json','--format','json'];
@@ -61,4 +66,4 @@ const pkg=JSON.parse(p.manifests['package.json']);pkg.dependencies['@calcit/proc
 assert.equal(p.manifests['.yarnrc.yml'],'nodeLinker: node-modules\n\nnpmPreapprovedPackages:\n  - "@calcit/procs@0.27.0"\n');assert.equal(readFileSync('.yarnrc.yml','utf8'),'nodeLinker: node-modules\n');
 const lock=s=>s.split('\n\n').map(b=>b.startsWith('"@calcit/procs@npm:')?b.replace(/^  checksum:.*$/m,'  checksum: runtime-checksum'):b).join('\n\n');
 assert.equal(lock(readFileSync('yarn.lock','utf8').replaceAll('0.30.1','0.30.1-alpha.4')),lock(p.manifests['yarn.lock']));
-writeFileSync('acceptance/source-evidence.json',JSON.stringify({beforeBlob:p.blob,afterBlob:blob(),sites,ownedCallbackHints:hintSites.length,fullSourceViewsMatch:true,definitions:after.defs.length,attachedTests:after.defs.reduce((n,d)=>n+d.tests.length,0),moduleChanges:modules.length,protocolChanges:0,baselineChanged:false}));
+writeFileSync('acceptance/source-evidence.json',JSON.stringify({beforeBlob:p.blob,afterBlob:blob(),sites,ownedCallbackHints:hintSites.length,explicitPortResultUnwrap:true,fullSourceViewsMatch:true,definitions:after.defs.length,attachedTests:after.defs.reduce((n,d)=>n+d.tests.length,0),moduleChanges:modules.length,protocolChanges:0,baselineChanged:false}));
