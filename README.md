@@ -8,6 +8,14 @@ Copyboard
 
 Requires the exact formal Calcit/procs 0.30.1 pair, Node.js 24+, and Yarn 4.18.0.
 
+本轮将记录 List 与会话 Map 的两处 `count` 改为已证明的 `.len`，不改变显示计数。
+删除片段的原附带测试改用 `assert=`：原来的裸 `=` 即使返回 false 也不会使测试失败；
+输入、预期保留片段、测试名和标签均不变，不新增测试框架或验证脚本。
+正式 Linux 0.30.1 准备 CI 已验证完整 strict、浏览器 77/服务端 49 个定义（合并覆盖全部 114 个）、
+原 HTTP/WebSocket smoke 及修改后原测试 native/JS 各 1/1；206 个浏览器生成模块字节不变。
+修改前测试的执行通过不代表它原来具有有效删除断言。依赖与锁文件、HUD、协议、存档和部署路径不变；
+本轮未重验浏览器账户、真实文件上传或剪贴板，也不据此合并部署前后端。
+
 本次正式版迁移将 83 处 Option 默认值调用、3 处 Option 存在判断改为当前方法，保留
 Some nil/None、默认值及求值顺序；两处自有 Confirm 回调补明真实事件/Enum dispatch 合同，
 不增加强转、Unit 占位或放宽基线。显式设置 `port` 曾因直接把 `parse-float` 的 Result 当作
