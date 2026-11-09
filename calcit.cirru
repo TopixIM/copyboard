@@ -483,7 +483,7 @@
             let
                 cursor $ decode-map-as
                   .unwrap-or (get states :cursor) ([])
-                  List Dynamic
+                  List respo.schema/CoordKey
                 state $ decode-map-as
                   match (get states :data)
                     (:none)
@@ -494,15 +494,13 @@
                 content $ .unwrap-or (get state :content) |
                 send! $ fn (e d!)
                   hint-fn $ Fn respo.schema/RespoEvent
-                    Fn AnyEnum (-> Unit) (:open :reflect)
+                    Fn app.schema/UiOp $ -> Unit
                     -> Unit
                     :features :js-ffi
                   when
                     not $ .blank? content
                     d! $ app.schema/RemoteOp :snippet/create $ decode-map-as content 'String
-                    d! $ app.schema/LocalOp :states
-                      decode-map-as cursor $ List respo.schema/CoordKey
-                      assoc state :content |
+                    d! $ app.schema/LocalOp :states cursor $ assoc state :content |
                   , &unit
                 confirm-plugin $ use-confirm (>> states :clipboard-confirm)
                   {} $ :text "|Clipboard content detected, would you like to fill it into the input box?"
@@ -513,16 +511,14 @@
                   :class-name $ str-spaced css/flex css/textarea schema/box-name
                   :on-input $ fn (e d!)
                     hint-fn $ Fn respo.schema/RespoEvent
-                      Fn AnyEnum (-> Unit) (:open :reflect)
+                      Fn app.schema/LocalOp $ -> Unit
                       -> Unit
                       :features :js-ffi
-                    d! $ app.schema/LocalOp :states
-                      decode-map-as cursor $ List respo.schema/CoordKey
-                      assoc state :content $ respo.core/event-value e
+                    d! $ app.schema/LocalOp :states cursor $ assoc state :content (respo.core/event-value e)
                     , &unit
                   :on-keydown $ fn (e d!)
                     hint-fn $ Fn respo.schema/RespoEvent
-                      Fn AnyEnum (-> Unit) (:open :reflect)
+                      Fn app.schema/UiOp $ -> Unit
                       -> Unit
                       :features :js-ffi
                     when
@@ -568,12 +564,10 @@
                         {} (:style style/link)
                           :on-click $ fn (e d!)
                             hint-fn $ Fn respo.schema/RespoEvent
-                              Fn AnyEnum (-> Unit) (:open :reflect)
+                              Fn app.schema/LocalOp $ -> Unit
                               -> Unit
                               :features :js-ffi
-                            d! $ app.schema/LocalOp :states
-                              decode-map-as cursor $ List respo.schema/CoordKey
-                              assoc state :content |
+                            d! $ app.schema/LocalOp :states cursor $ assoc state :content |
                             , &unit
                         <> |Clear
                     div
@@ -582,16 +576,14 @@
                         {} (:style style/link)
                           :on-click $ fn (e d!)
                             hint-fn $ Fn respo.schema/RespoEvent
-                              Fn AnyEnum (-> Unit) (:open :reflect)
+                              Fn app.schema/LocalOp $ -> Unit
                               -> Unit
                               :features :js-ffi
                               :async
                             match
                               js-await $ clipboard-read-text!
                               (:ok text)
-                                d! $ app.schema/LocalOp :states
-                                  decode-map-as cursor $ List respo.schema/CoordKey
-                                  assoc state :content text
+                                d! $ app.schema/LocalOp :states cursor $ assoc state :content text
                               (:err error) (js/console.warn |Clipboard-read-skipped error)
                             , &unit
                         <> |Read
@@ -600,7 +592,7 @@
                         {} (:style style/button)
                           :on-click $ fn (e d!)
                             hint-fn $ Fn respo.schema/RespoEvent
-                              Fn AnyEnum (-> Unit) (:open :reflect)
+                              Fn app.schema/UiOp $ -> Unit
                               -> Unit
                               :features :js-ffi
                             send! e d!
@@ -870,7 +862,7 @@
             let
                 cursor $ decode-map-as
                   .unwrap-or (get states :cursor) ([])
-                  List Dynamic
+                  List respo.schema/CoordKey
                 state $ decode-map-as
                   match (get states :data)
                     (:none) initial-state
@@ -888,9 +880,7 @@
                         :value $ .unwrap-or (get state :username) |
                         :class-name css/input
                         :on-input $ fn (e d!)
-                          d! $ app.schema/LocalOp :states
-                            decode-map-as cursor $ List respo.schema/CoordKey
-                            assoc state :username $ respo.core/event-value e
+                          d! $ app.schema/LocalOp :states cursor $ assoc state :username (respo.core/event-value e)
                           , &unit
                     respo.comp.space/space-y 8
                     div ({})
@@ -898,9 +888,7 @@
                         :value $ .unwrap-or (get state :password) |
                         :class-name css/input
                         :on-input $ fn (e d!)
-                          d! $ app.schema/LocalOp :states
-                            decode-map-as cursor $ List respo.schema/CoordKey
-                            assoc state :password $ respo.core/event-value e
+                          d! $ app.schema/LocalOp :states cursor $ assoc state :password (respo.core/event-value e)
                           , &unit
                   respo.comp.space/space-y 8
                   div
@@ -927,7 +915,7 @@
           :code $ quote $ defn on-submit (username password signup?)
             fn (e dispatch!)
               hint-fn $ Fn respo.schema/RespoEvent
-                Fn AnyEnum (-> Unit) (:open :reflect)
+                Fn app.schema/RemoteOp $ -> Unit
                 -> Unit
                 :features :js-ffi
               dispatch! $ if signup?
@@ -940,7 +928,7 @@
           :examples $ []
           :schema $ quote $ Fn String String Bool
             -> $ Fn respo.schema/RespoEvent
-              Fn AnyEnum (-> Unit) (:open :reflect)
+              Fn app.schema/RemoteOp $ -> Unit
               -> Unit
               :features :js-ffi
             :features :js-ffi
