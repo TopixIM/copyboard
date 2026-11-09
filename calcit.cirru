@@ -285,7 +285,9 @@
                           hint-fn $ Fn (Map Tag Dynamic)
                             Fn AnyEnum (-> Unit) (:open :reflect)
                             -> Unit
-                          d! $ app.schema/RemoteOp :session/remove-message $ decode-map-as info (Map Tag Dynamic)
+                          d! $ app.schema/RemoteOp :session/remove-message $ decode-map-as
+                            .unwrap $ get info :id
+                            , String
                           , &unit
                       if dev?
                         Option :some $ comp-reel reel-length $ {} (:bottom 40)
@@ -1283,8 +1285,7 @@
           :examples $ []
           :schema $ quote UnionDef
         'RemoteOp $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defenum RemoteOp (:user/log-in app.schema/Credentials) (:user/sign-up app.schema/Credentials) (:user/log-out)
-            :session/remove-message $ Map Tag Dynamic
+          :code $ quote $ defenum RemoteOp (:user/log-in app.schema/Credentials) (:user/sign-up app.schema/Credentials) (:user/log-out) (:session/remove-message String)
             :router/change $ Map Tag Dynamic
             :snippet/create String
             :snippet/create-file String Tag
@@ -1358,7 +1359,14 @@
                 (:user/log-out)
                   Option :some $ app.schema/RemoteOp :user/log-out
                 (:session/remove-message op-data)
-                  Option :some $ app.schema/RemoteOp :session/remove-message $ decode-map-as op-data (Map Tag Dynamic)
+                  if (map? op-data)
+                    match (get op-data :id)
+                      (:some id)
+                        if (string? id)
+                          Option :some $ app.schema/RemoteOp :session/remove-message id
+                          Option :none
+                      (:none) (Option :none)
+                    Option :none
                 (:router/change op-data)
                   Option :some $ app.schema/RemoteOp :router/change $ decode-map-as op-data (Map Tag Dynamic)
                 (:snippet/create op-data)
@@ -1401,7 +1409,8 @@
               (:user/sign-up credentials)
                 :: :user/sign-up $ [] (:username credentials) (:password credentials)
               (:user/log-out) (:: :user/log-out nil)
-              (:session/remove-message value) (:: :session/remove-message value)
+              (:session/remove-message id)
+                :: :session/remove-message $ {} $ :id id
               (:router/change value) (:: :router/change value)
               (:snippet/create value) (:: :snippet/create value)
               (:snippet/create-file value other) (:: :snippet/create-file value other)
@@ -1826,12 +1835,6 @@
         :code $ quote $ ns app.updater.router
     'app.updater.session $ %{} 'FileEntry
       :defs $ {}
-        'as-map $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn as-map (value)
-            decode-map-as value $ Map Tag Dynamic
-          :examples $ []
-          :schema $ quote $ Fn Dynamic
-            -> $ Map Tag Dynamic
         'connect $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn connect (db session-id op-id op-time)
             assoc-in db ([] :sessions session-id)
@@ -1846,16 +1849,44 @@
           :schema $ quote $ Fn (Map Tag Dynamic) Number String Number
             -> $ Map Tag Dynamic
         'remove-message $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn remove-message (db op-data sid op-id op-time)
+          :code $ quote $ defn remove-message (db message-id sid op-id op-time)
             update-in db ([] :sessions sid :messages)
               fn (messages?)
-                as-map $ dissoc (.unwrap-or messages? {})
-                  .unwrap-or
-                    get (as-map op-data) :id
-                    , op-data
+                let
+                    messages $ decode-map-as
+                      .unwrap-or messages? $ {}
+                      Map String Dynamic
+                  .dissoc messages message-id
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic) Number String Number
+          :schema $ quote $ Fn (Map Tag Dynamic) String Number String Number
             -> $ Map Tag Dynamic
+          :tests $ [] $ %{} 'TestEntry (:name |legacy-wire-id-removes-only-target)
+            :code $ quote $ let
+                id |toast-1
+                message $ {} (:id id) (:text |dismissed)
+                wire $ :: :session/remove-message $ assoc message :other |legacy
+                db $ {} $ :sessions
+                  {} $ 1 $ {}
+                    :messages $ {} (id message)
+                      |toast-2 $ {} $ :id |toast-2
+                next $ match (app.schema/decode-server-op wire)
+                  (:some op)
+                    match op
+                      (app.schema/RemoteOp action)
+                        match action
+                          (:session/remove-message message-id) (remove-message db message-id 1 |operation 0)
+                          _ $ raise "|Expected a remove-message operation"
+                      _ $ raise "|Expected a remote operation"
+                  (:none) (raise "|Expected a valid message id")
+              assert=
+                Result :ok $ {} $ |toast-2
+                  {} $ :id |toast-2
+                get-in next $ [] :sessions 1 :messages
+              assert= (Option :none)
+                app.schema/decode-server-op $ :: :session/remove-message $ {} (:id 42)
+              assert=
+                :: :session/remove-message $ {} $ :id id
+                app.schema/remote-op-to-wire $ app.schema/RemoteOp :session/remove-message id
         'show-all $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn show-all (db op-data sid op-id op-time)
             assoc-in db ([] :sessions sid :show-all?) true
