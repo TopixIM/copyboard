@@ -530,7 +530,7 @@
                     , &unit
                   :on-paste $ fn (e d!)
                     hint-fn $ Fn respo.schema/RespoEvent
-                      Fn AnyEnum (-> Unit) (:open :reflect)
+                      Fn app.schema/RemoteOp $ -> Unit
                       -> Unit
                       :features :js-ffi
                     let
@@ -743,7 +743,7 @@
                 :background-color $ hsl 0 0 97
               :on-dragover $ fn (e d!)
                 hint-fn $ Fn respo.schema/RespoEvent
-                  Fn AnyEnum (-> Unit) (:open :reflect)
+                  Fn app.schema/RemoteOp $ -> Unit
                   -> Unit
                   :features :js-ffi
                 let
@@ -752,7 +752,7 @@
                 , &unit
               :on-drop $ fn (e d!)
                 hint-fn $ Fn respo.schema/RespoEvent
-                  Fn AnyEnum (-> Unit) (:open :reflect)
+                  Fn app.schema/RemoteOp $ -> Unit
                   -> Unit
                   :features :js-ffi
                 let
@@ -1093,7 +1093,7 @@
             let
                 cursor $ decode-map-as
                   .unwrap-or (get states :cursor) ([])
-                  List Dynamic
+                  List respo.schema/CoordKey
                 state $ decode-map-as
                   match (get states :data)
                     (:none)
@@ -1114,7 +1114,7 @@
                 input $ {} (:type |file) (:id |upload-input) (:class-name style-hidden-input) (:multiple true)
                   :on-input $ fn (e d!)
                     hint-fn $ Fn respo.schema/RespoEvent
-                      Fn AnyEnum (-> Unit) (:open :reflect)
+                      Fn app.schema/UiOp $ -> Unit
                       -> Unit
                       :features :js-ffi
                     let
@@ -1128,9 +1128,11 @@
                             decode-map-as (.-size file) 'Number
                             , 100000000
                           upload-file! file user d! $ fn (next)
-                            d! $ app.schema/LocalOp :states
-                              decode-map-as cursor $ List respo.schema/CoordKey
-                              , next
+                            d! $ app.schema/LocalOp :states cursor $ match next
+                              (:none)
+                                {} $ :uploading nil
+                              (:some ratio)
+                                {} $ :uploading ratio
                             , &unit
                           js/console.warn "|File too large"
                         , nil
@@ -1141,7 +1143,7 @@
                     :style $ {} $ :color (hsl 200 90 70)
                     :on-click $ fn (e d!)
                       hint-fn $ Fn respo.schema/RespoEvent
-                        Fn AnyEnum (-> Unit) (:open :reflect)
+                        Fn app.schema/UiOp $ -> Unit
                         -> Unit
                         :features :js-ffi
                       .!click $ js-cast (js/document.querySelector |#upload-input) 'app.comp.upload/InputElement
@@ -1199,7 +1201,7 @@
                         let
                             total $ decode-map-as raw-total 'Number
                           when (> total 0)
-                            mutate! $ {} $ :uploading (/ loaded total)
+                            mutate! $ Option :some $ / loaded total
                     , &unit
                 presigned-url $ .unwrap-or
                   get
@@ -1213,12 +1215,12 @@
               d! $ app.schema/RemoteOp :snippet/create-file
                 decode-map-as (str |https://cos-sh.tiye.me/cos-up/ file-key) 'String
                 decode-map-as :file 'Tag
-              mutate! $ {} $ :uploading nil
+              mutate! $ Option :none
             , &unit
           :examples $ []
           :schema $ quote $ Fn Dynamic Dynamic
-            Fn AnyEnum (-> Unit) (:open :reflect)
-            Fn (Map Tag Dynamic) (-> Unit) (:features :js-ffi)
+            Fn app.schema/RemoteOp $ -> Unit
+            Fn (Option Number) (-> Unit) (:features :js-ffi)
             -> Unit
             :features :js-ffi
             :async
