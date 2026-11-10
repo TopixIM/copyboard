@@ -26,7 +26,7 @@
         '*store $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defref *store (app.schema/ViewState :initial)
           :examples $ []
-          :schema $ quote $ Ref app.schema/ViewState
+          :schema $ quote $ Ref schema/ViewState
         'connect! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn connect! ()
             let
@@ -61,15 +61,15 @@
                 ws-send! $ schema/service-op-to-wire action
             , &unit
           :examples $ []
-          :schema $ quote $ Fn app.schema/UiOp (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn schema/UiOp (-> Unit) (:features :js-ffi)
         'dispatch-from-view! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch-from-view! (raw)
             cond
-                = (enum-definition raw) (Option :some app.schema/LocalOp)
+                = (enum-definition raw) (Some app.schema/LocalOp)
                 dispatch! $ decode-map-as raw 'app.schema/LocalOp
-              (= (enum-definition raw) (Option :some app.schema/RemoteOp))
+              (= (enum-definition raw) (Some app.schema/RemoteOp))
                 dispatch! $ decode-map-as raw 'app.schema/RemoteOp
-              (= (enum-definition raw) (Option :some app.schema/ServiceOp))
+              (= (enum-definition raw) (Some app.schema/ServiceOp))
                 dispatch! $ decode-map-as raw 'app.schema/ServiceOp
               true $ match raw
                 (:states cursor s)
@@ -269,13 +269,13 @@
                           _ $ <> $ str router
                         div ({})
                           if (non-nil? preview-data)
-                            Option :some $ comp-preview (>> states :preview) preview-data :login
-                            Option :none
+                            Some $ comp-preview (>> states :preview) preview-data :login
+                            , None
                           comp-login $ >> states :login
                       comp-status-color color
                       if dev?
-                        Option :some $ comp-inspect |Store store $ {} (:bottom 40) (:left 0) (:max-width |100%)
-                        Option :none
+                        Some $ comp-inspect |Store store $ {} (:bottom 40) (:left 0) (:max-width |100%)
+                        , None
                       comp-messages
                         decode-map-as
                           .unwrap-or (get session :messages) ({})
@@ -290,8 +290,8 @@
                             , String
                           , &unit
                       if dev?
-                        Option :some $ comp-reel reel-length $ {} (:bottom 40)
-                        Option :none
+                        Some $ comp-reel reel-length $ {} (:bottom 40)
+                        , None
               (:initial)
                 comp-preview (>> states :preview) preview-data :connecting
               (:offline)
@@ -343,12 +343,12 @@
             div $ {} (:class-name style-status-buble)
               :style $ {} $ :background-color color
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> respo.schema/Component)
+          :schema $ quote $ Fn String (-> respo.schema/Component)
         'style-body $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def style-body
             {} $ :padding "|8px 16px"
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote $ Map Tag String
         'style-status-buble $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-status-buble
             {} $ |& $ {} (:width 16) (:height 16) (:position :absolute) (:bottom 10) (:left 10) (:border-radius |8px) (:opacity 0.8)
@@ -404,10 +404,10 @@
                     , &unit
                 , child $ if
                   .unwrap-or (get state :visible?) false
-                  Option :some $ div
+                  Some $ div
                     {} $ :style $ {} (:position :absolute) (:top 8) (:left 8) (:background-color :black) (:color :white) (:padding "|0 8px") (:font-size 12)
                     <> |Copied
-                  Option :none
+                  , None
           :examples $ []
           :schema $ quote $ Fn (Map Dynamic Dynamic) String Dynamic (-> respo.schema/Component) (:features :js-ffi)
       :ns $ %{} 'NsEntry (:doc |)
@@ -429,7 +429,7 @@
           :ffi $ {} (:backend :js) (:kind :external-object)
           :schema $ quote Trait
         'ClipboardData $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ deftrait ClipboardData (:files 'app.comp.home/FileList)
+          :code $ quote $ deftrait ClipboardData (:files 'app.comp.upload/FileList)
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object)
           :schema $ quote Trait
@@ -445,7 +445,7 @@
           :schema $ quote Trait
         'DataTransferItemHost $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait DataTransferItemHost
-            .get-as-file $ Fn app.comp.home/DataTransferItemHost $ -> (JsNullish JsObject)
+            .get-as-file $ Fn app.comp.home/DataTransferItemHost $ -> (JsNullish app.comp.upload/FileItem)
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} $ :get-as-file |getAsFile
@@ -462,17 +462,6 @@
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
             :names $ {} (:data-transfer |dataTransfer) (:prevent-default! |preventDefault)
-          :schema $ quote Trait
-        'FileItem $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ deftrait FileItem (:name 'String) (:size 'Number)
-          :examples $ []
-          :ffi $ {} (:backend :js) (:kind :external-object)
-          :schema $ quote Trait
-        'FileList $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ deftrait FileList (:length 'Number)
-            .item $ Fn app.comp.home/FileList Number $ -> (JsNullish app.comp.home/FileItem)
-          :examples $ []
-          :ffi $ {} (:backend :js) (:kind :external-object)
           :schema $ quote Trait
         'as-snippets $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-snippets (value)
@@ -538,7 +527,7 @@
                     let
                         event $ js-cast (:event e) 'app.comp.home/ClipboardEvent
                         clipboard-data $ js-cast (.-clipboardData event) 'app.comp.home/ClipboardData
-                        files $ js-cast (.-files clipboard-data) 'app.comp.home/FileList
+                        files $ .-files clipboard-data
                       let
                           file $ .item files 0
                         when (js-present? file)
@@ -607,10 +596,10 @@
           :code $ quote $ defcomp comp-home (states snippets show-all? user)
             div (home-props user)
               if (non-nil? user)
-                Option :some $ div
+                Some $ div
                   {} $ :style $ {} (:position :relative)
                   comp-box (>> states :box) user
-                Option :none
+                , None
               respo.comp.space/space-y 8
               list->
                 {}
@@ -623,13 +612,13 @@
                         , 'respo.schema/CoordKey
                     [] k $ comp-snippet (>> states k) k snippet
               if (not show-all?)
-                Option :some $ div
+                Some $ div
                   {} $ :class-name css/center
                   span $ {} (:class-name style-all-tag) (:inner-text "|Show all")
                     :on-click $ fn (e d!)
                       d! $ app.schema/RemoteOp :session/show-all
                       , &unit
-                Option :none
+                , None
           :examples $ []
           :schema $ quote $ Fn (Map Dynamic Dynamic)
             List $ Map Tag Dynamic
@@ -646,10 +635,10 @@
                   and
                     = :file $ .unwrap-or (get snippet :type) :text
                     img-url? $ .unwrap-or (get snippet :url) |
-                  Option :some $ decode-map-as
+                  Some $ decode-map-as
                     .unwrap-or (get snippet :url) |
                     , 'String
-                  Option :none
+                  , None
               div
                 {}
                   :class-name $ str-spaced css/row style-snippet
@@ -662,30 +651,30 @@
                   span $ {} (:class-name style-snippet-span) (:inner-text content)
                 match some-img
                   (:some url)
-                    Option :some $ a
+                    Some $ a
                       {}
                         :class-name $ str-spaced css/center style-link-mark
                         :style $ {} $ :right 104
                         :on-click $ fn (e d!) (download-image! url) &unit
                       comp-i :download 14 $ hsl 200 80 60
-                  (:none) (Option :none)
+                  (:none) None
                 match some-img
                   (:some url)
-                    Option :some $ a
+                    Some $ a
                       {}
                         :class-name $ str-spaced css/center style-link-mark
                         :style $ {} $ :right 72
                         :on-click $ fn (e d!) (copy-to-clipboard url) &unit
                       comp-i :copy 14 $ hsl 200 80 60
-                  (:none) (Option :none)
+                  (:none) None
                 if (starts-with? content |http)
-                  Option :some $ a
+                  Some $ a
                     {}
                       :class-name $ str-spaced css/center style-link-mark
                       :style $ {} $ :right 40
                       :on-click $ fn (e d!) (js/window.open content) &unit
                     comp-i :external-link 14 $ hsl 200 80 60
-                  Option :none
+                  , None
                 div
                   {}
                     :class-name $ str-spaced css/center style-link-mark style-remove
@@ -800,9 +789,9 @@
           :code $ quote $ defstyle style-link-mark
             {}
               |& $ {} (:position :absolute) (:bottom 8) (:width 28) (:height 28) (:cursor :pointer) (:border-radius |20px) (:transition-duration |230ms) (:line-height 1)
-                :background-color $ hsl 0 0 100 $ Option :some 0.9
+                :background-color $ hsl 0 0 100 $ Some 0.9
                 :opacity 0.2
-                :box-shadow $ str "|1px 1px 4px " $ hsl 0 0 0 (Option :some 0.3)
+                :box-shadow $ str "|1px 1px 4px " $ hsl 0 0 0 (Some 0.3)
               |&:hover $ {} $ :transform "|scale(1.1)"
               (str |. style-snippet "|:hover &")
                 {} $ :opacity 1
@@ -823,7 +812,7 @@
                 :border $ str "|1px solid " $ hsl 0 0 84
                 :transition-duration |240ms
               |&:hover $ {}
-                :box-shadow $ str "|1px 1px 6px " $ hsl 0 0 0 (Option :some 0.4)
+                :box-shadow $ str "|1px 1px 6px " $ hsl 0 0 0 (Some 0.4)
                 :background-size :cover
           :examples $ []
           :schema $ quote String
@@ -838,7 +827,7 @@
               |& $ {} (:opacity 0.5) (:transition-duration |240ms)
               (str |. style-snippet "|:hover &")
                 {} (:opacity 1)
-                  :background-color $ hsl 0 0 100 $ Option :some 0.9
+                  :background-color $ hsl 0 0 100 $ Some 0.9
           :examples $ []
           :schema $ quote String
       :ns $ %{} 'NsEntry (:doc |)
@@ -912,7 +901,7 @@
           :code $ quote $ def initial-state
             {} (:username |) (:password |)
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote $ Map Tag String
         'on-submit $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-submit (username password signup?)
             fn (e dispatch!)
@@ -930,7 +919,7 @@
           :examples $ []
           :schema $ quote $ Fn String String Bool
             -> $ Fn respo.schema/RespoEvent
-              Fn app.schema/RemoteOp $ -> Unit
+              Fn schema/RemoteOp $ -> Unit
               -> Unit
               :features :js-ffi
             :features :js-ffi
@@ -1057,12 +1046,6 @@
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object)
           :schema $ quote Trait
-        'FileArray $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ deftrait FileArray
-            :forEach $ Fn Dynamic $ -> Dynamic
-          :examples $ []
-          :ffi $ {} (:backend :js) (:kind :external-object)
-          :schema $ quote Trait
         'FileItem $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait FileItem (:name 'String) (:size 'Number)
           :examples $ []
@@ -1070,12 +1053,13 @@
           :schema $ quote Trait
         'FileList $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait FileList (:length 'Number)
+            .item $ Fn app.comp.upload/FileList Number $ -> (JsNullish app.comp.upload/FileItem)
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object)
           :schema $ quote Trait
         'InputElement $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ deftrait InputElement (:files 'app.comp.upload/FileList) (:value 'Dynamic)
-            :click $ Fn $ -> Dynamic
+          :code $ quote $ deftrait InputElement (:files 'app.comp.upload/FileList) (:value 'String)
+            .click $ Fn app.comp.upload/InputElement $ -> Unit
           :examples $ []
           :ffi $ {} (:backend :js) (:kind :external-object)
           :schema $ quote Trait
@@ -1104,11 +1088,11 @@
                       either raw $ {} $ :uploading nil
                   Map Tag Dynamic
                 progress $ match (get state :uploading)
-                  (:none) (Option :none)
+                  (:none) None
                   (:some raw)
                     if (number? raw)
-                      Option :some $ decode-map-as raw 'Number
-                      Option :none
+                      Some $ decode-map-as raw 'Number
+                      , None
                 uploading? $ .some? progress
                 up $ .unwrap-or progress 0
               div
@@ -1121,23 +1105,25 @@
                       :features :js-ffi
                     let
                         event $ js-cast (:event e) 'app.comp.upload/InputEvent
-                        target $ js-cast (.-target event) 'app.comp.upload/InputElement
-                        files $ js-cast (.-files target) 'app.comp.upload/FileList
-                        files-array $ js-cast (js/Array.from files) 'app.comp.upload/FileArray
-                      .!forEach files-array $ fn (file & _a)
-                        if
-                          <
-                            decode-map-as (.-size file) 'Number
-                            , 100000000
-                          upload-file! file user d! $ fn (next)
-                            d! $ app.schema/LocalOp :states cursor $ match next
-                              (:none)
-                                {} $ :uploading nil
-                              (:some ratio)
-                                {} $ :uploading ratio
+                        target $ .-target event
+                        files $ .-files target
+                      each
+                        range $ .-length files
+                        fn (idx)
+                          let
+                              file $ .item files idx
+                            when (js-present? file)
+                              if
+                                < (.-size file) 100000000
+                                upload-file! file user d! $ fn (next)
+                                  d! $ app.schema/LocalOp :states cursor $ match next
+                                    (:none)
+                                      {} $ :uploading nil
+                                    (:some ratio)
+                                      {} $ :uploading ratio
+                                  , &unit
+                                js/console.warn "|File too large"
                             , &unit
-                          js/console.warn "|File too large"
-                        , nil
                       set! (.-value target) |
                     , &unit
                 a
@@ -1148,18 +1134,18 @@
                         Fn app.schema/UiOp $ -> Unit
                         -> Unit
                         :features :js-ffi
-                      .!click $ js-cast (js/document.querySelector |#upload-input) 'app.comp.upload/InputElement
+                      .click $ js-cast (js/document.querySelector |#upload-input) 'app.comp.upload/InputElement
                       , &unit
                   <> |Upload
                 if uploading?
-                  Option :some $ span
+                  Some $ span
                     {} (:class-name css/font-fancy)
                       :style $ {} (:margin-left 8) (:font-size 12) (:font-style :italic)
                         :color $ hsl 0 0 60
                     <> $ str "|uploading: "
                       .round $ * 100 up
                       , |%
-                  Option :none
+                  , None
           :examples $ []
           :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic (-> respo.schema/Component) (:features :js-ffi)
         'decorate-name $ %{} 'CodeEntry
@@ -1183,13 +1169,10 @@
           :code $ quote $ defn upload-file! (file user d! mutate!)
             let
                 client $ js-cast upload-client 'app.comp.upload/AxiosClient
-                file $ js-cast file 'app.comp.upload/FileItem
                 user $ decode-map-as user $ Map Tag Dynamic
                 hash $ js-await $ load-md5 file
                 file-key $ str hash |/ $ decorate-name
-                  either
-                    decode-map-as (.-name file) 'String
-                    , |clipboard.jpg
+                  either (.-name file) |clipboard.jpg
                 res $ js-await $ .!post client |https://cp.topix.im/token
                   format-cirru-edn $ {}
                     :user $ .unwrap-or (get user :name) |
@@ -1203,7 +1186,7 @@
                         let
                             total $ decode-map-as raw-total 'Number
                           when (> total 0)
-                            mutate! $ Option :some $ / loaded total
+                            mutate! $ Some $ / loaded total
                     , &unit
                 presigned-url $ .unwrap-or
                   get
@@ -1217,11 +1200,11 @@
               d! $ app.schema/RemoteOp :snippet/create-file
                 decode-map-as (str |https://cos-sh.tiye.me/cos-up/ file-key) 'String
                 decode-map-as :file 'Tag
-              mutate! $ Option :none
+              mutate! None
             , &unit
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic
-            Fn app.schema/RemoteOp $ -> Unit
+          :schema $ quote $ Fn FileItem Dynamic
+            Fn schema/RemoteOp $ -> Unit
             Fn (Option Number) (-> Unit) (:features :js-ffi)
             -> Unit
             :features :js-ffi
@@ -1261,7 +1244,7 @@
           :code $ quote $ def site
             SiteConfig :port 11006 :http-port 11030 :title |Copyboard :icon |http://cdn.tiye.me/logo/copyboard.png :theme |#ECCE32 :storage-key |copyboard :storage-file |storage.cirru
           :examples $ []
-          :schema $ quote app.config/SiteConfig
+          :schema $ quote SiteConfig
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.config
     'app.schema $ %{} 'FileEntry
@@ -1345,57 +1328,57 @@
                   .unwrap-or (.get values 1) |unknown
                   .unwrap $ .get values 1
           :examples $ []
-          :schema $ quote $ Fn Dynamic Bool (-> app.schema/Credentials)
+          :schema $ quote $ Fn Dynamic Bool (-> Credentials)
         'decode-server-op $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-server-op (raw)
             if (enum? raw)
               match raw
                 (:user/log-in op-data)
-                  Option :some $ app.schema/RemoteOp :user/log-in $ decode-credentials op-data false
+                  Some $ app.schema/RemoteOp :user/log-in $ decode-credentials op-data false
                 (:user/sign-up op-data)
-                  Option :some $ app.schema/RemoteOp :user/sign-up $ decode-credentials op-data true
+                  Some $ app.schema/RemoteOp :user/sign-up $ decode-credentials op-data true
                 (:user/log-out op-data)
-                  Option :some $ app.schema/RemoteOp :user/log-out
+                  Some $ app.schema/RemoteOp :user/log-out
                 (:user/log-out)
-                  Option :some $ app.schema/RemoteOp :user/log-out
+                  Some $ app.schema/RemoteOp :user/log-out
                 (:session/remove-message op-data)
                   if (map? op-data)
                     match (get op-data :id)
                       (:some id)
                         if (string? id)
-                          Option :some $ app.schema/RemoteOp :session/remove-message id
-                          Option :none
-                      (:none) (Option :none)
-                    Option :none
+                          Some $ app.schema/RemoteOp :session/remove-message id
+                          , None
+                      (:none) None
+                    , None
                 (:router/change op-data)
-                  Option :some $ app.schema/RemoteOp :router/change $ decode-map-as op-data (Map Tag Dynamic)
+                  Some $ app.schema/RemoteOp :router/change $ decode-map-as op-data (Map Tag Dynamic)
                 (:snippet/create op-data)
-                  Option :some $ app.schema/RemoteOp :snippet/create $ decode-map-as op-data 'String
+                  Some $ app.schema/RemoteOp :snippet/create $ decode-map-as op-data 'String
                 (:snippet/create-file url kind)
-                  Option :some $ app.schema/RemoteOp :snippet/create-file (decode-map-as url 'String) (decode-map-as kind 'Tag)
+                  Some $ app.schema/RemoteOp :snippet/create-file (decode-map-as url 'String) (decode-map-as kind 'Tag)
                 (:snippet/remove-one op-data)
-                  Option :some $ app.schema/RemoteOp :snippet/remove-one $ decode-map-as op-data 'String
+                  Some $ app.schema/RemoteOp :snippet/remove-one $ decode-map-as op-data 'String
                 (:session/show-all op-data)
-                  Option :some $ app.schema/RemoteOp :session/show-all
+                  Some $ app.schema/RemoteOp :session/show-all
                 (:session/show-all)
-                  Option :some $ app.schema/RemoteOp :session/show-all
+                  Some $ app.schema/RemoteOp :session/show-all
                 (:effect/persist)
-                  Option :some $ app.schema/ServiceOp :effect/persist
+                  Some $ app.schema/ServiceOp :effect/persist
                 (:effect/ping)
-                  Option :some $ app.schema/ServiceOp :effect/ping
+                  Some $ app.schema/ServiceOp :effect/ping
                 (:reel/reset)
-                  Option :some $ app.schema/ServiceOp :reel/reset
+                  Some $ app.schema/ServiceOp :reel/reset
                 (:reel/merge)
-                  Option :some $ app.schema/ServiceOp :reel/merge
+                  Some $ app.schema/ServiceOp :reel/merge
                 (:session/connect)
-                  Option :some $ app.schema/ConnectionOp :session/connect
+                  Some $ app.schema/ConnectionOp :session/connect
                 (:session/disconnect)
-                  Option :some $ app.schema/ConnectionOp :session/disconnect
-                _ $ Option :none
-              Option :none
+                  Some $ app.schema/ConnectionOp :session/disconnect
+                _ None
+              , None
           :examples $ []
           :schema $ quote $ Fn Dynamic
-            -> $ Option app.schema/ServerOp
+            -> $ Option ServerOp
         'notification $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def notification
             {} (:id nil) (:kind nil) (:text nil)
@@ -1417,7 +1400,7 @@
               (:snippet/remove-one value) (:: :snippet/remove-one value)
               (:session/show-all) (:: :session/show-all nil)
           :examples $ []
-          :schema $ quote $ Fn app.schema/RemoteOp (-> AnyEnum) (:open :reflect)
+          :schema $ quote $ Fn RemoteOp (-> AnyEnum) (:open :reflect)
         'router $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def router
             {} (:name nil) (:title nil)
@@ -1433,7 +1416,7 @@
               (:reel/reset) (:: :reel/reset)
               (:reel/merge) (:: :reel/merge)
           :examples $ []
-          :schema $ quote $ Fn app.schema/ServiceOp (-> AnyEnum) (:open :reflect)
+          :schema $ quote $ Fn ServiceOp (-> AnyEnum) (:open :reflect)
         'session $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def session
             {} (:user-id nil) (:id nil) (:nickname nil)
@@ -1521,7 +1504,7 @@
                   reset! *reel $ reel-reducer @*reel updater action sid op-id op-time config/dev?
               , &unit
           :examples $ []
-          :schema $ quote $ Fn app.schema/ServerOp Number (-> Unit)
+          :schema $ quote $ Fn schema/ServerOp Number (-> Unit)
         'get-backup-path! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn get-backup-path! ()
             let
@@ -1628,7 +1611,7 @@
                   _ $ println "|unknown data:" data
                 , &unit
             http.core/serve-http!
-              Option :some $ decode-map-as
+              Some $ decode-map-as
                 {}
                   :port $ :http-port config/site
                   :host |0.0.0.0
@@ -1717,10 +1700,9 @@
         'session-user-id $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn session-user-id (session)
             match (get session :user-id)
-              (:none) (Option :none)
+              (:none) None
               (:some raw)
-                if (nil? raw) (Option :none)
-                  Option :some $ decode-map-as raw 'String
+                if (nil? raw) None $ Some $ decode-map-as raw 'String
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic)
             -> $ Option String
@@ -1881,8 +1863,8 @@
                 Result :ok $ {} $ |toast-2
                   {} $ :id |toast-2
                 get-in next $ [] :sessions 1 :messages
-              assert= (Option :none)
-                app.schema/decode-server-op $ :: :session/remove-message $ {} (:id 42)
+              assert= None $ app.schema/decode-server-op $ :: :session/remove-message
+                {} $ :id 42
               assert=
                 :: :session/remove-message $ {} $ :id id
                 app.schema/remote-op-to-wire $ app.schema/RemoteOp :session/remove-message id
@@ -1924,7 +1906,7 @@
             update db :snippets $ fn (snippets)
               filter-not (as-snippets snippets)
                 fn (s)
-                  = (Option :some snippet-id) (get s :id)
+                  = (Some snippet-id) (get s :id)
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) String Number String Number
             -> $ Map Tag Dynamic
