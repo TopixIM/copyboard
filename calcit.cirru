@@ -1649,20 +1649,19 @@
               let
                   reel-state reel
                   db $ :db reel-state
-                  records $ :records reel-state
+                  reel-length $ .len $ :records reel-state
                   session $ .unwrap-or
                     get-in db $ [] :sessions sid
                     {}
                   old-store $ get (deref *client-caches) sid
                   new-store $ twig-container db
                     decode-map-as session $ Map Tag Dynamic
-                    , records
+                    , reel-length
                   changes $ match old-store
                     (:none)
                       diff-twig nil new-store $ {} $ :key :id
                     (:some previous)
                       diff-twig previous new-store $ {} $ :key :id
-                ; when config/dev? $ println "|Changes for" sid |: changes $ count records
                 if
                   not $ empty? changes
                   do
@@ -1726,7 +1725,7 @@
           :schema $ quote $ Fn (Map Tag Dynamic)
             -> $ Option String
         'twig-container $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn twig-container (db session records)
+          :code $ quote $ defn twig-container (db session reel-length)
             let
                 user-id $ session-user-id session
                 logged-in? $ .some? user-id
@@ -1747,7 +1746,7 @@
                   :count $ decode-map-as
                     .unwrap-or (get db :count) 0
                     , 'Number
-                  :reel-length $ .len records
+                  :reel-length reel-length
                 snippets $ if show-all? all-snippets $ with-cpu-time (take-last all-snippets 12)
               merge base-data $ if logged-in?
                 {}
@@ -1764,7 +1763,7 @@
                   :show-all? show-all?
                 {}
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic) (List Dynamic)
+          :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic) Number
             -> $ Map Tag Dynamic
             :features :js-ffi
         'twig-members $ %{} 'CodeEntry (:doc |)
