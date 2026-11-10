@@ -353,7 +353,7 @@
           :code $ quote $ defstyle style-status-buble
             {} $ |& $ {} (:width 16) (:height 16) (:position :absolute) (:bottom 10) (:left 10) (:border-radius |8px) (:opacity 0.8)
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.container
           :require
@@ -790,12 +790,12 @@
               :border $ str "|1px solid " $ hsl 0 0 90
               :cursor :pointer
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
         'style-grid-list $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-grid-list
             {} $ |& $ {} (:display :grid) (:grid-template-columns "|repeat(auto-fit, minmax(360px, 1fr))") (:gap 12)
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
         'style-link-mark $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-link-mark
             {}
@@ -809,12 +809,12 @@
               "|& i" $ {} (:transition-duration |300ms) (:transform "|scale(1)")
               "|&:active i" $ {} (:transition-duration |0ms) (:transform "|scale(1.2)")
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
         'style-remove $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-remove
             {} $ |& $ {} (:right 8)
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
         'style-snippet $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-snippet
             {}
@@ -826,12 +826,12 @@
                 :box-shadow $ str "|1px 1px 6px " $ hsl 0 0 0 (Option :some 0.4)
                 :background-size :cover
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
         'style-snippet-content $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-snippet-content
             {} $ |& $ {} (:font-family ui/font-code) (:min-height 80) (:margin 0) (:white-space :pre-wrap) (:word-break :break-all) (:padding 16) (:max-height |50vh) (:max-width |100%) (:overflow :auto) (:line-height |21px) (:height |100%)
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
         'style-snippet-span $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-snippet-span
             {}
@@ -840,7 +840,7 @@
                 {} (:opacity 1)
                   :background-color $ hsl 0 0 100 $ Option :some 0.9
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.home
           :require
@@ -988,7 +988,7 @@
               :color :white
               :z-index 100
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.navigation
           :require
@@ -1178,7 +1178,7 @@
           :code $ quote $ defstyle style-hidden-input
             {} $ |& $ {} (:display :none)
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote String
         'upload-file! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn upload-file! (file user d! mutate!)
             let
