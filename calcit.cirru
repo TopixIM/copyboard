@@ -636,12 +636,14 @@
                 remove-plugin $ use-confirm (>> states :remove)
                   {} $ :text "|Sure to remove?"
                 some-img $ if
-                  and
-                    = :file $ .unwrap-or (get snippet :type) :text
-                    img-url? $ .unwrap-or (get snippet :url) |
-                  Some $ decode-map-as
-                    .unwrap-or (get snippet :url) |
-                    , 'String
+                  = :file $ .unwrap-or (get snippet :type) :text
+                  match
+                    try-decode-map-as
+                      .unwrap-or (get snippet :url) |
+                      , 'String
+                    (:ok url)
+                      if (img-url? url) (Some url) None
+                    (:err _) None
                   , None
               div
                 {}
@@ -776,11 +778,9 @@
             :features :js-ffi
         'img-url? $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn img-url? (url)
-            if (string? url)
-              or (ends-with? url |.png) (ends-with? url |.jpg) (ends-with? url |.jpeg) (ends-with? url |.webp)
-              , false
+            or (ends-with? url |.png) (ends-with? url |.jpg) (ends-with? url |.jpeg) (ends-with? url |.webp)
           :examples $ []
-          :schema $ quote $ Fn Dynamic (-> Bool)
+          :schema $ quote $ Fn String (-> Bool)
         'style-all-tag $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-all-tag
             {} $ |& $ {} (:width 120) (:background-color :white) (:font-family ui/font-fancy) (:text-align :center)
