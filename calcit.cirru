@@ -43,7 +43,8 @@
                   :on-close $ fn (event)
                     reset! *store $ app.schema/ViewState :offline
                     js/console.error "|Lost connection!"
-                  :on-data on-server-data
+                  :on-data $ fn (raw)
+                    on-server-data $ schema/decode-server-event raw
             , &unit
           :examples $ []
           :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
@@ -138,24 +139,21 @@
           :examples $ []
           :schema $ quote respo.dom/DomElement
         'on-server-data $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn on-server-data (data)
-            match data
+          :code $ quote $ defn on-server-data (event)
+            match event
               (:patch changes)
                 do
                   when config/dev? $ js/console.log |Changes changes
                   reset! *store $ app.schema/ViewState :ready $ decode-map-as
-                    let
-                        typed-changes $ decode-changes changes
-                      match @*store
-                        (:ready store) (patch-twig store typed-changes)
-                        (:initial) (patch-twig nil typed-changes)
-                        (:offline) (patch-twig nil typed-changes)
+                    match @*store
+                      (:ready store) (patch-twig store changes)
+                      (:initial) (patch-twig nil changes)
+                      (:offline) (patch-twig nil changes)
                     Map Tag Dynamic
               (:effect/pong) &unit
-              _ $ raise "|Invalid Copyboard server event"
             , &unit
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> Unit) (:features :js-ffi) (:open :decode)
+          :schema $ quote $ Fn schema/ServerEvent (-> Unit) (:features :js-ffi)
         'read-from-clipboard! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn read-from-clipboard! ()
             match
@@ -217,7 +215,6 @@
             |./calcit.build-errors :default client-errors
             |../js-out/calcit.build-errors :default server-errors
             js-ffi.browser :refer $ query-selector storage-get clipboard-read-text!
-            recollect.schema :refer $ decode-changes
             respo.ffi.browser :refer $ narrow-element
             js-ffi.contract :as contract
     'app.comp.container $ %{} 'FileEntry
@@ -1280,6 +1277,11 @@
             :session/show-all
           :examples $ []
           :schema $ quote EnumDef
+        'ServerEvent $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defenum ServerEvent (:effect/pong)
+            :patch $ List recollect.schema/change-op
+          :examples $ []
+          :schema $ quote EnumDef
         'ServerOp $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defunion ServerOp app.schema/RemoteOp app.schema/ConnectionOp app.schema/ServiceOp
           :examples $ []
@@ -1333,6 +1335,29 @@
                   .unwrap $ .get values 1
           :examples $ []
           :schema $ quote $ Fn Dynamic Bool (-> Credentials)
+        'decode-server-event $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defn decode-server-event (raw)
+            if (enum? raw)
+              match raw
+                (:patch changes)
+                  ServerEvent :patch $ recollect.schema/decode-changes changes
+                (:effect/pong) (ServerEvent :effect/pong)
+                _ $ raise "|Invalid Copyboard server event"
+              raise "|Invalid Copyboard server event"
+          :examples $ []
+          :schema $ quote $ Fn T (-> ServerEvent) (:generics T)
+          :tests $ [] $ %{} 'TestEntry (:name |server-wire-restores-local-events)
+            :code $ quote $ do
+              assert= (ServerEvent :effect/pong)
+                decode-server-event $ parse-cirru-edn $ format-cirru-edn (:: :effect/pong)
+              let
+                  changes $ [] $ :: :replace
+                    {} $ :logged-in? false
+                  wire $ parse-cirru-edn $ format-cirru-edn (:: :patch changes)
+                assert=
+                  ServerEvent :patch $ [] $ recollect.schema/change-op :replace
+                    {} $ :logged-in? false
+                  decode-server-event wire
         'decode-server-op $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-server-op (raw)
             if (enum? raw)
