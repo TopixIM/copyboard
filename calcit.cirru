@@ -379,7 +379,7 @@
             let
                 cursor $ decode-map-as
                   .unwrap-or (get states :cursor) ([])
-                  List Dynamic
+                  List respo.schema/CoordKey
                 state $ decode-map-as
                   match (get states :data)
                     (:none)
@@ -391,14 +391,10 @@
                 {}
                   :style $ merge ui/flex $ {} (:position :relative) (:cursor :pointer) (:max-width |100%)
                   :on-click $ fn (e d!) (copy! value)
-                    d! $ app.schema/LocalOp :states
-                      decode-map-as cursor $ List respo.schema/CoordKey
-                      {} $ :visible? true
+                    d! $ app.schema/LocalOp :states cursor $ {} (:visible? true)
                     js/setTimeout
                       fn ()
-                        d! $ app.schema/LocalOp :states
-                          decode-map-as cursor $ List respo.schema/CoordKey
-                          {} $ :visible? false
+                        d! $ app.schema/LocalOp :states cursor $ {} (:visible? false)
                         , &unit
                       , 1200
                     , &unit
@@ -409,7 +405,7 @@
                     <> |Copied
                   , None
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) String Dynamic (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn respo.schema/States String respo.schema/Element (-> respo.schema/Component) (:features :js-ffi)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.copied
           :require
