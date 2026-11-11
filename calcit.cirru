@@ -463,8 +463,9 @@
           :code $ quote $ defn as-snippets (value)
             decode-map-as value $ List $ Map Tag Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ List $ Map Tag Dynamic
+            :generics Input
         'comp-box $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-box (states user)
             let
@@ -692,7 +693,7 @@
                   comp-i :trash-2 14 $ hsl 0 80 50
                 .render remove-plugin
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic (Map Tag Dynamic) (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn respo.schema/States respo.schema/CoordKey (Map Tag Dynamic) (-> respo.schema/Component) (:features :js-ffi)
         'copy-to-clipboard $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn copy-to-clipboard (url) (hint-fn Async)
             let
@@ -706,7 +707,7 @@
                   , obj
               println "|copied blob"
           :examples $ []
-          :schema $ quote $ Fn String (-> Dynamic) (:features :js-ffi)
+          :schema $ quote $ Fn String (-> Unit) (:features :js-ffi) (:async)
         'download-image! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn download-image! (url) (hint-fn Async)
             let
@@ -900,7 +901,7 @@
                         .unwrap-or (get state :password) |
                         , false
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) (-> respo.schema/Component)
+          :schema $ quote $ Fn respo.schema/States (-> respo.schema/Component)
         'initial-state $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def initial-state
             {} (:username |) (:password |)
