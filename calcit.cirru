@@ -375,10 +375,10 @@
           :code $ quote $ defcomp comp-copied (states value child)
             let
                 cursor $ decode-map-as
-                  .unwrap-or (get states :cursor) ([])
+                  .unwrap-or (&map:get states :cursor) ([])
                   List respo.schema/CoordKey
                 state $ decode-map-as
-                  match (get states :data)
+                  match (&map:get states :data)
                     (:none)
                       {} $ :visible? false
                     (:some raw)
@@ -467,10 +467,10 @@
           :code $ quote $ defcomp comp-box (states user)
             let
                 cursor $ decode-map-as
-                  .unwrap-or (get states :cursor) ([])
+                  .unwrap-or (&map:get states :cursor) ([])
                   List respo.schema/CoordKey
                 state $ decode-map-as
-                  match (get states :data)
+                  match (&map:get states :data)
                     (:none)
                       {} $ :content |
                     (:some raw)
@@ -479,7 +479,7 @@
                 content $ .unwrap-or (get state :content) |
                 send! $ fn (e d!)
                   hint-fn $ Fn respo.schema/RespoEvent
-                    Fn app.schema/UiOp $ -> Unit
+                    Fn schema/UiOp $ -> Unit
                     -> Unit
                     :features :js-ffi
                   when
@@ -496,14 +496,14 @@
                   :class-name $ str-spaced css/flex css/textarea schema/box-name
                   :on-input $ fn (e d!)
                     hint-fn $ Fn respo.schema/RespoEvent
-                      Fn app.schema/LocalOp $ -> Unit
+                      Fn schema/LocalOp $ -> Unit
                       -> Unit
                       :features :js-ffi
                     d! $ app.schema/LocalOp :states cursor $ assoc state :content (respo.core/event-value e)
                     , &unit
                   :on-keydown $ fn (e d!)
                     hint-fn $ Fn respo.schema/RespoEvent
-                      Fn app.schema/UiOp $ -> Unit
+                      Fn schema/UiOp $ -> Unit
                       -> Unit
                       :features :js-ffi
                     when
@@ -515,7 +515,7 @@
                     , &unit
                   :on-paste $ fn (e d!)
                     hint-fn $ Fn respo.schema/RespoEvent
-                      Fn app.schema/RemoteOp $ -> Unit
+                      Fn schema/RemoteOp $ -> Unit
                       -> Unit
                       :features :js-ffi
                     let
@@ -549,7 +549,7 @@
                         {} (:style style/link)
                           :on-click $ fn (e d!)
                             hint-fn $ Fn respo.schema/RespoEvent
-                              Fn app.schema/LocalOp $ -> Unit
+                              Fn schema/LocalOp $ -> Unit
                               -> Unit
                               :features :js-ffi
                             d! $ app.schema/LocalOp :states cursor $ assoc state :content |
@@ -561,7 +561,7 @@
                         {} (:style style/link)
                           :on-click $ fn (e d!)
                             hint-fn $ Fn respo.schema/RespoEvent
-                              Fn app.schema/LocalOp $ -> Unit
+                              Fn schema/LocalOp $ -> Unit
                               -> Unit
                               :features :js-ffi
                               :async
@@ -577,7 +577,7 @@
                         {} (:style style/button)
                           :on-click $ fn (e d!)
                             hint-fn $ Fn respo.schema/RespoEvent
-                              Fn app.schema/UiOp $ -> Unit
+                              Fn schema/UiOp $ -> Unit
                               -> Unit
                               :features :js-ffi
                             send! e d!
@@ -734,7 +734,7 @@
                 :background-color $ hsl 0 0 97
               :on-dragover $ fn (e d!)
                 hint-fn $ Fn respo.schema/RespoEvent
-                  Fn app.schema/RemoteOp $ -> Unit
+                  Fn schema/RemoteOp $ -> Unit
                   -> Unit
                   :features :js-ffi
                 let
@@ -743,7 +743,7 @@
                 , &unit
               :on-drop $ fn (e d!)
                 hint-fn $ Fn respo.schema/RespoEvent
-                  Fn app.schema/RemoteOp $ -> Unit
+                  Fn schema/RemoteOp $ -> Unit
                   -> Unit
                   :features :js-ffi
                 let
@@ -854,10 +854,10 @@
           :code $ quote $ defcomp comp-login (states)
             let
                 cursor $ decode-map-as
-                  .unwrap-or (get states :cursor) ([])
+                  .unwrap-or (&map:get states :cursor) ([])
                   List respo.schema/CoordKey
                 state $ decode-map-as
-                  match (get states :data)
+                  match (&map:get states :data)
                     (:none) initial-state
                     (:some raw) (or raw initial-state)
                   Map Tag String
@@ -908,7 +908,7 @@
           :code $ quote $ defn on-submit (username password signup?)
             fn (e dispatch!)
               hint-fn $ Fn respo.schema/RespoEvent
-                Fn app.schema/RemoteOp $ -> Unit
+                Fn schema/RemoteOp $ -> Unit
                 -> Unit
                 :features :js-ffi
               dispatch! $ if signup?
@@ -1080,10 +1080,10 @@
           :code $ quote $ defcomp comp-file-upload (states user)
             let
                 cursor $ decode-map-as
-                  .unwrap-or (get states :cursor) ([])
+                  .unwrap-or (&map:get states :cursor) ([])
                   List respo.schema/CoordKey
                 state $ decode-map-as
-                  match (get states :data)
+                  match (&map:get states :data)
                     (:none)
                       {} $ :uploading nil
                     (:some raw)
@@ -1102,7 +1102,7 @@
                 input $ {} (:type |file) (:id |upload-input) (:class-name style-hidden-input) (:multiple true)
                   :on-input $ fn (e d!)
                     hint-fn $ Fn respo.schema/RespoEvent
-                      Fn app.schema/UiOp $ -> Unit
+                      Fn schema/UiOp $ -> Unit
                       -> Unit
                       :features :js-ffi
                     let
@@ -1133,7 +1133,7 @@
                     :style $ {} $ :color (hsl 200 90 70)
                     :on-click $ fn (e d!)
                       hint-fn $ Fn respo.schema/RespoEvent
-                        Fn app.schema/UiOp $ -> Unit
+                        Fn schema/UiOp $ -> Unit
                         -> Unit
                         :features :js-ffi
                       .click $ js-cast (js/document.querySelector |#upload-input) 'app.comp.upload/InputElement
@@ -1499,8 +1499,9 @@
           :code $ quote $ defn as-list (value)
             decode-map-as value $ List $ Map Tag Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ List $ Map Tag Dynamic
+            :generics Input
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op sid)
             let
@@ -1705,14 +1706,14 @@
           :code $ quote $ def button
             merge ui/button $ {} $ :background-color :white
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote $ Map Tag respo-ui.schema/StyleValue
         'link $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def link
             {} (:text-decoration :underline) (:cursor :pointer)
               :color $ hsl 240 80 80
               :font-family ui/font-fancy
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote $ Map Tag respo-ui.schema/StyleValue
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.style
           :require
@@ -1724,8 +1725,9 @@
           :code $ quote $ defn as-tag-map (value)
             decode-map-as value $ Map Tag Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Map Tag Dynamic
+            :generics Input
         'session-user-id $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn session-user-id (session)
             match (get session :user-id)
