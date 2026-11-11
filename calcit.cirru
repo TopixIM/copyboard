@@ -262,7 +262,7 @@
                       if logged-in?
                         match
                           .unwrap-or (get router :name) :unknown
-                          :home $ comp-home (>> states :snippets) snippets show-all? user
+                          :home $ comp-home (>> states :snippets) snippets show-all? $ Some user
                           :profile $ comp-profile user $ decode-map-as
                             .unwrap-or (get router :data) ({})
                             Map Dynamic String
@@ -333,9 +333,9 @@
                   :margin-bottom 8
                   :background-color $ hsl 0 0 90
                   :margin-top 24
-              comp-home states preview-data true nil
+              comp-home states preview-data true None
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic)
+          :schema $ quote $ Fn respo.schema/States
             List $ Map Tag Dynamic
             , Tag (-> respo.schema/Element)
         'comp-status-color $ %{} 'CodeEntry (:doc |)
@@ -591,15 +591,16 @@
                         <> |Send
                   .render confirm-plugin
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn respo.schema/States (Map Tag Dynamic) (-> respo.schema/Component) (:features :js-ffi)
         'comp-home $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-home (states snippets show-all? user)
             div (home-props user)
-              if (non-nil? user)
-                Some $ div
-                  {} $ :style $ {} (:position :relative)
-                  comp-box (>> states :box) user
-                , None
+              match user
+                (:none) None
+                (:some info)
+                  Some $ div
+                    {} $ :style $ {} (:position :relative)
+                    comp-box (>> states :box) info
               respo.comp.space/space-y 8
               list->
                 {}
@@ -620,9 +621,12 @@
                       , &unit
                 , None
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic)
+          :schema $ quote $ Fn respo.schema/States
             List $ Map Tag Dynamic
-            , Bool Dynamic (-> respo.schema/Component) (:features :js-ffi)
+            , Bool
+              Option $ Map Tag Dynamic
+              -> respo.schema/Component
+              :features :js-ffi
         'comp-snippet $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-snippet (states k snippet)
             let
@@ -760,10 +764,14 @@
                           let
                               file? $ .get-as-file item?
                             when (js-present? file?)
-                              upload-file! file? user d! $ fn (_e) &unit
+                              match user
+                                (:none) &unit
+                                (:some info)
+                                  upload-file! file? info d! $ fn (_e) &unit
                 , &unit
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn
+            Option $ Map Tag Dynamic
             -> $ Map Tag Dynamic
             :features :js-ffi
         'img-url? $ %{} 'CodeEntry (:doc |)
@@ -969,7 +977,7 @@
                 respo.comp.space/space-x 8
                 <> $ str count-members
           :examples $ []
-          :schema $ quote $ Fn Dynamic Dynamic Bool Number Bool (-> respo.schema/Component)
+          :schema $ quote $ Fn respo.schema/States (Map Tag Dynamic) Bool Number Bool (-> respo.schema/Component)
         'style-nav $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defstyle style-nav
             {} $ |& $ {} (:justify-content :space-between) (:padding "|0px 16px") (:font-size 16) (:font-family ui/font-fancy)
@@ -1147,7 +1155,7 @@
                       , |%
                   , None
           :examples $ []
-          :schema $ quote $ Fn (Map Dynamic Dynamic) Dynamic (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn respo.schema/States (Map Tag Dynamic) (-> respo.schema/Component) (:features :js-ffi)
         'decorate-name $ %{} 'CodeEntry
           :doc "|`paste` event uses default name `image.png` as the file name, need to overwrite that.\n\nalso spaces in filekey causes problems of inline CSS, need to replace that."
           :code $ quote $ defn decorate-name (img-name)
@@ -1169,7 +1177,6 @@
           :code $ quote $ defn upload-file! (file user d! mutate!)
             let
                 client $ js-cast upload-client 'app.comp.upload/AxiosClient
-                user $ decode-map-as user $ Map Tag Dynamic
                 hash $ js-await $ load-md5 file
                 file-key $ str hash |/ $ decorate-name
                   either (.-name file) |clipboard.jpg
@@ -1203,7 +1210,7 @@
               mutate! None
             , &unit
           :examples $ []
-          :schema $ quote $ Fn FileItem Dynamic
+          :schema $ quote $ Fn FileItem (Map Tag Dynamic)
             Fn schema/RemoteOp $ -> Unit
             Fn (Option Number) (-> Unit) (:features :js-ffi)
             -> Unit
