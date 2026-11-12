@@ -47,7 +47,7 @@
                     on-server-data $ schema/decode-server-event raw
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
         'dispatch! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch! (op)
             match op
@@ -62,7 +62,7 @@
                 ws-send! $ schema/service-op-to-wire action
             , &unit
           :examples $ []
-          :schema $ quote $ Fn schema/UiOp (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn schema/UiOp (-> Unit) (:features :io :js-ffi :state)
         'dispatch-from-view! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch-from-view! (raw)
             cond
@@ -85,7 +85,7 @@
                   dispatch! $ app.schema/ServiceOp :effect/persist
                 _ $ raise "|Unknown Copyboard view operation"
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> Unit) (:features :js-ffi) (:open :reflect)
+          :schema $ quote $ Fn AnyEnum (-> Unit) (:features :io :js-ffi :state) (:open :reflect)
         'load-preview-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn load-preview-data! ()
             try
@@ -106,7 +106,7 @@
                 reset! *preview-data $ []
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi) (:async)
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi :state) (:async)
         'main! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn main! ()
             println "|Running mode:" $ if config/dev? |dev |release
@@ -132,7 +132,7 @@
             js/setTimeout read-from-clipboard! 500
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
         'mount-target $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def mount-target
             narrow-element $ .unwrap $ query-selector |.app
@@ -153,7 +153,7 @@
               (:effect/pong) &unit
             , &unit
           :examples $ []
-          :schema $ quote $ Fn schema/ServerEvent (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn schema/ServerEvent (-> Unit) (:features :js-ffi :state)
         'read-from-clipboard! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn read-from-clipboard! ()
             match
@@ -176,7 +176,7 @@
                 hud! |ok~
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
         'render-app! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-app! ()
             render-with! mount-target
@@ -187,7 +187,7 @@
                 , @*store @*preview-data
               , dispatch-from-view!
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
         'simulate-login! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn simulate-login! ()
             match
@@ -198,7 +198,7 @@
               (:none) (println "|Found no storage.")
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi)
+          :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.client
           :require
@@ -297,6 +297,7 @@
           :schema $ quote $ Fn (Map Tag Dynamic) app.schema/ViewState
             List $ Map Tag Dynamic
             -> respo.schema/Component
+            :features :io
         'comp-offline $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-offline (state)
             div
@@ -334,7 +335,7 @@
           :examples $ []
           :schema $ quote $ Fn respo.schema/States
             List $ Map Tag Dynamic
-            , Tag (-> respo.schema/Element)
+            , Tag (-> respo.schema/Element) (:features :io)
         'comp-status-color $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-status-color (color)
             div $ {} (:class-name style-status-buble)
@@ -620,7 +621,7 @@
             , Bool
               Option $ Map Tag Dynamic
               -> respo.schema/Component
-              :features :js-ffi
+              :features :io :js-ffi
         'comp-snippet $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-snippet (states k snippet)
             let
@@ -690,7 +691,7 @@
                   comp-i :trash-2 14 $ hsl 0 80 50
                 .render remove-plugin
           :examples $ []
-          :schema $ quote $ Fn respo.schema/States respo.schema/CoordKey (Map Tag Dynamic) (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn respo.schema/States respo.schema/CoordKey (Map Tag Dynamic) (-> respo.schema/Component) (:features :io :js-ffi)
         'copy-to-clipboard $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn copy-to-clipboard (url) (hint-fn Async)
             let
@@ -704,7 +705,7 @@
                   , obj
               println "|copied blob"
           :examples $ []
-          :schema $ quote $ Fn String (-> Unit) (:features :js-ffi) (:async)
+          :schema $ quote $ Fn String (-> Unit) (:features :io :js-ffi) (:async)
         'download-image! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn download-image! (url) (hint-fn Async)
             let
@@ -1495,6 +1496,10 @@
           :examples $ []
           :schema $ quote $ Ref
             cumulo-reel.core/ReelState $ Map Tag Dynamic
+        'HttpResponseField $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion HttpResponseField Number String (Map Tag String)
+          :examples $ []
+          :schema $ quote UnionDef
         'as-list $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-list (value)
             decode-map-as value $ List $ Map Tag Dynamic
@@ -1534,7 +1539,7 @@
                   reset! *reel $ reel-reducer @*reel updater action sid op-id op-time config/dev?
               , &unit
           :examples $ []
-          :schema $ quote $ Fn schema/ServerOp Number (-> Unit)
+          :schema $ quote $ Fn schema/ServerOp Number (-> Unit) (:features :io :state)
         'get-backup-path! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn get-backup-path! ()
             let
@@ -1569,11 +1574,11 @@
             on-control-c on-exit!
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'on-exit! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-exit! () (persist-db!) (; println "|exit code is...") (quit! 0)
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'on-request! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn on-request! (req)
             let
@@ -1589,7 +1594,8 @@
                 :body $ format-cirru-edn $ {} (:snippets-list snippets)
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic)
-            -> $ Map Tag Dynamic
+            -> $ Map Tag HttpResponseField
+            :features :io :state
         'persist-db! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn persist-db! ()
             let
@@ -1601,7 +1607,7 @@
               check-write-file! backup-path file-content
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :state)
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! () (println |Code_updated)
             if (not config/dev?) (raise |reloading_only_happens_in_dev_mode)
@@ -1609,7 +1615,7 @@
             reset! *reader-reel $ deref *reel
             sync-clients! $ deref *reader-reel
           :examples $ []
-          :schema $ quote $ Fn (-> Dynamic)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'render-loop! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn render-loop! ()
             when
@@ -1618,7 +1624,7 @@
               sync-clients! @*reader-reel
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit)
+          :schema $ quote $ Fn (-> Unit) (:features :io :state)
         'run-server! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn run-server! (port)
             wss-serve! (&{} :port port)
@@ -1648,7 +1654,7 @@
                 Map Tag http.core/ServerOptionValue
               fn (req) (on-request! req)
           :examples $ []
-          :schema $ quote $ Fn Number (-> FfiTask)
+          :schema $ quote $ Fn Number (-> FfiTask) (:features :io :state)
         'storage-file $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def storage-file
             if (empty? calcit-dirname)
@@ -1685,6 +1691,7 @@
           :schema $ quote $ Fn
             cumulo-reel.core/ReelState $ Map Tag Dynamic
             -> Unit
+            :features :io :state
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.server
           :require (app.schema :as schema)
@@ -1778,7 +1785,7 @@
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) (Map Tag Dynamic) Number
             -> $ Map Tag Dynamic
-            :features :js-ffi
+            :features :io :js-ffi
         'twig-members $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn twig-members (sessions users)
             filter-map-kv sessions $ fn (k session)
