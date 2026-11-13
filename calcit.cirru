@@ -65,27 +65,29 @@
           :schema $ quote $ Fn schema/UiOp (-> Unit) (:features :io :js-ffi :state)
         'dispatch-from-view! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn dispatch-from-view! (raw)
-            cond
-                = (enum-definition raw) (Some app.schema/LocalOp)
-                dispatch! $ decode-map-as raw 'app.schema/LocalOp
-              (= (enum-definition raw) (Some app.schema/RemoteOp))
-                dispatch! $ decode-map-as raw 'app.schema/RemoteOp
-              (= (enum-definition raw) (Some app.schema/ServiceOp))
-                dispatch! $ decode-map-as raw 'app.schema/ServiceOp
-              true $ match raw
-                (:states cursor s)
-                  dispatch! $ app.schema/LocalOp :states
-                    decode-map-as cursor $ List respo.schema/CoordKey
-                    , s
-                (:reel/reset)
-                  dispatch! $ app.schema/ServiceOp :reel/reset
-                (:reel/merge)
-                  dispatch! $ app.schema/ServiceOp :reel/merge
-                (:effect/persist)
-                  dispatch! $ app.schema/ServiceOp :effect/persist
-                _ $ raise "|Unknown Copyboard view operation"
+            if (enum? raw)
+              cond
+                  = (enum-definition raw) (Some app.schema/LocalOp)
+                  dispatch! $ decode-map-as raw 'app.schema/LocalOp
+                (= (enum-definition raw) (Some app.schema/RemoteOp))
+                  dispatch! $ decode-map-as raw 'app.schema/RemoteOp
+                (= (enum-definition raw) (Some app.schema/ServiceOp))
+                  dispatch! $ decode-map-as raw 'app.schema/ServiceOp
+                true $ match raw
+                  (:states cursor s)
+                    dispatch! $ app.schema/LocalOp :states
+                      decode-map-as cursor $ List respo.schema/CoordKey
+                      , s
+                  (:reel/reset)
+                    dispatch! $ app.schema/ServiceOp :reel/reset
+                  (:reel/merge)
+                    dispatch! $ app.schema/ServiceOp :reel/merge
+                  (:effect/persist)
+                    dispatch! $ app.schema/ServiceOp :effect/persist
+                  _ $ raise "|Unknown Copyboard view operation"
+              raise "|Unknown Copyboard view operation"
           :examples $ []
-          :schema $ quote $ Fn AnyEnum (-> Unit) (:features :io :js-ffi :state) (:open :reflect)
+          :schema $ quote $ Fn Input (-> Unit) (:generics Input) (:features :io :js-ffi :state) (:open :reflect)
         'load-preview-data! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn load-preview-data! ()
             try
