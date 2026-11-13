@@ -159,7 +159,7 @@
             match
               js-await $ clipboard-read-text!
               (:ok text)
-                respo.controller.client/send-to-component! $ :: :clipboard/read text
+                respo.controller.client/send-to-component! $ app.schema/ClipboardEvent :clipboard/read text
               (:err error) (js/console.warn |Clipboard-read-skipped error)
             , &unit
           :examples $ []
@@ -262,7 +262,7 @@
                           :home $ comp-home (>> states :snippets) snippets show-all? $ Some user
                           :profile $ comp-profile user $ decode-map-as
                             .unwrap-or (get router :data) ({})
-                            Map Dynamic String
+                            Map Number String
                           _ $ <> $ str router
                         div ({})
                           if (non-nil? preview-data)
@@ -533,13 +533,16 @@
                   hint-fn $ Fn AnyEnum
                     Fn AnyEnum (-> Unit) (:open :reflect)
                     -> Unit
-                  match event $
-                    :clipboard/read text
-                    when
-                      not $ .blank? $ decode-map-as text 'String
-                      .show-with-text confirm-plugin d!
-                        str "|Clipboard content detected, would you like to fill it into the input box?\n" text
-                        fn () $ d! $ app.schema/RemoteOp :snippet/create (decode-map-as text 'String)
+                  match (try-decode-map-as event 'app.schema/ClipboardEvent)
+                    (:ok clipboard)
+                      match clipboard $
+                        :clipboard/read text
+                        when
+                          not $ .blank? text
+                          .show-with-text confirm-plugin d!
+                            str "|Clipboard content detected, would you like to fill it into the input box?\n" text
+                            fn () $ d! $ app.schema/RemoteOp :snippet/create text
+                    (:err _) &unit
                   , &unit
                 div ({}) (textarea props) (respo.comp.space/space-y 8)
                   div
@@ -1030,7 +1033,7 @@
                       , &unit
                   <> "|Log out"
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) (Map Dynamic String) (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn (Map Tag Dynamic) (Map Number String) (-> respo.schema/Component) (:features :js-ffi)
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.comp.profile
           :require
@@ -1251,6 +1254,11 @@
         :code $ quote $ ns app.config
     'app.schema $ %{} 'FileEntry
       :defs $ {}
+        'ClipboardEvent $ %{} 'CodeEntry
+          :doc "|Local Copyboard event delivered through the shared Respo listener bus."
+          :code $ quote $ defenum ClipboardEvent (:clipboard/read String)
+          :examples $ []
+          :schema $ quote EnumDef
         'ConnectionOp $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defenum ConnectionOp (:session/connect) (:session/disconnect)
           :examples $ []
@@ -1752,10 +1760,10 @@
                 router $ as-tag-map $ .unwrap-or (get session :router) ({})
                 sessions $ decode-map-as
                   .unwrap-or (get db :sessions) ({})
-                  Map Dynamic $ Map Tag Dynamic
+                  Map Number $ Map Tag Dynamic
                 users $ decode-map-as
                   .unwrap-or (get db :users) ({})
-                  Map Dynamic $ Map Tag Dynamic
+                  Map String $ Map Tag Dynamic
                 show-all? $ decode-map-as
                   .unwrap-or (get session :show-all?) false
                   , 'Bool
@@ -1799,9 +1807,9 @@
                     , 'String
           :examples $ []
           :schema $ quote $ Fn
-            Map Dynamic $ Map Tag Dynamic
-            Map Dynamic $ Map Tag Dynamic
-            -> $ Map Dynamic String
+            Map Number $ Map Tag Dynamic
+            Map String $ Map Tag Dynamic
+            -> $ Map Number String
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.twig.container
           :require
