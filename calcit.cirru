@@ -35,7 +35,8 @@
                 raw-host $ contract/object-field "|connection query" query |host
                 raw-port $ contract/object-field "|connection query" query |port
                 host $ if (js-present? raw-host) (contract/expect-string "|connection host" raw-host) js/location.hostname
-                port $ if (js-present? raw-port) (contract/expect-string "|connection port" raw-port) (:port config/site)
+                port $ if (js-present? raw-port) (contract/expect-string "|connection port" raw-port)
+                  str $ :port config/site
               ws-connect!
                 if config/dev? (str |ws:// host |: port) |wss://cp.topix.im/ws
                 {}
@@ -1261,6 +1262,10 @@
           :code $ quote $ defenum ClipboardEvent (:clipboard/read String)
           :examples $ []
           :schema $ quote EnumDef
+        'ConfigValue $ %{} 'CodeEntry (:doc |)
+          :code $ quote $ defunion ConfigValue String Number
+          :examples $ []
+          :schema $ quote UnionDef
         'ConnectionOp $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defenum ConnectionOp (:session/connect) (:session/disconnect)
           :examples $ []
@@ -1323,7 +1328,7 @@
           :code $ quote $ def configs
             {} (:storage-key |workflow-storage) (:port 11006)
           :examples $ []
-          :schema $ quote Dynamic
+          :schema $ quote $ Map Tag ConfigValue
         'database $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def database
             {}
@@ -1345,7 +1350,7 @@
                   .unwrap-or (.get values 1) |unknown
                   .unwrap $ .get values 1
           :examples $ []
-          :schema $ quote $ Fn Dynamic Bool (-> Credentials)
+          :schema $ quote $ Fn Input Bool (-> Credentials) (:generics Input)
         'decode-server-event $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn decode-server-event (raw)
             if (enum? raw)
@@ -1417,8 +1422,9 @@
                 _ None
               , None
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Option ServerOp
+            :generics Input
         'notification $ %{} 'CodeEntry (:doc |)
           :code $ quote $ def notification
             {} (:id nil) (:kind nil) (:text nil)
