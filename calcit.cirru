@@ -1937,8 +1937,9 @@
           :code $ quote $ defn as-snippets (value)
             decode-map-as value $ List $ Map Tag Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ List $ Map Tag Dynamic
+            :generics Input
         'create $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn create (db op-data sid op-id op-time)
             update db :snippets $ fn (ss)
@@ -1984,14 +1985,16 @@
           :code $ quote $ defn as-map (value)
             decode-map-as value $ Map Tag Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Map Tag Dynamic
+            :generics Input
         'as-users $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn as-users (value)
             decode-map-as value $ Map Dynamic $ Map Tag Dynamic
           :examples $ []
-          :schema $ quote $ Fn Dynamic
+          :schema $ quote $ Fn Input
             -> $ Map Dynamic $ Map Tag Dynamic
+            :generics Input
         'log-in $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn log-in (db op-data sid op-id op-time)
             let
