@@ -395,11 +395,12 @@
       :defs $ {}
         'AnchorElement $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait AnchorElement (:href 'String) (:download 'String)
-            :setAttribute $ Fn String String $ -> Dynamic
-            :click $ Fn $ -> Dynamic
-            :remove $ Fn $ -> Dynamic
+            .set-attribute! $ Fn AnchorElement String String $ -> Unit
+            .click! $ Fn AnchorElement $ -> Unit
+            .remove! $ Fn AnchorElement $ -> Unit
           :examples $ []
-          :ffi $ {} (:backend :js) (:kind :external-object)
+          :ffi $ {} (:backend :js) (:kind :external-object) (:target :browser)
+            :names $ {} (:click! |click) (:remove! |remove) (:set-attribute! |setAttribute)
           :schema $ quote Trait
         'ClipboardData $ %{} 'CodeEntry (:doc |)
           :code $ quote $ deftrait ClipboardData (:files 'app.comp.upload/FileList)
@@ -701,11 +702,11 @@
                   , |download
               set! (.-href a-el) object-url
               set! (.-download a-el) name
-              .!setAttribute a-el |download name
+              .set-attribute! a-el |download name
               js/console.log name a-el url
               js/document.body.appendChild a-el
-              .!click a-el
-              .!remove a-el
+              .click! a-el
+              .remove! a-el
             , &unit
           :examples $ []
           :schema $ quote $ Fn String (-> Unit) (:features :js-ffi) (:async)
