@@ -1845,13 +1845,13 @@
                 match action
                   (:user/log-in op-data) (user/log-in db op-data sid op-id op-time)
                   (:user/sign-up op-data) (user/sign-up db op-data sid op-id op-time)
-                  (:user/log-out) (user/log-out db nil sid op-id op-time)
+                  (:user/log-out) (user/log-out db sid)
                   (:session/remove-message op-data) (session/remove-message db op-data sid op-id op-time)
                   (:router/change op-data) (router/change db op-data sid op-id op-time)
                   (:snippet/create op-data) (snippet/create db op-data sid op-id op-time)
                   (:snippet/create-file url kind) (snippet/create-file db url kind sid op-id op-time)
                   (:snippet/remove-one op-data) (snippet/remove-one db op-data sid op-id op-time)
-                  (:session/show-all) (session/show-all db nil sid op-id op-time)
+                  (:session/show-all) (session/show-all db sid)
           :examples $ []
           :schema $ quote $ Fn (Map Tag Dynamic) app.schema/RecordOp Number String Number
             -> $ Map Tag Dynamic
@@ -1923,10 +1923,10 @@
                 :: :session/remove-message $ {} $ :id id
                 app.schema/remote-op-to-wire $ app.schema/RemoteOp :session/remove-message id
         'show-all $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn show-all (db op-data sid op-id op-time)
+          :code $ quote $ defn show-all (db sid)
             assoc-in db ([] :sessions sid :show-all?) true
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) Dynamic Number String Number
+          :schema $ quote $ Fn (Map Tag Dynamic) Number
             -> $ Map Tag Dynamic
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.session
@@ -2043,10 +2043,10 @@
           :schema $ quote $ Fn (Map Tag Dynamic) app.schema/Credentials Number String Number
             -> $ Map Tag Dynamic
         'log-out $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defn log-out (db op-data session-id op-id op-time)
+          :code $ quote $ defn log-out (db session-id)
             assoc-in db ([] :sessions session-id :user-id) nil
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic) Dynamic Number String Number
+          :schema $ quote $ Fn (Map Tag Dynamic) Number
             -> $ Map Tag Dynamic
         'sign-up $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn sign-up (db op-data sid op-id op-time)
