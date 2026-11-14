@@ -301,30 +301,6 @@
             List $ Map Tag Dynamic
             -> respo.schema/Component
             :features :io
-        'comp-offline $ %{} 'CodeEntry (:doc |)
-          :code $ quote $ defcomp comp-offline (state)
-            div
-              {}
-                :class-name $ str-spaced css/expand css/fullscreen css/column-dispersive
-                :style $ {} $ :background-color (:theme config/site)
-              div $ {} $ :style
-                {} $ :height 0
-              div $ {} $ :style
-                {}
-                  :background-image $ str "|url(" (:icon config/site) "|)"
-                  :width 128
-                  :height 128
-                  :background-size :contain
-              div
-                {}
-                  :style $ {} (:cursor :pointer) (:line-height |32px)
-                  :on-click $ fn (e d!)
-                    d! $ app.schema/LocalOp :effect/connect
-                <>
-                  if (= state :offline) "|Socket broken, click to retry." |Loading
-                  {} (:font-family ui/font-fancy) (:font-size 24)
-          :examples $ []
-          :schema $ quote $ Fn Dynamic (-> respo.schema/Component)
         'comp-preview $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn comp-preview (states preview-data stage)
             div ({})
