@@ -1406,7 +1406,7 @@
           :code $ quote $ def notification
             {} (:id nil) (:kind nil) (:text nil)
           :examples $ []
-          :schema $ quote $ Map Tag Dynamic
+          :schema $ quote $ Map Tag Nil
         'remote-op-to-wire $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn remote-op-to-wire (op)
             match op
@@ -1457,7 +1457,7 @@
           :code $ quote $ def user
             {} (:name nil) (:id nil) (:nickname nil) (:avatar nil) (:password nil) (:token nil)
           :examples $ []
-          :schema $ quote $ Map Tag Dynamic
+          :schema $ quote $ Map Tag Nil
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.schema
     'app.server $ %{} 'FileEntry
