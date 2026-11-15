@@ -1735,8 +1735,9 @@
               (:some raw)
                 if (nil? raw) None $ Some $ decode-map-as raw 'String
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic)
+          :schema $ quote $ Fn (Map Tag V)
             -> $ Option String
+            :generics V
         'twig-container $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn twig-container (db session reel-length)
             let
@@ -1785,16 +1786,33 @@
               MapEntryDecision :keep k $ match (session-user-id session)
                 (:none) |unknown
                 (:some id)
-                  decode-map-as
-                    .unwrap-or
-                      get-in users $ [] id :name
-                      , |unknown
-                    , 'String
+                  match
+                    get-in users $ [] id :name
+                    (:ok raw) (decode-map-as raw String)
+                    (:err _) |unknown
           :examples $ []
           :schema $ quote $ Fn
-            Map Number $ Map Tag Dynamic
-            Map String $ Map Tag Dynamic
+            Map Number $ Map Tag SessionValue
+            Map String $ Map Tag UserValue
             -> $ Map Number String
+            :generics SessionValue UserValue
+          :tests $ [] $ %{} 'TestEntry (:name |members-preserve-unknown-and-names)
+            :code $ quote $ let
+                sessions $ decode-map-as
+                  {}
+                    1 $ {} $ :user-id nil
+                    2 $ {} $ :user-id |u1
+                    3 $ {} $ :user-id |u2
+                  Map Number $ Map Tag Dynamic
+                users $ decode-map-as
+                  {}
+                    |u1 $ {} $ :name |Alice
+                    |u2 $ {}
+                  Map String $ Map Tag Dynamic
+              assert=
+                {} (1 |unknown) (2 |Alice) (3 |unknown)
+                twig-members sessions users
+            :tags $ #{} :unit
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.twig.container
           :require
@@ -1805,8 +1823,19 @@
         %{} 'CodeEntry (:doc |)
           :code $ quote $ defn twig-user (user) (dissoc user :password)
           :examples $ []
-          :schema $ quote $ Fn (Map Tag Dynamic)
-            -> $ Map Tag Dynamic
+          :schema $ quote $ Fn (Map Tag V)
+            -> $ Map Tag V
+            :generics V
+          :tests $ [] $ %{} 'TestEntry (:name |strips-password-preserves-fields)
+            :code $ quote $ let
+                user $ {} (:name |Alice) (:password |secret) (:role |editor)
+                view $ twig-user user
+              assert-type view $ Map Tag String
+              assert=
+                {} (:name |Alice) (:role |editor)
+                , view
+              assert= false $ .contains-key? view :password
+            :tags $ #{} :unit
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.twig.user (:require)
     'app.updater $ %{} 'FileEntry
