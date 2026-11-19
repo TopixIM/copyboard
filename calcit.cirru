@@ -166,7 +166,7 @@
               (:err error) (js/console.warn |Clipboard-read-skipped error)
             , &unit
           :examples $ []
-          :schema $ quote $ Fn (-> Unit) (:features :js-ffi) (:async)
+          :schema $ quote $ Fn (-> Unit) (:features :js-ffi :state) (:async)
         'reload! $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn reload! ()
             if
@@ -300,7 +300,7 @@
           :schema $ quote $ Fn (Map Tag Dynamic) app.schema/ViewState
             List $ Map Tag Dynamic
             -> respo.schema/Component
-            :features :io
+            :features :io :state
         'comp-preview $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn comp-preview (states preview-data stage)
             div ({})
@@ -314,7 +314,7 @@
           :examples $ []
           :schema $ quote $ Fn respo.schema/States
             List $ Map Tag Dynamic
-            , Tag (-> respo.schema/Element) (:features :io)
+            , Tag (-> respo.schema/Element) (:features :io :state)
         'comp-status-color $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-status-color (color)
             div $ {} (:class-name style-status-buble)
@@ -511,7 +511,7 @@
               []
                 respo.schema/RespoListener :name :clipboard-listener :handler $ fn (event d!)
                   hint-fn $ Fn AnyEnum
-                    Fn AnyEnum (-> Unit) (:open :reflect)
+                    Fn AnyEnum (-> Unit) (:open :reflect) (:features :io :state)
                     -> Unit
                   match (try-decode-map-as event 'app.schema/ClipboardEvent)
                     (:ok clipboard)
@@ -569,7 +569,7 @@
                         <> |Send
                   .render confirm-plugin
           :examples $ []
-          :schema $ quote $ Fn respo.schema/States (Map Tag Dynamic) (-> respo.schema/Component) (:features :js-ffi)
+          :schema $ quote $ Fn respo.schema/States (Map Tag Dynamic) (-> respo.schema/Component) (:features :io :js-ffi :state)
         'comp-home $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-home (states snippets show-all? user)
             div (home-props user)
@@ -604,7 +604,7 @@
             , Bool
               Option $ Map Tag Dynamic
               -> respo.schema/Component
-              :features :io :js-ffi
+              :features :io :js-ffi :state
         'comp-snippet $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defcomp comp-snippet (states k snippet)
             let
@@ -674,7 +674,7 @@
                   comp-i :trash-2 14 $ hsl 0 80 50
                 .render remove-plugin
           :examples $ []
-          :schema $ quote $ Fn respo.schema/States respo.schema/CoordKey (Map Tag Dynamic) (-> respo.schema/Component) (:features :io :js-ffi)
+          :schema $ quote $ Fn respo.schema/States respo.schema/CoordKey (Map Tag Dynamic) (-> respo.schema/Component) (:features :io :js-ffi :state)
         'copy-to-clipboard $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn copy-to-clipboard (url) (hint-fn Async)
             let
