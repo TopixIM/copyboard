@@ -10,9 +10,9 @@
     |Respo/respo-ui.calcit |0.15.6
     |Respo/respo-value.calcit |0.7.8
     |Respo/respo.calcit |0.19.12
-    |calcit-lang/calcit-http |0.4.1
+    |calcit-lang/calcit-http |0.4.2
     |calcit-lang/calcit-wss |0.2.45
-    |calcit-lang/calcit.std |0.2.57
+    |calcit-lang/calcit.std |0.2.58
     |calcit-lang/js-ffi |0.2.18
     |calcit-lang/recollect |0.3.9
     |mvc-works/ws-edn.calcit |0.2.5
