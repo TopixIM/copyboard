@@ -2082,11 +2082,23 @@
             -> $ Map Tag Dynamic
         'unwrap-user $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn unwrap-user (value)
-            .unwrap-or value $ assert-type ({}) (Map Tag Dynamic)
+            match value
+              (:some v) v
+              (:none)
+                assert-type ({}) (Map Tag V)
           :examples $ []
           :schema $ quote $ Fn
-            Option $ Map Tag Dynamic
-            -> $ Map Tag Dynamic
+            Option $ Map Tag V
+            -> $ Map Tag V
+            :generics V
+          :tests $ [] $ %{} 'TestEntry (:name |preserves-user-or-empty)
+            :code $ quote $ do
+              assert=
+                {} (:name |alice) (:extra |keep)
+                unwrap-user $ Some $ {} (:name |alice) (:extra |keep)
+              assert= ({})
+                unwrap-user $ assert-type None $ Option (Map Tag String)
+            :tags $ #{} :unit
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.user
           :require $ calcit.std.hash :refer $ md5
