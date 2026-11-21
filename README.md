@@ -8,7 +8,9 @@ Copyboard
 
 Requires Calcit and @calcit/procs 0.44.0, Node.js 24+, and Yarn 4.18.0.
 
-升级部署时，前端与原生服务需要分别通过检查，服务端需准备匹配的 Calcit 和 native 模块。
+升级部署时，前端与原生服务需要分别通过检查，服务端需准备匹配的 Calcit 和 native 模块。 HTTP 0.4.2、标准库 0.2.58 和 WSS 0.2.46 对应 Calcit 0.44.0。
+正式依赖图对齐 Cumulo Reel 0.3.8、WS-EDN 0.2.6 与 Recollect 0.3.10，前后端需配套更新。
+
 WebSocket 继续收发原 Cirru EDN 格式，HTTP 预览和存档沿用原字段及路径。升级前备份存档。
 
 浏览器和服务端在内部使用具名操作与 union。浏览器区分本地状态、远端操作和服务控制，
