@@ -37,15 +37,19 @@
                 host $ if (js-present? raw-host) (contract/expect-string "|connection host" raw-host) js/location.hostname
                 port $ if (js-present? raw-port) (contract/expect-string "|connection port" raw-port)
                   str $ :port config/site
-              ws-connect!
-                if config/dev? (str |ws:// host |: port) |wss://cp.topix.im/ws
-                {}
-                  :on-open $ fn (event) (simulate-login!)
-                  :on-close $ fn (event)
+              let
+                  on-open $ fn (event) (simulate-login!) &unit
+                  on-close $ fn (event)
                     reset! *store $ app.schema/ViewState :offline
                     js/console.error "|Lost connection!"
-                  :on-data $ fn (raw)
+                    , &unit
+                  on-data $ fn (raw)
                     on-server-data $ schema/decode-server-event raw
+                    , &unit
+                ws-edn.client/ws-connect-typed!
+                  if config/dev? (str |ws:// host |: port) |wss://cp.topix.im/ws
+                  ws-edn.client/ClientConfig :retry-base-ms None :retry-max-ms None :retry-jitter None :heartbeat-timeout-ms None :class-mapper $ {}
+                  ws-edn.client/ClientCallbacks :on-open (Some on-open) :on-close (Some on-close) :on-error None :on-data $ Some on-data
             , &unit
           :examples $ []
           :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
