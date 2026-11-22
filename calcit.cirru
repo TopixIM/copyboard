@@ -37,15 +37,19 @@
                 host $ if (js-present? raw-host) (contract/expect-string "|connection host" raw-host) js/location.hostname
                 port $ if (js-present? raw-port) (contract/expect-string "|connection port" raw-port)
                   str $ :port config/site
-              ws-connect!
-                if config/dev? (str |ws:// host |: port) |wss://cp.topix.im/ws
-                {}
-                  :on-open $ fn (event) (simulate-login!)
-                  :on-close $ fn (event)
+              let
+                  on-open $ fn (event) (simulate-login!) &unit
+                  on-close $ fn (event)
                     reset! *store $ app.schema/ViewState :offline
                     js/console.error "|Lost connection!"
-                  :on-data $ fn (raw)
+                    , &unit
+                  on-data $ fn (raw)
                     on-server-data $ schema/decode-server-event raw
+                    , &unit
+                ws-edn.client/ws-connect-typed!
+                  if config/dev? (str |ws:// host |: port) |wss://cp.topix.im/ws
+                  ws-edn.client/ClientConfig :retry-base-ms None :retry-max-ms None :retry-jitter None :heartbeat-timeout-ms None :class-mapper $ {}
+                  ws-edn.client/ClientCallbacks :on-open (Some on-open) :on-close (Some on-close) :on-error None :on-data $ Some on-data
             , &unit
           :examples $ []
           :schema $ quote $ Fn (-> Unit) (:features :io :js-ffi :state)
@@ -2082,11 +2086,23 @@
             -> $ Map Tag Dynamic
         'unwrap-user $ %{} 'CodeEntry (:doc |)
           :code $ quote $ defn unwrap-user (value)
-            .unwrap-or value $ assert-type ({}) (Map Tag Dynamic)
+            match value
+              (:some v) v
+              (:none)
+                assert-type ({}) (Map Tag V)
           :examples $ []
           :schema $ quote $ Fn
-            Option $ Map Tag Dynamic
-            -> $ Map Tag Dynamic
+            Option $ Map Tag V
+            -> $ Map Tag V
+            :generics V
+          :tests $ [] $ %{} 'TestEntry (:name |preserves-user-or-empty)
+            :code $ quote $ do
+              assert=
+                {} (:name |alice) (:extra |keep)
+                unwrap-user $ Some $ {} (:name |alice) (:extra |keep)
+              assert= ({})
+                unwrap-user $ assert-type None $ Option (Map Tag String)
+            :tags $ #{} :unit
       :ns $ %{} 'NsEntry (:doc |)
         :code $ quote $ ns app.updater.user
           :require $ calcit.std.hash :refer $ md5
